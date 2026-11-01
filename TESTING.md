@@ -28,7 +28,7 @@ In terminal 2:
 ```powershell
 npm.cmd test                  # Node.js unit/integration tests
 npm.cmd run check             # Build + Node.js tests
-npm.cmd run test:browser      # Existing Playwright suite
+npm.cmd run test:browser      # Existing Playwright suite (default port 4587; SHEETFLOW_TEST_PORT overrides it)
 npx.cmd playwright test e2e/sheet-reparenting.spec.mjs  # Targeted tests
 ```
 

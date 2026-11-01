@@ -32,7 +32,7 @@ npm run check  # build and tests
 npm start      # serves at http://127.0.0.1:4173
 ```
 
-Node 18+ is documented. On Windows PowerShell, `npm.cmd` may be necessary. `clasp` is only for a specifically approved and verified Apps Script deployment. Current direct view hashes: `#sheet`, `#kanban`, `#gantt`.
+Node 20+ is documented. On Windows PowerShell, `npm.cmd` may be necessary. `clasp` is only for a specifically approved and verified Apps Script deployment. Current direct view hashes: `#sheet`, `#kanban`, `#gantt`.
 
 Relevant files: `Index.html` (shell/forms), `Styles.html` (styling), `Client.html` (client interactions), `Core.js` (shared model/validation), `Code.js` (server/Sheets logic), `scripts/build.mjs` (standalone build), `tests/` (existing tests). Inspect actual code before proposing changes; these descriptions are a starting point, not exhaustive.
 
