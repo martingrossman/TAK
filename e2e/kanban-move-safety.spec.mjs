@@ -28,7 +28,9 @@ async function setup(page, cloud = false) {
       moveIssue(id, updates, version, operationId) { h.requests.push({ id, updates, version, operationId, success: this.success, failure: this.failure }); }
     }; } });
   }, { initial, cloud });
-  await page.goto('/#kanban'); await expect(page.locator('[data-board-move="PRJ-4"]')).toBeVisible();
+  await page.goto('/#kanban');
+  await page.locator('#swimlanes-toggle').check();
+  await expect(page.locator('[data-board-move="PRJ-4"]')).toBeVisible();
 }
 const issues = page => page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues);
 async function drop(page, id, epic, status) {

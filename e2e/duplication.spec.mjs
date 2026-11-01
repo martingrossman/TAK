@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function duplicate(page, descendants = true) {
-  await page.locator('[data-issue="PRJ-1"]').click();
+  await page.locator('[data-issue="PRJ-1"] .card-title').click();
   await page.locator('#duplicate-subtasks').setChecked(descendants);
   await page.getByRole('button', { name: 'Duplicate', exact: true }).click();
   await expect(page.locator('#dialog-id')).not.toHaveText('PRJ-1');

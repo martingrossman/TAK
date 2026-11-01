@@ -54,9 +54,12 @@
     order.unshift('id');
     return order;
   }
-  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: true, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let parentOptionIndex = null;
+  let leafProgressCache = { issues: null, counts: null };
+  const scrollByView = {}, renderedView = { current: '' };
+  let pendingSheetFocus = null;
   let edited = null, initialForm = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
   let createStarted = false, issueReturnFocus = null;
@@ -66,7 +69,7 @@
   try { state.bulkDraft = JSON.parse(localStorage.getItem(bulkDraftStorageKey) || 'null'); } catch (ignore) { state.bulkDraft = null; }
   try { state.undoStack = JSON.parse(localStorage.getItem(undoStorageKey) || '[]') || []; } catch (ignore) { state.undoStack = []; }
   try { const saved = JSON.parse(localStorage.getItem(savedViewsStorageKey) || '[]'); state.savedViews = Array.isArray(saved) ? saved.filter(view => view && view.id && view.name && view.state) : []; } catch (ignore) { state.savedViews = []; }
-  try { const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}'); state.collapsedEpics = ui.collapsedEpics || {}; state.collapsedGanttStories = ui.collapsedGanttStories || {}; state.collapsedSheetParents = ui.collapsedSheetParents || {}; state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder); state.swimlanes = ui.swimlanes !== false; state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260); } catch (ignore) { state.collapsedEpics = {}; state.collapsedGanttStories = {}; state.collapsedSheetParents = {}; state.visibleColumns = defaultSheetColumnOrder.slice(); }
+  try { const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}'); state.collapsedEpics = ui.collapsedEpics || {}; state.collapsedGanttStories = ui.collapsedGanttStories || {}; state.collapsedSheetParents = ui.collapsedSheetParents || {}; state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder); state.swimlanes = ui.swimlanes === true; state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260); } catch (ignore) { state.collapsedEpics = {}; state.collapsedGanttStories = {}; state.collapsedSheetParents = {}; state.visibleColumns = defaultSheetColumnOrder.slice(); }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
   function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
@@ -93,7 +96,7 @@
     state.assignee = String(view.assignee || ''); state.status = C.statuses.includes(view.status) ? view.status : ''; state.sprint = String(view.sprint || ''); state.epic = String(view.epic || '');
     state.sort = view.sort === 'taskTypeId' || C.fields.some(field => field.key === view.sort) ? view.sort : 'rank'; state.ascending = view.ascending !== false;
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
-    state.swimlanes = view.swimlanes !== false;
+    state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
@@ -187,7 +190,14 @@
   function saveDraft(input, version, operationId) {
     const key = draftKey(input); if (!key) return;
     state.drafts[key] = { input: { ...input }, version, operationId, savedAt: new Date().toISOString() };
-    localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
+    try { localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts)); }
+    catch (error) {
+      const message = 'Browser storage is unavailable. This edit was not sent; copy the draft before leaving this page.';
+      state.drafts[key].status = 'failed'; state.drafts[key].error = message;
+      syncText('Draft not stored', true);
+      renderDraftRecovery();
+      throw new Error(message);
+    }
   }
   function clearDraft(id) {
     const key = id || '__new__'; if (!state.drafts[key]) return;
@@ -214,15 +224,24 @@
     const db = JSON.parse(raw);
     if (!db || !Array.isArray(db.issues) || !Number.isInteger(db.sequence)) throw new Error('The browser project could not be read. Export or back up this browser’s storage before repairing it.');
     if (!Array.isArray(db.comments)) db.comments = [];
-    const seen = new Set();
-    for (const issue of db.issues) {
-      if (!issue.id || seen.has(issue.id)) throw new Error('Browser project contains missing or duplicate IDs.');
-      seen.add(issue.id); C.validate(issue, db.issues);
-    }
+    C.validateProject(db.issues);
     return db;
   }
   async function rpc(method, ...args) {
-    if (isCloud) return new Promise((resolve, reject) => google.script.run.withSuccessHandler(resolve).withFailureHandler(error => reject(new Error(error.message || String(error))))[method](...args));
+    if (isCloud) return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        callback(value);
+      };
+      const timer = setTimeout(() => finish(reject, new Error('Request timed out. Its result is unconfirmed.')), 30000);
+      try {
+        google.script.run.withSuccessHandler(value => finish(resolve, value))
+          .withFailureHandler(error => finish(reject, new Error(error.message || String(error))))[method](...args);
+      } catch (error) { finish(reject, error); }
+    });
     if (method === 'createIssuesBatch') {
       const items = args[0] || [], receipts = JSON.parse(localStorage.getItem(localReceiptStorageKey) || '{}'), results = [], errors = [];
       for (let index = 0; index < items.length; index++) {
@@ -365,7 +384,7 @@
   function setBusy(value) {
     state.busy = value; document.body.classList.toggle('busy', value);
     $$('#issue-form input, #issue-form select, #issue-form textarea, #issue-form button').forEach(el => el.disabled = value);
-    $('#refresh').disabled = value; $('#create-issue').disabled = value || !state.ready; $('#add-epic').disabled = value || !state.ready;
+    $('#refresh').disabled = value; $('#create-issue').disabled = value || !state.ready; $('#command-open').disabled = value || !state.ready; $('#add-epic').disabled = value || !state.ready;
     $('#saved-view-select').disabled = value || !state.ready; $('#save-view-open').disabled = value || !state.ready; $('#delete-saved-view').disabled = value || !state.ready;
     $$('.sheet-row-controls button').forEach(button => {
       if (button.hasAttribute('data-sheet-drag-id')) {
@@ -554,6 +573,7 @@
   function draftStatus(key, draft) {
     if (state.saveQueues[saveQueueKeyFor(key)]) return 'Saving…';
     if (draft.status === 'conflict' || /changed elsewhere|conflict|stale|revision/i.test(draft.error || '')) return 'Conflict · draft kept';
+    if (draft.status === 'unconfirmed') return 'Save unconfirmed · draft kept';
     return draft.error ? 'Failed · draft kept' : 'Save unconfirmed · draft kept';
   }
   function recoveryMarkup(key, draft, primary = false) {
@@ -655,6 +675,14 @@
       ? savedDraft?.initialCreate || { input: { ...requestInput }, version }
       : savedDraft?.initialCreate;
     const before = input.id ? issueById(input.id) : null, undoBefore = before ? undoSnapshot(before) : null;
+    const changedFields = before ? C.fields.filter(field => Object.hasOwn(input, field.key) && String(input[field.key]) !== String(before[field.key])).map(field => field.key) : [];
+    const directSheetPriority = state.view === 'sheet' && mutation === 'saveIssue' && changedFields.length === 1 && changedFields[0] === 'priority' && !state.priority && !['priority', 'updatedAt', 'completedDate', 'progress', 'dependencies'].includes(state.sort) && !state.visibleColumns.some(key => ['updatedAt', 'completedDate', 'dependencies'].includes(key)) && (before.status !== 'Done' || before.progress === 100);
+    const renderSavedPriority = () => {
+      const cell = directSheetPriority && state.view === 'sheet' ? document.querySelector(`.cell-input[data-id="${CSS.escape(input.id)}"][data-field="priority"]`) : null;
+      if (!cell) { render(); return; }
+      cell.value = issueById(input.id)?.priority || cell.value;
+      renderDraftRecovery();
+    };
     if (quickCreate) quickSavesInFlight.add(queueKey);
     saveDraft(requestInput, version, operationId);
     state.drafts[draftKeyNow].mutation = mutation;
@@ -665,7 +693,7 @@
     }
     if (input.id) {
       const current = issueById(input.id);
-      if (current) { state.issues = state.issues.map(issue => issue.id === input.id ? { ...issue, ...issueValues(requestInput) } : issue); render(); }
+      if (current) { state.issues = state.issues.map(issue => issue.id === input.id ? { ...issue, ...issueValues(requestInput) } : issue); renderSavedPriority(); }
     } else if (quickCreate) render();
     const previous = state.saveQueues[queueKey] || Promise.resolve();
     const job = previous.catch(() => null).then(async acknowledged => {
@@ -706,13 +734,13 @@
         if (latestDraft?.operationId === operationId) clearDraft(result.id);
         if (options.recordUndo !== false) recordUndo(undoBefore, result, operationId);
         $('#error-banner').hidden = true;
-        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); render(); notify(message);
+        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); renderSavedPriority(); notify(message);
         return result;
       } catch (error) {
         const failedDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
         if (failedDraft?.operationId === operationId) {
           failedDraft.error = error.message || String(error);
-          failedDraft.status = /changed elsewhere|conflict|stale|revision/i.test(failedDraft.error) ? 'conflict' : 'failed';
+          failedDraft.status = /changed elsewhere|conflict|stale|revision/i.test(failedDraft.error) ? 'conflict' : /timed out|acknowledgement lost|unconfirmed/i.test(failedDraft.error) ? 'unconfirmed' : 'failed';
           localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
         }
         if (quickCreate) render();
@@ -736,7 +764,9 @@
   }
   async function createQuickTask(status = 'Backlog', sourceInput = null) {
     if (typeof status !== 'string') status = 'Backlog';
-    const input = sourceInput || $('#quick-title'), title = input.value.trim(), kind = input.dataset.quickKind || 'Task', parentId = kind === 'Epic' ? '' : (input.dataset.quickParentId || '');
+    const input = sourceInput || $('#quick-title'), title = input.value.trim(), kind = input.dataset.quickKind || 'Task';
+    const selectedEpic = issueById(state.epic)?.type === 'Epic' ? state.epic : '';
+    const parentId = kind === 'Epic' ? '' : (input.dataset.quickParentId ?? selectedEpic);
     if (!title || !state.ready) return;
     const quickDraftKey = input.dataset.quickDraftKey || `quick-${newOperationId()}`;
     const operationId = state.drafts[quickDraftKey]?.operationId || input.dataset.quickOperationId || quickDraftKey;
@@ -893,8 +923,11 @@
   function render() {
     if (!state.ready) return;
     renderDraftRecovery();
+    renderQuickEntryPending();
     const quickEntryState = state.view === 'kanban' ? captureBoardQuickEntries() : null;
     const ganttEntryState = state.view === 'gantt' ? captureGanttQuickEntry() : null;
+    const sheetFocus = state.view === 'sheet' ? (pendingSheetFocus || captureSheetCellFocus()) : null;
+    pendingSheetFocus = null;
     if (state.view !== 'gantt') closeGanttQuickPopover();
     renderSavedViews();
     renderFilters();
@@ -902,22 +935,38 @@
     const swimlanesToggle = $('#swimlanes-toggle');
     if (swimlanesToggle) swimlanesToggle.checked = state.swimlanes;
     const issues = filtered();
+    const content = $('#view-content'), oldScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
+    const currentScroll = oldScroll ? { left: oldScroll.scrollLeft, top: oldScroll.scrollTop } : null;
+    if (renderedView.current && currentScroll) scrollByView[renderedView.current] = currentScroll;
+    const restoreScroll = renderedView.current === state.view ? currentScroll : scrollByView[state.view];
+    renderedView.current = state.view;
     $('#view-title').textContent = { sheet: 'Sheet', kanban: 'Kanban', gantt: 'Gantt' }[state.view];
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
     $('#issue-count').textContent = `${issues.length} of ${state.issues.length} issues`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
-    const hasPendingRows = ['kanban', 'gantt'].includes(state.view) && pendingQuickTasks().length;
+    const hasPendingRows = pendingQuickTasks().length;
     if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; return; }
     if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; return; }
-    const content = $('#view-content'), oldScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
-    const scroll = oldScroll ? { left: oldScroll.scrollLeft, top: oldScroll.scrollTop } : null;
     if (state.view === 'kanban') renderBoard(issues);
     if (state.view === 'sheet') renderSheet(issues);
     if (state.view === 'gantt') renderGantt(issues);
     const nextScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
-    if (scroll && nextScroll) { nextScroll.scrollLeft = scroll.left; nextScroll.scrollTop = scroll.top; }
+    if (restoreScroll && nextScroll) { nextScroll.scrollLeft = restoreScroll.left; nextScroll.scrollTop = restoreScroll.top; }
     if (quickEntryState) restoreBoardQuickEntries(quickEntryState);
     if (ganttEntryState) restoreGanttQuickEntry(ganttEntryState);
+    if (sheetFocus) restoreSheetCellFocus(sheetFocus);
+  }
+  function captureSheetCellFocus() {
+    const active = document.activeElement;
+    if (!active?.matches('.cell-input[data-id][data-field]')) return null;
+    const textInput = active.tagName === 'INPUT' && active.type === 'text';
+    return { id: active.dataset.id, field: active.dataset.field, start: textInput ? active.selectionStart : null, end: textInput ? active.selectionEnd : null };
+  }
+  function restoreSheetCellFocus(snapshot) {
+    const cell = document.querySelector(`.cell-input[data-id="${CSS.escape(snapshot.id)}"][data-field="${CSS.escape(snapshot.field)}"]`);
+    if (!cell) return;
+    cell.focus({ preventScroll: true });
+    if (snapshot.start !== null && cell.tagName === 'INPUT' && cell.type === 'text') cell.setSelectionRange(snapshot.start, snapshot.end);
   }
   function boardQuickEntryKey(element) { return JSON.stringify([element.closest('.swimlane')?.dataset.epicLane || '', element.closest('.column')?.dataset.status || '']); }
   function captureBoardQuickEntries() {
@@ -954,16 +1003,31 @@
       ...state.quickQueue.filter(item => !state.drafts[item.draftKey]).map(item => ({ id: `pending:${item.draftKey}`, draftKey: item.draftKey, summary: item.title, type: item.kind, status: item.status, parentId: item.parentId || '', pendingState: 'queued' }))
     ].map((issue, index) => ({ ...issue, rank: firstRank + index * 1000 }));
   }
+  function renderQuickEntryPending() {
+    const panel = $('#quick-entry-pending'), pending = state.view === 'sheet' ? pendingQuickTasks() : [];
+    panel.innerHTML = pending.map(issue => {
+      const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
+      return `<div class="quick-entry-pending-item ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><strong>${escape(issue.summary)}</strong><span>${escape(issue.status)} · ${label}</span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div>`;
+    }).join('');
+    panel.hidden = !pending.length;
+  }
+  function retryQuickDraft(key) {
+    const draft = state.drafts[key];
+    if (draft && !quickSavesInFlight.has(key)) persist(draft.input, draft.version, 'Work item saved', 'saveIssue', { retry: true }).catch(() => {});
+  }
+  $('#quick-entry-pending').addEventListener('click', event => {
+    const retry = event.target.closest('[data-retry-quick]');
+    if (retry) retryQuickDraft(retry.dataset.retryQuick);
+  });
   function pendingQuickCard(issue) {
     const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
     return `<article class="card pending-card ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${label}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${issue.error ? `<p class="pending-error">${escape(issue.error)}</p><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</article>`;
   }
   function card(issue) {
-    const prioritySymbol = ['Highest', 'High'].includes(issue.priority) ? '↑' : ['Low', 'Lowest'].includes(issue.priority) ? '↓' : '−';
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
     const parent = issueById(issue.parentId);
     const dates = effectiveDates(issue);
-    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}" title="Alt + ↑/↓ reorder · Alt + ←/→ change status"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${escape(issue.id)}</span><span class="priority ${priorityClass}">${prioritySymbol} ${escape(issue.priority)}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${parent ? `<div class="card-parent" title="${escape(parent.summary)}">ϟ ${escape(parent.summary)}</div>` : ''}<div class="card-labels">${taskTypeBadge(issue.taskTypeId)}${C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('')}</div><div class="card-footer"><span class="card-due ${dates.dueDate && dates.dueDate < today() && issue.status !== 'Done' ? 'overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${dates.dueDate ? escape(shortDate(dates.dueDate)) : 'No due date'}</span>${avatar(issue.assignee)}<button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button></div></article>`;
+    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}" title="Alt + ↑/↓ reorder · Alt + ←/→ change status"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${escape(issue.id)}</span><select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select></div><h3 class="card-title">${escape(issue.summary)}</h3>${parent ? `<div class="card-parent" title="${escape(parent.summary)}">ϟ ${escape(parent.summary)}</div>` : ''}<div class="card-labels">${taskTypeBadge(issue.taskTypeId)}${C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('')}</div><label class="card-assignee-field"><span>Assignee</span><input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label><div class="card-footer"><span class="card-due ${dates.dueDate && dates.dueDate < today() && issue.status !== 'Done' ? 'overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${dates.dueDate ? escape(shortDate(dates.dueDate)) : 'No due date'}</span>${avatar(issue.assignee)}<button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button></div></article>`;
   }
   function renderBoard(issues) {
     const pending = pendingQuickTasks();
@@ -1003,25 +1067,32 @@
   }
   function laneCollapsedKey(lane) { return lane.id || noEpicLaneKey; }
   function laneCollapsed(lane) { return Boolean(state.collapsedEpics[laneCollapsedKey(lane)]); }
+  function overallLeafProgress(laneId) {
+    if (leafProgressCache.issues !== state.issues) leafProgressCache = { issues: state.issues, counts: C.leafWorkProgress(state.issues) };
+    return leafProgressCache.counts.get(laneId) || { done: 0, total: 0 };
+  }
   function renderSwimlaneHeader(lane, extraClass = '') {
-    const workItems = lane.items.filter(issue => issue.type !== 'Epic');
-    const done = workItems.filter(issue => issue.status === 'Done').length;
-    const progress = workItems.length ? Math.round(done / workItems.length * 100) : 0;
+    const visibleCount = lane.items.filter(issue => issue.type !== 'Epic').length;
+    const visibleLabel = visibleCount === 1 ? 'item' : 'items';
+    const { done, total } = overallLeafProgress(lane.id);
+    const progress = total ? Math.round(done / total * 100) : 0;
     const epic = lane.id ? issueById(lane.id) : null;
     const statusIndex = epic ? C.statuses.indexOf(epic.status) : -1;
     const dates = epic ? effectiveDates(epic) : null;
     const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const dragHint = epic && extraClass.includes('gantt-lane-title') ? '; drag to reorder' : '';
-    return `<div class="swimlane-header ${extraClass}"><button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${epic && extraClass.includes('gantt-lane-title') ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ''} aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${escape(lane.label)}${dragHint}"><span class="epic-dot"></span>${epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : ''}<strong>${escape(lane.label)}</strong>${epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#F1F5F9'};--status-color:${statusColors[statusIndex] || '#64748B'}">${escape(epic.status)}</span>` : ''}${range}<span class="swimlane-progress">${workItems.length} items · ${progress}% complete</span><span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span></button>${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}</div>`;
+    return `<div class="swimlane-header ${extraClass}"><button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${epic && extraClass.includes('gantt-lane-title') ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ''} aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${escape(lane.label)}${dragHint}"><span class="epic-dot"></span>${epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : ''}<strong>${escape(lane.label)}</strong>${epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#F1F5F9'};--status-color:${statusColors[statusIndex] || '#64748B'}">${escape(epic.status)}</span>` : ''}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span><span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span></button>${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}</div>`;
   }
   function renderSheet(issues) {
     const definitions = sheetColumnDefinitions(), columns = normalizeSheetColumnOrder(state.visibleColumns).map(key => definitions.get(key)).filter(Boolean);
     const list = sortSheetItems(issues), visibleIds = [];
+    const scopeLengths = new Map(), scopePositions = new Map();
+    list.forEach(issue => { const scope = issue.parentId || '', index = scopeLengths.get(scope) || 0; scopePositions.set(issue.id, index); scopeLengths.set(scope, index + 1); });
     const manualOrder = state.sort === 'rank' && state.ascending;
     const renderRow = node => {
       const issue = node.issue, treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
-      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td>${field.key === 'id' ? `<div class="sheet-id-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.id)}: ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, list)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
+      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td>${field.key === 'id' ? `<div class="sheet-id-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.id)}: ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
     };
     const body = state.swimlanes
       ? epicLanes(list).map(lane => {
@@ -1073,11 +1144,10 @@
     const collapsed = Boolean(state.collapsedSheetParents[node.issue.id]), action = collapsed ? 'Expand' : 'Collapse';
     return `<button type="button" class="sheet-tree-toggle" data-toggle-sheet-parent="${escape(node.issue.id)}" aria-expanded="${!collapsed}" aria-label="${action} ${node.childCount} direct children under ${escape(node.issue.summary)}" title="${action} ${node.childCount} child items">${collapsed ? '+' : '−'}</button>`;
   }
-  function sheetRowControls(issue, list) {
-    const visible = list.filter(item => sheetSameOrderScope(item, issue));
-    const index = visible.findIndex(item => item.id === issue.id), disabled = state.busy;
+  function sheetRowControls(issue, index, scopeLength) {
+    const disabled = state.busy;
     const label = `${issue.id}: ${issue.summary}`;
-    return `<span class="sheet-row-controls"><button type="button" data-sheet-move="up" data-sheet-move-id="${escape(issue.id)}" data-sheet-boundary="${index <= 0}" aria-label="Move ${escape(label)} up" title="Move up" ${disabled || index <= 0 ? 'disabled' : ''}>↑</button><button type="button" data-sheet-move="down" data-sheet-move-id="${escape(issue.id)}" data-sheet-boundary="${index < 0 || index >= visible.length - 1}" aria-label="Move ${escape(label)} down" title="Move down" ${disabled || index < 0 || index >= visible.length - 1 ? 'disabled' : ''}>↓</button><button type="button" class="sheet-row-grip" data-sheet-drag-id="${escape(issue.id)}" draggable="${!disabled}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" aria-label="Drag ${escape(label)} to reorder or change parent; use Alt+ArrowUp or Alt+ArrowDown to reorder" title="Drag to a row center to change parent, or its edge to reorder" ${disabled ? 'aria-disabled="true"' : ''}>⠿</button></span>`;
+    return `<span class="sheet-row-controls"><button type="button" data-sheet-move="up" data-sheet-move-id="${escape(issue.id)}" data-sheet-boundary="${index <= 0}" aria-label="Move ${escape(label)} up" title="Move up" ${disabled || index <= 0 ? 'disabled' : ''}>↑</button><button type="button" data-sheet-move="down" data-sheet-move-id="${escape(issue.id)}" data-sheet-boundary="${index < 0 || index >= scopeLength - 1}" aria-label="Move ${escape(label)} down" title="Move down" ${disabled || index < 0 || index >= scopeLength - 1 ? 'disabled' : ''}>↓</button><button type="button" class="sheet-row-grip" data-sheet-drag-id="${escape(issue.id)}" draggable="${!disabled}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" aria-label="Drag ${escape(label)} to reorder or change parent; use Alt+ArrowUp or Alt+ArrowDown to reorder" title="Drag to a row center to change parent, or its edge to reorder" ${disabled ? 'aria-disabled="true"' : ''}>⠿</button></span>`;
   }
   function sheetSameOrderScope(a, b) { return a && b && (a.parentId || '') === (b.parentId || ''); }
   function sheetDragHelp() { return 'Drag to a row center or Epic header to change parent; drop at a row edge to reorder. Arrow buttons keep the current parent.'; }
@@ -1160,7 +1230,7 @@
   function cell(issue, field) {
     const key = field.key, value = issue[key];
     if (key === 'taskTypeId') return taskTypeBadge(value);
-    if (key === 'id') return `<button class="issue-link" data-open="${escape(issue.id)}">${typeIcon(issue.type)}${escape(value)}</button>`;
+    if (key === 'id') return `<span class="sheet-id-text"><button class="issue-link" data-open="${escape(issue.id)}">${typeIcon(issue.type)}${escape(value)}</button><span class="sheet-id-summary" title="${escape(issue.summary)}">${escape(issue.summary)}</span></span>`;
     if (issue.type === 'Epic' && ['startDate', 'dueDate'].includes(key)) { const dates = effectiveDates(issue); return `<span class="cell-readonly" title="Derived from scheduled child issues; edit child dates to change the Epic schedule.">${escape(dates[key] || '—')}</span>`; }
     if (['createdAt', 'updatedAt', 'completedDate', 'rank'].includes(key)) return `<span class="cell-readonly" title="${escape(value)}">${escape(field.kind === 'timestamp' ? timestamp(value) : value || '—')}</span>`;
     const attr = `class="cell-input ${key === 'summary' ? 'cell-summary' : ''}" data-field="${key}" data-id="${escape(issue.id)}" aria-label="${escape(issue.id + ' ' + field.label)}"`;
@@ -1614,15 +1684,83 @@
     ['query', 'priority', 'tag', 'startAfter', 'dueBefore', 'assignee', 'status', 'sprint', 'epic'].forEach(key => state[key] = '');
     state.types = []; $('#search').value = ''; render();
   }
+  const commandDialog = $('#command-dialog'), commandQuery = $('#command-query');
+  let commandReturnFocus = null, commandMatches = [];
+  function renderCommands() {
+    const query = commandQuery.value.toLocaleLowerCase().trim();
+    const actions = [
+      { label: 'New issue', kind: 'action', action: 'new' },
+      { label: 'Switch to Sheet', kind: 'action', action: 'sheet' },
+      { label: 'Switch to Kanban', kind: 'action', action: 'kanban' },
+      { label: 'Switch to Gantt', kind: 'action', action: 'gantt' },
+      { label: 'Focus search', kind: 'action', action: 'search' }
+    ];
+    commandMatches = actions.filter(item => !query || item.label.toLocaleLowerCase().includes(query));
+    if (query) commandMatches.push(...state.issues.filter(issue => `${issue.id} ${issue.summary}`.toLocaleLowerCase().includes(query)).slice(0, 20).map(issue => ({ label: `${issue.id} · ${issue.summary}`, kind: 'issue', id: issue.id })));
+    $('#command-results').innerHTML = commandMatches.length
+      ? commandMatches.map((item, index) => `<button type="button" data-command-index="${index}"><span>${escape(item.label)}</span><small>${item.kind === 'issue' ? 'Issue' : 'Action'}</small></button>`).join('')
+      : '<p>No matching issues or actions.</p>';
+  }
+  function closeCommands() {
+    commandDialog.close();
+    const previous = commandReturnFocus;
+    commandReturnFocus = null;
+    if (previous?.isConnected) previous.focus({ preventScroll: true });
+  }
+  function openCommands() {
+    if (!state.ready || state.busy || $('dialog[open]')) return;
+    commandReturnFocus = document.activeElement;
+    commandQuery.value = '';
+    renderCommands();
+    commandDialog.showModal();
+    commandQuery.focus();
+  }
+  function runCommand(index) {
+    const item = commandMatches[index];
+    if (!item) return;
+    closeCommands();
+    if (item.kind === 'issue') openIssue(item.id);
+    else if (item.action === 'new') openIssue();
+    else if (item.action === 'search') $('#search').focus();
+    else setView(item.action);
+  }
+  $('#command-open').addEventListener('click', openCommands);
+  $('#command-close').addEventListener('click', closeCommands);
+  commandDialog.addEventListener('cancel', event => { event.preventDefault(); closeCommands(); });
+  commandQuery.addEventListener('input', renderCommands);
+  commandQuery.addEventListener('keydown', event => {
+    if (event.isComposing || event.keyCode === 229) return;
+    if (event.key === 'Enter') { event.preventDefault(); runCommand(0); }
+    else if (event.key === 'ArrowDown') { event.preventDefault(); $('#command-results button')?.focus(); }
+  });
+  $('#command-results').addEventListener('click', event => {
+    const button = event.target.closest('[data-command-index]');
+    if (button) runCommand(Number(button.dataset.commandIndex));
+  });
+  $('#command-results').addEventListener('keydown', event => {
+    const current = event.target.closest('[data-command-index]');
+    if (!current || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+    event.preventDefault();
+    const next = current[event.key === 'ArrowDown' ? 'nextElementSibling' : 'previousElementSibling'];
+    if (next?.matches('[data-command-index]')) next.focus();
+    else if (event.key === 'ArrowUp') commandQuery.focus();
+  });
   function setView(view) {
     if (!['sheet', 'kanban', 'gantt'].includes(view)) view = 'kanban';
     state.view = view; if (location.hash !== '#' + view) location.hash = view; render();
   }
   $$('[data-view]').forEach(el => el.addEventListener('click', () => setView(el.dataset.view)));
-  window.addEventListener('hashchange', () => setView(location.hash.slice(1)));
+  window.addEventListener('hashchange', () => {
+    const view = location.hash.slice(1);
+    if (view !== state.view) setView(view);
+  });
   $('#create-issue').addEventListener('click', () => openIssue());
   $('#quick-add').addEventListener('click', () => createQuickTask('Backlog'));
-  $('#quick-title').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); createQuickTask(); } });
+  $('#quick-title').addEventListener('keydown', event => {
+    if (event.isComposing || event.keyCode === 229) return;
+    if (event.key === 'Enter') { event.preventDefault(); createQuickTask(); }
+    else if (event.key === 'Escape') { event.target.value = ''; event.target.blur(); }
+  });
   $('#undo-last-action').addEventListener('click', undoLastCommand);
   $('#bulk-create-open').addEventListener('click', openBulkCreate);
   $('#bulk-create-close').addEventListener('click', () => $('#bulk-create-dialog').close());
@@ -1753,10 +1891,10 @@
     if (state.busy || Date.now() < suppressClickUntil) return;
     const retryQuick = event.target.closest('[data-retry-quick]');
     if (retryQuick) {
-      const draft = state.drafts[retryQuick.dataset.retryQuick];
-      if (draft && !quickSavesInFlight.has(retryQuick.dataset.retryQuick)) persist(draft.input, draft.version, 'Work item saved', 'saveIssue', { retry: true }).catch(() => {});
+      retryQuickDraft(retryQuick.dataset.retryQuick);
       return;
     }
+    if (event.target.closest('[data-card-priority], [data-card-assignee]')) return;
     if (state.view === 'sheet' && event.target.closest('.sheet-columns-menu > summary')) { state.sheetColumnsMenuOpen = !state.sheetColumnsMenuOpen; return; }
     const boardMove = event.target.closest('[data-board-move]');
     if (boardMove) { openBoardMove(boardMove.dataset.boardMove); return; }
@@ -1831,12 +1969,49 @@
   $('#view-content').addEventListener('focusin', event => { if (state.view === 'gantt') { const source = event.target.closest('.gantt-row-label[data-preview-id], .gantt-bar[data-preview-id]'); if (source) showGanttCommentPreview(source); } });
   $('#view-content').addEventListener('focusout', event => { if (state.view === 'gantt' && !event.relatedTarget?.closest?.('.gantt-row-label[data-preview-id], .gantt-bar[data-preview-id]')) hideGanttCommentPreview(); });
   $('#view-content').addEventListener('keydown', event => {
+    if (state.view === 'sheet' && event.target.matches('.cell-input[data-id][data-field]') && !event.isComposing && event.keyCode !== 229) {
+      const cell = event.target, issue = issueById(cell.dataset.id);
+      if (event.key === 'Tab') {
+        const cells = $$('.cell-input'), next = cells[cells.indexOf(cell) + (event.shiftKey ? -1 : 1)];
+        if (next) {
+          event.preventDefault();
+          if (!cell.checkValidity()) { cell.reportValidity(); return; }
+          const id = next.dataset.id, field = next.dataset.field;
+          pendingSheetFocus = { id, field, start: null, end: null };
+          cell.dispatchEvent(new Event('change', { bubbles: true }));
+          document.querySelector(`.cell-input[data-id="${CSS.escape(id)}"][data-field="${CSS.escape(field)}"]`)?.focus({ preventScroll: true });
+          pendingSheetFocus = null;
+        }
+        return;
+      }
+      if (cell.tagName !== 'INPUT') return;
+      if (event.key === 'Escape') { event.preventDefault(); if (issue) cell.value = String(issue[cell.dataset.field] ?? ''); return; }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const sameColumn = $$('.cell-input').filter(input => input.dataset.field === cell.dataset.field);
+        const next = sameColumn[sameColumn.indexOf(cell) + (event.shiftKey ? -1 : 1)];
+        const destination = next ? { id: next.dataset.id, field: next.dataset.field } : null;
+        pendingSheetFocus = destination ? { ...destination, start: null, end: null } : null;
+        cell.dispatchEvent(new Event('change', { bubbles: true }));
+        if (destination) document.querySelector(`.cell-input[data-id="${CSS.escape(destination.id)}"][data-field="${CSS.escape(destination.field)}"]`)?.focus({ preventScroll: true });
+        pendingSheetFocus = null;
+        return;
+      }
+    }
+    if (event.target.matches('[data-card-assignee]') && !event.isComposing && event.keyCode !== 229) {
+      if (event.key === 'Enter') { event.preventDefault(); event.target.dispatchEvent(new Event('change', { bubbles: true })); return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.target.value = issueById(event.target.dataset.cardAssignee)?.assignee || ''; return; }
+    }
     if (event.target.matches('.gantt-resizer') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); applyGanttLabelWidth(state.ganttLabelWidth + (event.key === 'ArrowRight' ? 10 : -10)); saveUiState(); }
     else if (state.view === 'sheet' && event.altKey && event.target.matches('.sheet-row-grip') && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); moveSheetWithKeyboard(event.target.dataset.sheetDragId, event.key === 'ArrowUp' ? 'up' : 'down'); }
     else if (state.view === 'gantt' && event.altKey && event.target.matches('.gantt-label-hit, .swimlane-collapse[data-gantt-drag-id]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveGanttWithKeyboard(event.target.dataset.ganttDragId, event.key.slice(5).toLowerCase(), event.target); }
     else if (state.view === 'kanban' && event.altKey && event.target.matches('.card') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveCardWithKeyboard(event.target.dataset.issue, event.key.slice(5).toLowerCase(), event.target); }
     else if (event.target.matches('.gantt-label-hit, .gantt-bar') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); const target = event.target.closest('[data-open], [data-bar]'); openIssue(target?.dataset.open || target?.dataset.bar); }
-    else if (event.target.matches('.column-quick-add input') && event.key === 'Enter') { event.preventDefault(); event.target.dataset.quickKind = event.target.parentElement.querySelector('[data-quick-kind]').value; event.target.dataset.quickParentId = event.target.closest('.swimlane')?.dataset.epicLane || ''; createQuickTask(event.target.dataset.quickTitle, event.target); }
+    else if (event.target.matches('.column-quick-add input')) {
+      if (event.isComposing || event.keyCode === 229) return;
+      if (event.key === 'Escape') { event.target.value = ''; event.target.blur(); }
+      else if (event.key === 'Enter') { event.preventDefault(); event.target.dataset.quickKind = event.target.parentElement.querySelector('[data-quick-kind]').value; event.target.dataset.quickParentId = event.target.closest('.swimlane')?.dataset.epicLane || ''; createQuickTask(event.target.dataset.quickTitle, event.target); }
+    }
     else if (event.target.matches('.card') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue); }
   });
   $('#view-content').addEventListener('change', async event => {
@@ -1855,8 +2030,32 @@
     }
     if (target.id === 'timeline-date') { if (C.validDate(target.value) && target.checkValidity()) { state.timelineStart = target.value; render(); } return; }
     if (target.id === 'timeline-zoom') { state.zoom = target.value; render(); return; }
+    if (target.matches('[data-card-priority]')) {
+      const issue = issueById(target.dataset.cardPriority);
+      if (!issue || state.busy || target.value === issue.priority) return;
+      const job = persist({ id: issue.id, priority: target.value }, issue.version, 'Priority updated');
+      const focusPriority = () => document.querySelector(`[data-card-priority="${CSS.escape(issue.id)}"]`)?.focus({ preventScroll: true });
+      focusPriority();
+      try { await job; focusPriority(); }
+      catch (error) { render(); focusPriority(); notify(error.message, true); }
+      return;
+    }
+    if (target.matches('[data-card-assignee]')) {
+      const issue = issueById(target.dataset.cardAssignee);
+      if (!issue || state.busy) return;
+      const assignee = target.value.trim();
+      if (assignee === issue.assignee) { target.value = assignee; return; }
+      const keepFocus = document.activeElement === target;
+      const focusAssignee = () => { if (keepFocus) document.querySelector(`[data-card-assignee="${CSS.escape(issue.id)}"]`)?.focus({ preventScroll: true }); };
+      const job = persist({ id: issue.id, assignee }, issue.version, 'Assignee updated');
+      focusAssignee();
+      try { await job; focusAssignee(); }
+      catch (error) { render(); focusAssignee(); notify(error.message, true); }
+      return;
+    }
     if (!target.dataset.field || state.busy) return;
     const issue = issueById(target.dataset.id); if (!issue) return;
+    if (String(issue[target.dataset.field] ?? '') === target.value) return;
     if (!target.checkValidity()) { target.reportValidity(); return; }
     try { await persist({ ...issue, [target.dataset.field]: target.value }, issue.version); }
     catch (error) { render(); notify(error.message, true); }
@@ -1878,6 +2077,7 @@
       sheetDropPreview = null; const root = $('#sheet-unparent-drop'); if (root) root.hidden = issue.type === 'Epic';
       sheetSource.closest('.sheet-issue-row')?.classList.add('sheet-dragging'); return;
     }
+    if (event.target.closest('[data-card-priority], [data-card-assignee]')) { event.preventDefault(); return; }
     const card = event.target.closest('.card'); if (!card || state.busy) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
@@ -1990,6 +2190,7 @@
   $('#view-content').addEventListener('pointercancel', event => { if (!endGanttResize(event)) endTimeline(event, true); });
   window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); });
   document.addEventListener('keydown', event => {
+    if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k' && !event.isComposing && !event.target.isContentEditable && !event.target.matches('input,textarea,select') && !$('dialog[open]')) { event.preventDefault(); openCommands(); return; }
     if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
     if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); openIssue(); }

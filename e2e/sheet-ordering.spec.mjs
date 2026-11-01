@@ -14,6 +14,7 @@ const issues = [
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(({ key, issues }) => {
     if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ issues, comments: [], sequence: 6 }));
+    if (!localStorage.getItem('sheetflow.ui.v1')) localStorage.setItem('sheetflow.ui.v1', JSON.stringify({ swimlanes: true }));
   }, { key, issues });
   await page.goto('/#sheet');
   await expect(page.locator('[data-sheet-row-id="PRJ-2"]')).toBeVisible();

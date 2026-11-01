@@ -9,9 +9,9 @@ test('Kanban exposes a persisted swimlane toggle', async () => {
   const [index, client] = await Promise.all([read('Index.html'), read('Client.html')]);
 
   assert.match(index, /id="swimlanes-toggle"/);
-  assert.match(index, /type="checkbox" checked/);
-  assert.match(client, /swimlanes: true/);
-  assert.match(client, /state\.swimlanes = ui\.swimlanes !== false/);
+  assert.match(index, /id="swimlanes-toggle" type="checkbox">/);
+  assert.match(client, /swimlanes: false/);
+  assert.match(client, /state\.swimlanes = ui\.swimlanes === true/);
   assert.match(client, /setSwimlanes\(event\.target\.checked\); render\(\)/);
 });
 
@@ -47,6 +47,8 @@ test('grouped lanes represent epics once and keep epic details and schedule acce
   assert.ok(client.includes('class="swimlane-edit" data-open="${escape(epic.id)}"'));
   assert.ok(client.includes('const epicSchedule = epic ? C.epicScheduleRange(epic.id, state.issues) : null;'));
   assert.ok(client.includes('renderTrack(epic, topOffset + 22, epicSchedule, true)'));
+  assert.ok(client.includes('C.leafWorkProgress(state.issues)'));
+  assert.ok(client.includes('visible ${visibleLabel} · ${done}/${total} leaf work done'));
 });
 
 test('Epic dates are derived from child schedules throughout the UI', async () => {

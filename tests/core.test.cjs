@@ -24,6 +24,16 @@ test('sample project has unique IDs and valid hierarchy, dates, and dependencies
   const issues = C.sample(day); assert.equal(new Set(issues.map(i => i.id)).size, issues.length);
   issues.forEach(i => C.validate(i, issues));
 });
+test('whole-project validation keeps hierarchy and dependency safety at large local sizes', () => {
+  const sample = C.sample(day);
+  assert.equal(C.validateProject(sample), sample);
+  const many = Array.from({ length: 2000 }, (_, index) => make({ id: `PRJ-${index + 1}`, summary: `Task ${index + 1}` }));
+  assert.equal(C.validateProject(many), many);
+  assert.throws(() => C.validateProject([make(), make()]), /missing or duplicate IDs/);
+  assert.throws(() => C.validateProject([make({ parentId: 'PRJ-404' })]), /existing parent/);
+  assert.throws(() => C.validateProject([make({ dependencies: 'PRJ-2' }), make({ id: 'PRJ-2', dependencies: 'PRJ-1' })]), /Dependencies cannot form a cycle/);
+});
+
 test('blank projects allow unassigned, unscheduled work', () => assert.doesNotThrow(() => C.validate(make(), [])));
 test('calendar arithmetic works across leap days and daylight saving boundaries', () => {
   assert.equal(C.addDays('2024-02-28', 1), '2024-02-29');
@@ -81,6 +91,24 @@ test('epic schedule range follows the earliest start and latest due date of sche
 
   assert.deepEqual(C.epicScheduleRange(epic.id, [epic, story, nestedTask, directTask, unscheduledTask, unrelatedTask]), { startDate: '2026-03-25', dueDate: '2026-05-11' });
   assert.equal(C.epicScheduleRange(epic.id, [epic, unscheduledTask]), null);
+});
+test('Epic progress counts overall leaf work once, including hidden descendants', () => {
+  const issues = [
+    make({ id: 'E1', type: 'Epic' }),
+    make({ id: 'E2', type: 'Epic' }),
+    make({ id: 'E3', type: 'Epic' }),
+    make({ id: 'S1', type: 'Story', parentId: 'E1', status: 'Done' }),
+    make({ id: 'T1', parentId: 'S1', status: 'Done' }),
+    make({ id: 'T2', parentId: 'S1', status: 'Done' }),
+    make({ id: 'T3', parentId: 'S1', status: 'Backlog' }),
+    make({ id: 'S2', type: 'Story', parentId: 'E2', status: 'Review' }),
+    make({ id: 'U1', status: 'Done' })
+  ];
+  const progress = C.leafWorkProgress(issues);
+  assert.deepEqual(progress.get('E1'), { done: 2, total: 3 });
+  assert.deepEqual(progress.get('E2'), { done: 0, total: 1 });
+  assert.equal(progress.has('E3'), false);
+  assert.deepEqual(progress.get(''), { done: 1, total: 1 });
 });
 test('missing, self-referential and cyclic dependencies are rejected', () => {
   const a = make(), b = make({ id: 'PRJ-2', dependencies: a.id });

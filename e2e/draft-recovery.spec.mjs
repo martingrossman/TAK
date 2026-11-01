@@ -37,6 +37,22 @@ const finish = (page, index = 0, outcome = 'ok') => page.evaluate(([i, o]) => re
 const priority = (page, value, id = 'PRJ-1') => page.locator(`[data-id="${id}"][data-field="priority"]`).selectOption(value);
 const recovery = (page, id = 'PRJ-1') => page.locator(`#draft-recovery [data-recovery-key="${id}"]`);
 
+test('unavailable draft storage blocks the request and offers an in-page copy', async ({ page }) => {
+  await cloud(page);
+  await page.evaluate(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === 'sheetflow.pending-drafts.v1') throw new Error('Storage quota exceeded');
+      return setItem.call(this, key, value);
+    };
+  });
+  await priority(page, 'High');
+  await expect.poll(() => count(page)).toBe(0);
+  await expect(recovery(page)).toContainText('Browser storage is unavailable');
+  await expect(recovery(page).getByRole('button', { name: 'Copy draft', exact: true })).toBeVisible();
+  await expect(page.locator('#sync-status')).toHaveText('Draft not stored');
+});
+
 test('failed edit restores exact draft and recovery controls in the editor after reload', async ({ page }) => {
   await cloud(page); await priority(page, 'High'); await finish(page, 0, 'fail');
   const original = (await drafts(page))['PRJ-1'];
@@ -136,12 +152,12 @@ test('local storage write failure is recoverable after reload and saves only loc
       return setItem.call(this, key, value);
     };
   });
-  await priority(page, 'High', 'PRJ-3'); await expect(recovery(page, 'PRJ-3')).toContainText('Failed');
+  await priority(page, 'Highest', 'PRJ-3'); await expect(recovery(page, 'PRJ-3')).toContainText('Failed');
   await page.reload();
   await recovery(page, 'PRJ-3').getByRole('button', { name: 'Retry', exact: true }).click();
   await expect.poll(() => drafts(page)).toEqual({});
   await expect(page.locator('#sync-status')).toHaveText('Saved in this browser');
-  await page.reload(); await expect(page.locator('[data-id="PRJ-3"][data-field="priority"]')).toHaveValue('High');
+  await page.reload(); await expect(page.locator('[data-id="PRJ-3"][data-field="priority"]')).toHaveValue('Highest');
 });
 
 test('reloaded move draft retries the move endpoint with its original revision and identity', async ({ page }) => {

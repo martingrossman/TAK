@@ -33,10 +33,10 @@ test('personal mode skips automatic polls while manual refresh and team polling 
 
 test('comments load on opening a task and a late response cannot replace another task discussion',async ({page})=>{
   expect(await page.evaluate(()=>personalHarness.comments.length)).toBe(0);
-  await page.locator('[data-issue="PRJ-1"]').click();
+  await page.locator('[data-issue="PRJ-1"] .card-title').click();
   await expect(page.locator('#comments-section')).toContainText('Loading comments');
   await page.getByRole('button',{name:'Close issue',exact:true}).click();
-  await page.locator('[data-issue="PRJ-2"]').click();
+  await page.locator('[data-issue="PRJ-2"] .card-title').click();
   await page.evaluate(()=>personalHarness.comments[0].success([{id:'COM-1',taskId:'PRJ-1',body:'First task discussion'}]));
   await expect(page.locator('#comments-section')).toContainText('Loading comments');
   await expect(page.locator('#comments-section')).not.toContainText('First task discussion');
@@ -46,7 +46,7 @@ test('comments load on opening a task and a late response cannot replace another
 });
 
 test('a comment load failure can be retried without closing the editor',async ({page})=>{
-  await page.locator('[data-issue="PRJ-1"]').click();
+  await page.locator('[data-issue="PRJ-1"] .card-title').click();
   await page.evaluate(()=>personalHarness.comments[0].failure({message:'Temporary comment error'}));
   await expect(page.locator('#comments-section')).toContainText('Temporary comment error');
   await page.getByRole('button',{name:'Retry comments',exact:true}).click();

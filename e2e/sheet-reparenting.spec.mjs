@@ -64,6 +64,14 @@ const rawProject = page => page.evaluate(key => localStorage.getItem(key), proje
 const original = id => initial.find(issue => issue.id === id);
 const businessValues = ({ parentId, rank, updatedAt, version, ...issue }) => issue;
 
+async function enableGroupedSheet(page) {
+  await page.evaluate(() => {
+    const key = 'sheetflow.ui.v1', ui = JSON.parse(localStorage.getItem(key) || '{}');
+    localStorage.setItem(key, JSON.stringify({ ...ui, swimlanes: true }));
+  });
+  await page.reload();
+}
+
 async function dropOnSheetTarget(page, sourceId, target, edge = 'center') {
   // Start the native drag before scrolling: after a move, the source and
   // destination may no longer fit in the viewport together.
@@ -133,6 +141,7 @@ test('a Task can move to another Story while retaining dates, status, nested chi
 });
 
 test('dropping on a collapsed Epic expands the destination and reveals its moved Story', async ({ page }) => {
+  await enableGroupedSheet(page);
   const header = page.locator('[data-sheet-parent-target="PRJ-7"]');
   await header.locator('[data-toggle-lane="PRJ-7"]').click();
   await expect(row(page, 'PRJ-8')).toBeHidden();
@@ -145,6 +154,7 @@ test('dropping on a collapsed Epic expands the destination and reveals its moved
 });
 
 test('dropping a Story on another Epic header moves its complete subtree into that lane', async ({ page }) => {
+  await enableGroupedSheet(page);
   await dropOnSheetTarget(page, 'PRJ-2', page.locator('[data-sheet-parent-target="PRJ-7"]'));
   await expect(row(page, 'PRJ-2')).toHaveAttribute('data-sheet-parent', 'PRJ-7');
   const lane = page.locator('[data-sheet-parent-target="PRJ-7"]').locator('xpath=ancestor::tbody');

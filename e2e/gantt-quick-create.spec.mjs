@@ -32,6 +32,7 @@ test.beforeEach(async ({ page }) => {
     }; } });
   }, { issues: initial, blank: C.blank() });
   await page.goto('/#gantt');
+  await page.locator('#swimlanes-toggle').check();
   await expect(page.locator('.gantt-grid')).toBeVisible();
 });
 

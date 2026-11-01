@@ -48,7 +48,7 @@ var TrackerCore = (function () {
     delete issue._row; delete issue.version;
     return issue;
   }
-  function validate(issue, issues) {
+  function validateScalars(issue) {
     if (!issue.summary || issue.summary.length > 250) throw new Error('Summary must be between 1 and 250 characters.');
     if (!types.includes(issue.type)) throw new Error('Select a valid issue type.');
     if (!statuses.includes(issue.status)) throw new Error('Select a valid status.');
@@ -63,6 +63,9 @@ var TrackerCore = (function () {
     });
     if (issue.progress > 100) throw new Error('Progress must be between 0 and 100.');
     if (issue.startDate && issue.dueDate && issue.startDate > issue.dueDate) throw new Error('Due date cannot be before start date.');
+  }
+  function validate(issue, issues) {
+    validateScalars(issue);
     var all = issues.filter(function (i) { return i.id !== issue.id; }).concat([issue]);
     var byId = new Map(all.map(function (i) { return [i.id, i]; }));
     function checkParent(child) {
@@ -93,6 +96,45 @@ var TrackerCore = (function () {
     visit(issue.id);
     return issue;
   }
+  function validateProject(issues) {
+    var byId = new Map();
+    issues.forEach(function (issue) {
+      if (!issue.id || byId.has(issue.id)) throw new Error('Browser project contains missing or duplicate IDs.');
+      validateScalars(issue);
+      byId.set(issue.id, issue);
+    });
+    issues.forEach(function (issue) {
+      if (!issue.parentId) return;
+      var parent = byId.get(issue.parentId);
+      if (!parent || parent.id === issue.id) throw new Error('Select an existing parent other than this issue.');
+      if (issue.type === 'Epic' || (issue.type === 'Story' && parent.type !== 'Epic') || (['Task', 'Bug'].includes(issue.type) && !['Epic', 'Story', 'Task', 'Bug'].includes(parent.type))) throw new Error('Epics have no parent; stories belong to epics; tasks and bugs may belong to epics, stories, or other tasks.');
+    });
+    var parentVisited = new Set();
+    issues.forEach(function (issue) {
+      if (parentVisited.has(issue.id)) return;
+      var path = new Set(), current = issue;
+      while (current && !parentVisited.has(current.id)) {
+        if (path.has(current.id)) throw new Error('Parent hierarchy cannot form a cycle.');
+        path.add(current.id);
+        current = current.parentId ? byId.get(current.parentId) : null;
+      }
+      path.forEach(function (id) { parentVisited.add(id); });
+    });
+    var visiting = new Set(), visited = new Set();
+    function visit(id) {
+      if (visiting.has(id)) throw new Error('Dependencies cannot form a cycle.');
+      if (visited.has(id)) return;
+      visiting.add(id);
+      var issue = byId.get(id);
+      split(issue.dependencies).forEach(function (dependencyId) {
+        if (dependencyId === id || !byId.has(dependencyId)) throw new Error('Dependencies must reference other existing issue IDs.');
+        visit(dependencyId);
+      });
+      visiting.delete(id); visited.add(id);
+    }
+    issues.forEach(function (issue) { visit(issue.id); });
+    return issues;
+  }
   function canDelete(id, issues) {
     var linked = issues.filter(function (i) { return i.parentId === id || split(i.dependencies).includes(id); });
     if (linked.length) throw new Error('Remove parent/dependency links from ' + linked.map(function (i) { return i.id; }).join(', ') + ' before deleting.');
@@ -119,6 +161,25 @@ var TrackerCore = (function () {
       if (issue.dueDate > range.dueDate) range.dueDate = issue.dueDate;
       return range;
     }, { startDate: scheduled[0].startDate, dueDate: scheduled[0].dueDate });
+  }
+  function leafWorkProgress(issues) {
+    var byId = new Map(issues.map(function (issue) { return [issue.id, issue]; }));
+    var parents = new Set(issues.map(function (issue) { return issue.parentId; }).filter(Boolean));
+    var progress = new Map();
+    issues.forEach(function (issue) {
+      if (issue.type === 'Epic' || parents.has(issue.id)) return;
+      var current = issue, seen = new Set();
+      while (current && current.type !== 'Epic' && !seen.has(current.id)) {
+        seen.add(current.id);
+        current = byId.get(current.parentId);
+      }
+      var laneId = current && current.type === 'Epic' ? current.id : '';
+      var count = progress.get(laneId) || { done: 0, total: 0 };
+      count.total++;
+      if (issue.status === 'Done') count.done++;
+      progress.set(laneId, count);
+    });
+    return progress;
   }
   function sorted(issues) { return issues.slice().sort(function (a, b) { return a.rank - b.rank || a.id.localeCompare(b.id, undefined, { numeric: true }); }); }
   function taskTypePresentation(id, settings) {
@@ -191,6 +252,6 @@ var TrackerCore = (function () {
       return Object.assign(blank(), { id: 'PRJ-' + (n + 1), type: s[0], parentId: s[1], summary: s[2], status: s[3], priority: s[4], assignee: s[5], reporter: 'Alex Morgan', startDate: addDays(today, s[6]), dueDate: addDays(today, s[7]), progress: s[8], labels: s[9], dependencies: s[10], estimate: s[11], timeSpent: Math.round(s[11] * s[8] / 100), description: 'Sample issue. Replace this description with context, acceptance criteria, and links.', sprint: 'Sprint 01', completedDate: s[3] === 'Done' ? addDays(today, s[7]) : '', createdAt: today + 'T09:00:00.000Z', updatedAt: today + 'T09:00:00.000Z', rank: (n + 1) * 1000 });
     });
   }
-  return { types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, csv: csv, sample: sample };
+  return { types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, csv: csv, sample: sample };
 })();
 if (typeof module !== 'undefined') module.exports = TrackerCore;

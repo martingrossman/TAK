@@ -201,6 +201,13 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
 .editor-section .form-grid{column-gap:12px;align-items:start}
 .editor-description{margin-top:20px}
 .editor-description textarea{min-height:120px}
+.quick-entry-pending{display:grid;gap:6px;margin:-4px 0 12px}
+.quick-entry-pending[hidden]{display:none}
+.quick-entry-pending-item{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);font-size:var(--text-control)}
+.quick-entry-pending-item strong{min-width:0;overflow-wrap:anywhere}
+.quick-entry-pending-item span{color:var(--muted)}
+.quick-entry-pending-item.failed{border-color:var(--danger-border);color:var(--red)}
+.quick-entry-pending-item .button{margin-left:auto}
 .quick-create .editor-section{border:0;margin:0;padding:0}
 .quick-create .editor-section-title{display:none}
 .quick-create .editor-description{margin-top:0}
@@ -225,4 +232,17 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
   .create-dialog .dialog-header,.create-dialog .form-body{padding:16px}
   .create-dialog .dialog-footer .button{min-height:44px}
 }
+.card-priority{min-height:36px;max-width:105px;padding:0 5px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font-size:var(--text-meta);cursor:pointer}
+.card-priority:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.card-assignee-field{display:flex;align-items:center;gap:6px;margin:0 0 9px;color:var(--muted);font-size:var(--text-meta)}
+.card-assignee-field input{min-width:0;width:100%;height:32px;padding:0 7px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink)}
+</style>
+
+<style>
+.command-dialog{width:min(560px,calc(100vw - 24px))}.command-body{padding:16px 20px 20px}.command-body label{display:block;margin-bottom:6px;color:var(--muted);font-size:var(--text-meta)}#command-query{width:100%;height:42px;padding:0 12px;border:1px solid var(--control-border);border-radius:var(--radius-control);background:var(--surface)}.command-results{display:grid;gap:4px;margin-top:12px;max-height:min(420px,55vh);overflow:auto}.command-results button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:42px;padding:8px 10px;text-align:left;border-radius:var(--radius-control)}.command-results button:hover,.command-results button:focus-visible{background:var(--primary-soft);color:var(--primary-dark)}.command-results button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.command-results button small,.command-results p{color:var(--muted);font-size:var(--text-meta)}.command-results p{padding:10px}@media(max-width:520px){#command-open{padding:0 7px;font-size:var(--text-meta)}}
+</style>
+
+<style>
+.issue-table th:first-child,.issue-table td:first-child{width:260px;min-width:260px;max-width:260px}.sheet-id-text{display:flex;flex-direction:column;min-width:0;flex:1}.sheet-id-summary{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--text-meta);line-height:1.3}.sheet-id-cell{min-width:0}.issue-table td:first-child{height:54px}
+@media(max-width:520px){.issue-table th:first-child,.issue-table td:first-child{width:250px;min-width:250px;max-width:250px}.sheet-id-summary{font-size:var(--text-meta)}#command-open,.card-priority,.card-assignee-field input{min-height:44px}.column-header button{min-width:44px;min-height:44px}.sheet-row-controls button{min-width:28px;width:28px;min-height:40px}.sheet-tree-toggle{min-width:28px;width:28px;min-height:40px}}
 </style>
