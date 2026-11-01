@@ -116,6 +116,175 @@ test('journal destination lookup failure writes neither history nor receipt', ()
   assert.equal(h.tabs._System.rows.length, systemCount);
 });
 
+for (const schema of ['1', '2']) test(`schema ${schema} create retry reuses a committed row after receipt failure`, () => {
+  const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
+  const system = h.tabs._System, getRange = system.getRange;
+  let failReceipt = true;
+  system.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (failReceipt && values.some(row => String(row[0]).startsWith('IDEMPOTENCY:'))) {
+        failReceipt = false;
+        throw new Error('Receipt write failed');
+      }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const input = { summary: 'One reserved task', operationId: 'reserved-create-' + schema };
+  assert.throws(() => h.api.saveIssue(input), /Receipt write failed/);
+  const first = h.api.readIssues_(h.book).filter(issue => issue.summary === input.summary);
+  assert.equal(first.length, 1, 'the first data write committed');
+  assert.throws(() => h.api.saveIssue({ ...input, summary: 'Different content' }), /belongs to different create content/);
+  const saved = h.api.saveIssue(input);
+  assert.equal(saved.id, first[0].id);
+  assert.equal(h.api.readIssues_(h.book).filter(issue => issue.summary === input.summary).length, 1);
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, input.operationId).result.id, saved.id);
+  assert.equal(h.tabs['Change History'].rows.filter(row => row[1] === input.operationId).length, 1);
+  assert.equal(h.api.saveIssue({ ...input, summary: 'Different content' }).id, saved.id, 'a completed receipt replays the first result');
+});
+
+for (const schema of ['1', '2']) test(`schema ${schema} update retry recovers a committed row after receipt failure`, () => {
+  const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
+  const original = h.api.saveIssue({ summary: 'Original title', operationId: 'original-' + schema });
+  const system = h.tabs._System, getRange = system.getRange;
+  let failReceipt = true;
+  system.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (failReceipt && values.some(row => String(row[0]).startsWith('IDEMPOTENCY:'))) {
+        failReceipt = false;
+        throw new Error('Receipt write failed');
+      }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const input = { id: original.id, summary: 'Edited title', operationId: 'edit-retry-' + schema };
+  assert.throws(() => h.api.saveIssue(input, original.version), /Receipt write failed/);
+  const committed = h.api.readIssues_(h.book).find(issue => issue.id === original.id);
+  assert.equal(committed.summary, 'Edited title');
+  assert.notEqual(committed.version, original.version);
+  assert.throws(() => h.api.saveIssue({ ...input, summary: 'Different title' }, original.version), /different update content/);
+  const recovered = h.api.saveIssue(input, original.version);
+  assert.equal(recovered.version, committed.version);
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === original.id).version, committed.version);
+  assert.equal(h.tabs['Change History'].rows.filter(row => row[1] === input.operationId).length, 1);
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, input.operationId).result.version, committed.version);
+});
+
+test('an unconfirmed update never replays over a later saved revision', () => {
+  const h = harness(); loadBrowserServices(h);
+  const original = h.api.saveIssue({ summary: 'Original', operationId: 'first-create' });
+  const system = h.tabs._System, getRange = system.getRange;
+  let failReceipt = true;
+  system.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (failReceipt && values.some(row => String(row[0]).startsWith('IDEMPOTENCY:'))) {
+        failReceipt = false;
+        throw new Error('Receipt write failed');
+      }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const first = { id: original.id, summary: 'First update', operationId: 'first-update' };
+  assert.throws(() => h.api.saveIssue(first, original.version), /Receipt write failed/);
+  const committed = h.api.readIssues_(h.book).find(issue => issue.id === original.id);
+  const later = h.api.saveIssue({ id: original.id, summary: 'Later update', operationId: 'later-update' }, committed.version);
+  assert.throws(() => h.api.saveIssue(first, original.version), /changed elsewhere/);
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === original.id).version, later.version);
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === original.id).summary, 'Later update');
+});
+
+test('move retry recovers a committed status after receipt failure', () => {
+  const h = harness(); loadBrowserServices(h);
+  const original = h.api.saveIssue({ summary: 'Move target', operationId: 'move-create' });
+  const system = h.tabs._System, getRange = system.getRange;
+  let failReceipt = true;
+  system.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (failReceipt && values.some(row => String(row[0]).startsWith('IDEMPOTENCY:'))) {
+        failReceipt = false;
+        throw new Error('Receipt write failed');
+      }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const move = { status: 'In Progress', rank: 2000 };
+  assert.throws(() => h.api.moveIssue(original.id, move, original.version, 'move-retry'), /Receipt write failed/);
+  const committed = h.api.readIssues_(h.book).find(issue => issue.id === original.id);
+  assert.equal(committed.status, 'In Progress');
+  assert.throws(() => h.api.moveIssue(original.id, { status: 'Done' }, original.version, 'move-retry'), /different update content/);
+  const recovered = h.api.moveIssue(original.id, move, original.version, 'move-retry');
+  assert.equal(recovered.version, committed.version);
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === original.id).version, committed.version);
+  assert.equal(h.tabs['Change History'].rows.filter(row => row[1] === 'move-retry').length, 1);
+});
+
+test('create reservation failure prevents data writes, and a retry can create once', () => {
+  const h = harness(); loadBrowserServices(h);
+  const system = h.tabs._System, getRange = system.getRange;
+  let rejectReservation = true;
+  system.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (rejectReservation && values.some(row => String(row[0]).startsWith('IDEMPOTENCY_PENDING:'))) {
+        rejectReservation = false;
+        throw new Error('Reservation unavailable');
+      }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const input = { summary: 'Safe retry after reservation failure', operationId: 'reservation-failed' };
+  assert.throws(() => h.api.saveIssue(input), /Reservation unavailable/);
+  assert.equal(h.api.readIssues_(h.book).length, 0);
+  const saved = h.api.saveIssue(input);
+  assert.equal(h.api.readIssues_(h.book).filter(issue => issue.id === saved.id).length, 1);
+});
+
+test('a failed data write after reservation retries the reserved ID', () => {
+  const h = harness(); loadBrowserServices(h);
+  const write = h.api.writeIssue_;
+  let failWrite = true;
+  h.api.writeIssue_ = (...args) => {
+    if (failWrite) { failWrite = false; throw new Error('Data write failed'); }
+    return write(...args);
+  };
+  const input = { summary: 'Reserved task after write failure', operationId: 'write-after-reserve' };
+  assert.throws(() => h.api.saveIssue(input), /Data write failed/);
+  assert.equal(h.api.readIssues_(h.book).length, 0);
+  assert.equal(h.api.SheetFlowHistory.findCreateReservation(h.book, input.operationId).id, 'PRJ-1');
+  const saved = h.api.saveIssue(input);
+  assert.equal(saved.id, 'PRJ-1');
+  assert.equal(h.api.readIssues_(h.book).length, 1);
+});
+
+test('a failed history write is recovered once with the create receipt', () => {
+  const h = harness(); loadBrowserServices(h);
+  const history = h.tabs['Change History'], getRange = history.getRange;
+  let failHistory = true;
+  history.getRange = (...args) => {
+    const range = getRange(...args), setValues = range.setValues;
+    range.setValues = values => {
+      if (failHistory) { failHistory = false; throw new Error('History write failed'); }
+      return setValues.call(range, values);
+    };
+    return range;
+  };
+  const input = { summary: 'Recover missing history', operationId: 'history-failed' };
+  assert.throws(() => h.api.saveIssue(input), /History write failed/);
+  assert.equal(h.api.readIssues_(h.book).length, 1);
+  const saved = h.api.saveIssue(input);
+  assert.equal(h.api.readIssues_(h.book).length, 1);
+  assert.equal(h.tabs['Change History'].rows.filter(row => row[1] === input.operationId).length, 1);
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, input.operationId).result.id, saved.id);
+});
+
 for (const schema of ['1', '2']) test(`schema ${schema} project payload converts Sheet timestamps and omits internal records`, () => {
   const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
   if (schema === '2') addRecord(h.tabs['Projects and Epics'], { ID: 'PROJECT-1', 'Entity Kind': 'Project', Title: 'Project', Active: true, Revision: 1 });

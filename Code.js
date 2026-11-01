@@ -317,12 +317,35 @@ function saveRequestContext_() {
   var properties = PropertiesService.getScriptProperties();
   return { properties: properties, config: properties.getProperties() };
 }
+function createIntentFingerprint_(input) {
+  var keys = Object.keys(input || {}).filter(function (key) { return key !== 'operationId' && key !== '_draftKey'; }).sort();
+  var values = keys.map(function (key) { return [key, input[key]]; });
+  return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(values)));
+}
+function updateIntentFingerprint_(input, expectedVersion) {
+  var keys = Object.keys(input || {}).filter(function (key) { return key !== 'operationId' && key !== '_draftKey'; }).sort();
+  var values = keys.map(function (key) { return [key, input[key]]; });
+  return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify([expectedVersion, values])));
+}
+function issueStateFingerprint_(issue) {
+  var keys = TrackerCore.fields.map(function (field) { return field.key; }).concat(['taskTypeId']);
+  var values = keys.map(function (key) { return [key, issue[key] == null ? '' : issue[key]]; });
+  return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(values)));
+}
 function saveIssueLocked_(book, input, expectedVersion, timing, request) {
   timing = timing || {};
   var mark = Date.now(), systemRows = readSystemRows_(book);
   var operationId = input && input.operationId, history = historyService_();
   var previousReceipt = history.findReceipt(book, operationId, systemRows);
   if (previousReceipt) { timing.replayed = true; timing.readMs = Date.now() - mark; return clientIssue_(previousReceipt.result); }
+  var createFingerprint = !input.id && operationId ? createIntentFingerprint_(input) : '';
+  var reservation = createFingerprint && history.findCreateReservation
+    ? history.findCreateReservation(book, operationId, systemRows) : null;
+  if (reservation && reservation.fingerprint !== createFingerprint) throw new Error('This operation ID belongs to different create content. Review the saved task before retrying.');
+  var updateFingerprint = input.id && operationId ? updateIntentFingerprint_(input, expectedVersion) : '';
+  var updateReservation = updateFingerprint && history.findUpdateReservation
+    ? history.findUpdateReservation(book, operationId, systemRows) : null;
+  if (updateReservation && (updateReservation.kind !== 'save' || updateReservation.id !== input.id || updateReservation.fingerprint !== updateFingerprint)) throw new Error('This operation ID belongs to different update content. Review the saved task before retrying.');
   var snapshot = { systemRows: systemRows, versioned: versionedRepositoryActive_(book, systemRows, request && request.config), onlyVersionFor: String(input && input.id || '') };
   if (snapshot.versioned) {
     snapshot.tasks = SheetFlowRepository.records(book, 'tasks');
@@ -331,15 +354,50 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
   var issues = readIssues_(book, snapshot); snapshot.issues = issues;
   timing.schema = snapshot.versioned ? 'v2' : 'legacy'; timing.readMs = Date.now() - mark;
   mark = Date.now();
+  var previouslyCreated = reservation && issues.find(function (item) { return item.id === reservation.id; });
+  if (previouslyCreated) {
+    if (previouslyCreated.createdAt !== reservation.createdAt || previouslyCreated.updatedAt !== reservation.updatedAt) throw new Error('The reserved task has changed. Refresh and review it before retrying.');
+    var recovered = clientIssue_(previouslyCreated);
+    var recoveredEvent = { operationId: operationId, entityId: recovered.id, eventKind: 'created', beforeRevision: '', afterRevision: recovered.version, changedFields: TrackerCore.fields.map(function (field) { return field.key; }), details: { source: 'app', recovered: true } };
+    if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredEvent, operationId, recovered, systemRows);
+    else history.receipt(book, operationId, recovered, systemRows);
+    SpreadsheetApp.flush();
+    timing.replayed = true;
+    return recovered;
+  }
   var current = input.id ? issues.find(function (i) { return i.id === input.id; }) : null;
   if (input.id && !current) throw new Error('This issue no longer exists. Refresh the project.');
+  if (updateReservation && current.version !== expectedVersion) {
+    if (current.updatedAt !== updateReservation.updatedAt || issueStateFingerprint_(current) !== updateReservation.stateFingerprint) throw new Error('This issue changed elsewhere. Refresh, then apply your changes again.');
+    var recoveredUpdate = clientIssue_(current);
+    var recoveredUpdateEvent = { operationId: operationId, entityId: recoveredUpdate.id, eventKind: 'updated', beforeRevision: expectedVersion, afterRevision: recoveredUpdate.version, changedFields: updateReservation.changedFields || [], details: { source: 'app', recovered: true } };
+    if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredUpdateEvent, operationId, recoveredUpdate, systemRows);
+    else history.receipt(book, operationId, recoveredUpdate, systemRows);
+    SpreadsheetApp.flush();
+    timing.replayed = true;
+    return recoveredUpdate;
+  }
   if (current && current.version !== expectedVersion) throw new Error('This issue changed elsewhere. Refresh, then apply your changes again.');
   var issue = TrackerCore.prepare(input, current, today_(book), new Date().toISOString());
-  if (!current) issue.id = nextId_(issues, request);
+  if (updateReservation) issue.updatedAt = updateReservation.updatedAt;
+  if (!current) {
+    issue.id = reservation ? reservation.id : nextId_(issues, request);
+    if (reservation) { issue.createdAt = reservation.createdAt; issue.updatedAt = reservation.updatedAt; }
+  }
   TrackerCore.validate(issue, issues);
   timing.validateMs = Date.now() - mark;
   if (book._personalSave && !snapshot.versioned && typeof Sheets !== 'undefined' && operationId) {
     return savePersonalIssueBatch_(book, issue, current, snapshot, operationId, timing);
+  }
+  if (current && updateFingerprint && !updateReservation && history.reserveUpdate) {
+    var reservedChangedFields = TrackerCore.fields.filter(function (field) { return current[field.key] !== issue[field.key]; }).map(function (field) { return field.key; });
+    if (current.taskTypeId !== issue.taskTypeId) reservedChangedFields.push('taskTypeId');
+    history.reserveUpdate(book, operationId, { kind: 'save', id: issue.id, fingerprint: updateFingerprint, stateFingerprint: issueStateFingerprint_(issue), updatedAt: issue.updatedAt, changedFields: reservedChangedFields }, systemRows);
+    SpreadsheetApp.flush();
+  }
+  if (!current && createFingerprint && !reservation && history.reserveCreate) {
+    history.reserveCreate(book, operationId, { id: issue.id, createdAt: issue.createdAt, updatedAt: issue.updatedAt, fingerprint: createFingerprint }, systemRows);
+    SpreadsheetApp.flush();
   }
   mark = Date.now();
   var written = writeIssue_(book, issue, current, snapshot);
@@ -491,22 +549,43 @@ function moveIssue(id, move, expectedVersion, operationId) {
   return withLock_(function () {
     authorizationService_().require('write');
     var book = getBook_(), history = historyService_();
-    operationId = operationId || move && move.operationId || '';
-    var previousReceipt = history.findReceipt(book, operationId);
+    move = move || {};
+    operationId = operationId || move.operationId || '';
+    var systemRows = readSystemRows_(book);
+    var previousReceipt = history.findReceipt(book, operationId, systemRows);
     if (previousReceipt) return clientIssue_(previousReceipt.result);
+    var input = { id: id };
+    ['status', 'parentId', 'rank'].forEach(function (key) { if (Object.prototype.hasOwnProperty.call(move, key)) input[key] = move[key]; });
+    var fingerprint = operationId ? updateIntentFingerprint_(input, expectedVersion) : '';
+    var reservation = fingerprint && history.findUpdateReservation ? history.findUpdateReservation(book, operationId, systemRows) : null;
+    if (reservation && (reservation.kind !== 'move' || reservation.id !== id || reservation.fingerprint !== fingerprint)) throw new Error('This operation ID belongs to different update content. Review the saved task before retrying.');
     var issues = readIssues_(book), current = issues.find(function (item) { return item.id === id; });
     if (!current) throw new Error('This issue no longer exists. Refresh the project.');
+    if (reservation && current.version !== expectedVersion) {
+      if (current.updatedAt !== reservation.updatedAt || issueStateFingerprint_(current) !== reservation.stateFingerprint) throw new Error('This issue changed elsewhere. Refresh before moving it.');
+      var recovered = clientIssue_(current);
+      var recoveredEvent = { operationId: operationId, entityId: id, eventKind: 'moved', beforeRevision: expectedVersion, afterRevision: recovered.version, changedFields: reservation.changedFields || [], details: { source: 'app', move: true, recovered: true } };
+      if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredEvent, operationId, recovered, systemRows);
+      else history.receipt(book, operationId, recovered, systemRows);
+      SpreadsheetApp.flush();
+      return recovered;
+    }
     if (current.version !== expectedVersion) throw new Error('This issue changed elsewhere. Refresh before moving it.');
-    move = move || {};
-    var input = { id: current.id };
-    ['status', 'parentId', 'rank'].forEach(function (key) { if (Object.prototype.hasOwnProperty.call(move, key)) input[key] = move[key]; });
     var issue = TrackerCore.prepare(input, current, today_(book), new Date().toISOString());
+    if (reservation) issue.updatedAt = reservation.updatedAt;
     TrackerCore.validate(issue, issues);
+    var plannedFields = ['status', 'parentId', 'rank'].filter(function (key) { return current[key] !== issue[key]; });
+    if (fingerprint && !reservation && history.reserveUpdate) {
+      history.reserveUpdate(book, operationId, { kind: 'move', id: id, fingerprint: fingerprint, stateFingerprint: issueStateFingerprint_(issue), updatedAt: issue.updatedAt, changedFields: plannedFields }, systemRows);
+      SpreadsheetApp.flush();
+    }
     writeIssue_(book, issue, current); SpreadsheetApp.flush();
     var saved = clientIssue_(readIssues_(book).find(function (item) { return item.id === id; }));
     var changedFields = ['status', 'parentId', 'rank'].filter(function (key) { return current[key] !== saved[key]; });
-    history.record(book, { operationId: operationId, entityId: id, eventKind: 'moved', beforeRevision: current.version, afterRevision: saved.version, changedFields: changedFields, details: { source: 'app', move: true } });
-    history.receipt(book, operationId, saved);
+    var event = { operationId: operationId, entityId: id, eventKind: 'moved', beforeRevision: current.version, afterRevision: saved.version, changedFields: changedFields, details: { source: 'app', move: true } };
+    if (history.recordAndReceipt) history.recordAndReceipt(book, event, operationId, saved, systemRows);
+    else { history.record(book, event); history.receipt(book, operationId, saved, systemRows); }
+    SpreadsheetApp.flush();
     return saved;
   });
 }

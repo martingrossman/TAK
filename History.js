@@ -2,6 +2,8 @@
 var SheetFlowHistory = (function () {
   'use strict';
   var receiptPrefix = 'IDEMPOTENCY:';
+  var reservationPrefix = 'IDEMPOTENCY_PENDING:';
+  var updateReservationPrefix = 'IDEMPOTENCY_UPDATE_PENDING:';
   function prepareRecord(book, event) {
     if (typeof trackerMode_ === 'function' && trackerMode_() === 'personal') return null;
     var sheet = book.getSheetByName('Change History');
@@ -44,6 +46,16 @@ var SheetFlowHistory = (function () {
     writePrepared(receiptEntry);
     return historyEntry ? historyEntry.eventId : null;
   }
+  function ensureRecordAndReceipt(book, event, operationId, result, systemRows) {
+    var sheet = book.getSheetByName('Change History');
+    var alreadyRecorded = false;
+    if (sheet && sheet.getLastRow() > 1) {
+      var operations = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+      alreadyRecorded = operations.some(function (row) { return String(row[0]) === String(operationId); });
+    }
+    if (alreadyRecorded) return receipt(book, operationId, result, systemRows);
+    return recordAndReceipt(book, event, operationId, result, systemRows);
+  }
   function findReceipt(book, operationId, systemRows) {
     if (!operationId) return null;
     var sheet = book.getSheetByName('_System');
@@ -55,6 +67,54 @@ var SheetFlowHistory = (function () {
     }
     return null;
   }
+  function findCreateReservation(book, operationId, systemRows) {
+    if (!operationId) return null;
+    var sheet = book.getSheetByName('_System');
+    if (!sheet) throw new Error('Operation recovery is unavailable: _System is missing.');
+    var rows = systemRows || (sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues() : []);
+    var key = reservationPrefix + operationId;
+    for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === key) {
+      try {
+        var value = JSON.parse(rows[i][1]);
+        if (value && value.id && value.fingerprint && value.createdAt) return value;
+      } catch (ignore) {}
+      throw new Error('Operation recovery record is unreadable. Do not retry this create until the project is reviewed.');
+    }
+    return null;
+  }
+  function reserveCreate(book, operationId, reservation, systemRows) {
+    if (!operationId) return null;
+    var existing = findCreateReservation(book, operationId, systemRows);
+    if (existing) return existing;
+    var sheet = book.getSheetByName('_System');
+    sheet.getRange(Math.max(2, sheet.getLastRow() + 1), 1, 1, 3)
+      .setValues([[reservationPrefix + operationId, JSON.stringify(reservation), new Date()]]);
+    return reservation;
+  }
+  function findUpdateReservation(book, operationId, systemRows) {
+    if (!operationId) return null;
+    var sheet = book.getSheetByName('_System');
+    if (!sheet) throw new Error('Operation recovery is unavailable: _System is missing.');
+    var rows = systemRows || (sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues() : []);
+    var key = updateReservationPrefix + operationId;
+    for (var i = 0; i < rows.length; i++) if (String(rows[i][0]) === key) {
+      try {
+        var value = JSON.parse(rows[i][1]);
+        if (value && value.id && value.fingerprint && value.stateFingerprint && value.updatedAt) return value;
+      } catch (ignore) {}
+      throw new Error('Operation recovery record is unreadable. Do not retry this update until the project is reviewed.');
+    }
+    return null;
+  }
+  function reserveUpdate(book, operationId, reservation, systemRows) {
+    if (!operationId) return null;
+    var existing = findUpdateReservation(book, operationId, systemRows);
+    if (existing) return existing;
+    var sheet = book.getSheetByName('_System');
+    sheet.getRange(Math.max(2, sheet.getLastRow() + 1), 1, 1, 3)
+      .setValues([[updateReservationPrefix + operationId, JSON.stringify(reservation), new Date()]]);
+    return reservation;
+  }
   function list(book, entityId, limit, offset) {
     var sheet = book.getSheetByName('Change History');
     if (!sheet || sheet.getLastRow() < 2) return { items: [], nextOffset: null };
@@ -65,7 +125,7 @@ var SheetFlowHistory = (function () {
     return { items: items, nextOffset: offset + items.length < rows.length ? offset + items.length : null };
   }
   function actorId_() { try { return Session.getActiveUser().getEmail() || 'unknown'; } catch (ignore) { return 'unknown'; } }
-  return { record: record, receipt: receipt, recordAndReceipt: recordAndReceipt, findReceipt: findReceipt, list: list };
+  return { record: record, receipt: receipt, recordAndReceipt: recordAndReceipt, ensureRecordAndReceipt: ensureRecordAndReceipt, findReceipt: findReceipt, findCreateReservation: findCreateReservation, reserveCreate: reserveCreate, findUpdateReservation: findUpdateReservation, reserveUpdate: reserveUpdate, list: list };
 })();
 
 function getTaskHistory(entityId, limit, offset) {
