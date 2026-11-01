@@ -252,7 +252,7 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
 <style>
 .issue-table th:first-child,.issue-table td:first-child{width:260px;min-width:260px;max-width:260px}.sheet-id-text{display:flex;flex-direction:column;min-width:0;flex:1}.sheet-id-summary{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:var(--text-meta);line-height:1.3}.sheet-id-cell{min-width:0}.issue-table td:first-child{height:54px}
 @media(max-width:520px){.issue-table th:first-child,.issue-table td:first-child{width:250px;min-width:250px;max-width:250px}.sheet-id-summary{font-size:var(--text-meta)}#command-open,.card-priority,.card-assignee-field input{min-height:44px}.column-header button{min-width:44px;min-height:44px}.sheet-row-controls button{min-width:28px;width:28px;min-height:40px}.sheet-tree-toggle{min-width:28px;width:28px;min-height:40px}}
-</style>
+.gantt-tick{box-sizing:border-box;flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden;border-right:2px solid var(--line);padding:5px 6px 0;font-variant-numeric:tabular-nums}.gantt-tick strong{padding:0;white-space:nowrap;font-size:var(--text-meta)}.gantt-weeks,.gantt-twoWeeks{background:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--day-width,24px) * 7 - 1px),var(--line) calc(var(--day-width,24px) * 7 - 1px),var(--line) calc(var(--day-width,24px) * 7))}.gantt-twoWeeks{border-right:3px solid var(--primary)}.gantt-months{align-items:flex-start;padding-left:10px;background:var(--primary-soft);color:var(--primary-dark);font-weight:600}.gantt-months strong{color:var(--muted)}.gantt-tools .gantt-range{font-variant-numeric:tabular-nums}.gantt-header.gantt-header-weeks,.gantt-header.gantt-header-twoWeeks{height:var(--gantt-header-height,70px)}.gantt-tick{height:70px;padding:3px 4px 0}.gantt-tick-heading{display:flex;justify-content:center;gap:4px;align-items:center;white-space:nowrap;font-size:10px;line-height:1.2}.gantt-tick-heading b{font-size:11px;color:var(--ink)}.gantt-tick-days{display:flex;width:100%;margin-top:3px}.gantt-tick-day{box-sizing:border-box;flex:0 0 var(--day-width,24px);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;border-right:1px solid var(--line);font-size:10px}.gantt-tick-day small{font-size:8px;color:var(--muted)}.gantt-label-head{padding-top:24px}.today-line{top:var(--gantt-header-height,58px)}.timeline-links{top:var(--gantt-header-height,58px)}</style>
 
 </head>
 <body data-initial-view="kanban">
@@ -729,7 +729,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
-    state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks'].includes(view.zoom) ? view.zoom : 'weeks';
+    state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks', 'twoWeeks', 'months'].includes(view.zoom) ? view.zoom : 'weeks';
     state.timelineStart = C.validDate(view.timelineStart) ? view.timelineStart : C.addDays(today(), -7);
     $('#search').value = state.query; saveUiState(); renderSavedViews();
     if (location.hash !== '#' + state.view) location.hash = state.view;
@@ -2127,8 +2127,51 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
-    const dayWidth = state.zoom === 'days' ? 38 : 24, days = state.zoom === 'days' ? 56 : 112;
+    const scale = {
+      days: { dayWidth: 38, days: 56, tickDays: 1 },
+      weeks: { dayWidth: 24, days: 112, tickDays: 7 },
+      twoWeeks: { dayWidth: 24, days: 168, tickDays: 14 },
+      months: { dayWidth: 12, days: 365, tickDays: 0 }
+    }[state.zoom] || { dayWidth: 24, days: 112, tickDays: 7 };
+    const { dayWidth, days } = scale;
     const start = state.timelineStart, end = C.addDays(start, days - 1), width = dayWidth * days;
+    const ticks = [];
+    for (let offset = 0; offset < days;) {
+      const value = C.addDays(start, offset), date = new Date(value + 'T12:00:00Z');
+      let count = scale.tickDays;
+      if (state.zoom === 'weeks' || state.zoom === 'twoWeeks') {
+        const daysSinceMonday = (date.getUTCDay() + 6) % 7;
+        count = state.zoom === 'weeks' ? 7 - daysSinceMonday : (offset === 0 ? 7 - daysSinceMonday : 14);
+      }
+      if (state.zoom === 'months') {
+        const monthEnd = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+        count = Math.min(days - offset, monthEnd.getUTCDate() - date.getUTCDate() + 1);
+      }
+      count = Math.min(count, days - offset);
+      const tickEnd = C.addDays(value, count - 1);
+      const thursday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 3 - ((date.getUTCDay() + 6) % 7)));
+      const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+      const week = Math.ceil((((thursday - yearStart) / 86400000) + 1) / 7);
+      const label = state.zoom === 'days'
+        ? `${date.getUTCDate() === 1 || offset === 0 ? date.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' }) : date.toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' })}<strong>${date.getUTCDate()}</strong>`
+        : state.zoom === 'months'
+          ? `<span>${date.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' })}</span><strong>${date.getUTCFullYear()}</strong>`
+          : (() => {
+            const last = new Date(tickEnd + 'T12:00:00Z');
+            const lastThursday = new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() + 3 - ((last.getUTCDay() + 6) % 7)));
+            const lastYearStart = new Date(Date.UTC(lastThursday.getUTCFullYear(), 0, 1));
+            const lastWeek = Math.ceil((((lastThursday - lastYearStart) / 86400000) + 1) / 7);
+            const weekLabel = state.zoom === 'twoWeeks' && lastWeek !== week ? `W${String(week).padStart(2, '0')}–W${String(lastWeek).padStart(2, '0')}` : `W${String(week).padStart(2, '0')}`;
+            const dayLabels = Array.from({ length: count }, (_, day) => {
+              const dayValue = C.addDays(value, day), dayDate = new Date(dayValue + 'T12:00:00Z');
+              const weekday = dayDate.toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' });
+              return `<span class="gantt-tick-day" title="${dayValue}"><span>${dayDate.getUTCDate()}</span><small>${weekday}</small></span>`;
+            }).join('');
+            return `<span class="gantt-tick-heading"><b>${weekLabel}</b> ${shortDate(value)} – ${shortDate(tickEnd)}</span><span class="gantt-tick-days">${dayLabels}</span>`;
+          })();
+      ticks.push(`<div class="gantt-date gantt-tick gantt-${state.zoom}" style="width:${count * dayWidth}px;--day-width:${dayWidth}px" title="${value} – ${tickEnd}">${label}</div>`);
+      offset += count;
+    }
     const positions = new Map(), displayIssues = [...issues, ...pendingQuickTasks()];
     const renderTrackContent = (issue, y, schedule = issue, summary = false) => {
       const scheduled = !!schedule && C.validDate(schedule.startDate) && C.validDate(schedule.dueDate) && schedule.dueDate >= schedule.startDate;
@@ -2192,7 +2235,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     }));
     const todayOffset = C.dateNumber(today()) - C.dateNumber(start);
     const labelMin = Math.min(180, Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)))), labelMax = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)));
-    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span>${shortDate(start)} – ${shortDate(end)} ${end.slice(0, 4)}</span><select id="timeline-zoom" aria-label="Timeline zoom">${options(['weeks', 'days'], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px"><div class="gantt-header"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${Array.from({ length: days }, (_, n) => { const value = C.addDays(start, n), d = new Date(value + 'T12:00:00Z'); return `<div class="gantt-date ${[0, 6].includes(d.getUTCDay()) ? 'weekend' : ''} ${value === today() ? 'today' : ''}" style="width:${dayWidth}px" title="${value}">${d.getUTCDate() === 1 || n === 0 ? d.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' }) : d.toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' })}<strong>${d.getUTCDate()}</strong></div>`; }).join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
+    const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
+    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
   }
@@ -2575,7 +2620,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (target.hasAttribute('data-sheet-manual')) { state.sort = 'rank'; state.ascending = true; render(); }
     else if (target.hasAttribute('data-sheet-column-move')) moveSheetColumn(target.dataset.sheetColumnKey, target.dataset.sheetColumnMove);
     else if (target.hasAttribute('data-timeline')) {
-      const next = target.dataset.timeline === 'today' ? C.addDays(today(), -7) : C.addDays(state.timelineStart, Number(target.dataset.timeline) * 28);
+      const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
+      const next = target.dataset.timeline === 'today' ? C.addDays(today(), -7) : C.addDays(state.timelineStart, Number(target.dataset.timeline) * step);
       if (C.validDate(next) && next <= '2200-01-01') { state.timelineStart = next; render(); }
     } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-story-toggle, .gantt-add-button')) {
       if (event.detail === 1) {
