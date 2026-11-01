@@ -13,12 +13,13 @@
 |ISS1|**Done (2026-11-01):** Existing issues now open in the compact editor. More options opens the full details view.|
 |ISS2|**Done (2026-11-01):** Gantt "weeks" view still shows individual day columns; it only compresses them and extends the scrollable date range, so it looks almost the same as "days" while task labels become clipped. Make the week scale visually distinct and clarify that the date range above the chart covers the full scrollable timeline. Preserve task dates and drag/resize behavior.|
 |ISS3|**Done (2026-11-01):** Sheet keyboard navigation scrolls horizontally and vertically to keep the focused cell visible around the pinned column and sticky header. Verified locally and in Apps Script; commit `3608c99`.|
-
+|ISS4| 'Open tracker' link remains a follow-up issue.|
 
 **Improvement table**
 
 | Improvement<br>Number | Description                      |
 | :-- | :-- |
+| IM10 | Provide a ready-to-copy Google Sheets template with the complete bound SheetFlow Apps Script. Users should be able to make a copy, run `setupTracker`, and deploy the private web app without manually copying source files. Publish and verify the template separately before directing users to it. |
 | IM1| Rename Sheet view to List view ? |
 | IM2| Direct writing comments, assignment, description without need opening details|
 | IM3 | Let a user copy their current local demo issues into a separate test Google Sheet so both modes show the same test data. Preserve issue IDs, hierarchy, assignees, labels and dates; preview differences and protect existing Sheet data. This is a one-time test-data transfer, not automatic synchronization. |
