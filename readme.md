@@ -62,41 +62,62 @@ GitHub Pages is the portable browser demo: it stores changes in that browser's l
 
 ## Deploy the shared Google Sheets version
 
-### 1. Upload the Apps Script files
+### Beginner setup: connect the app to your own spreadsheet
 
-This checkout retains the existing script ID in `.clasp.json`. Verify that this is your intended Apps Script project before pushing.
+These steps make a **new, private copy** of SheetFlow in the Google account you choose. You do not need Node.js, Git, or the `clasp` command line. You will copy the app's source files into Apps Script once, then deploy it as a web app. Google may show an authorization or unverified-app screen because the script belongs to your account.
 
-```sh
-npm run build
-clasp login
-clasp show-file-status
-clasp push
+#### Before you begin
+
+- Sign in to the Google account that should own and run the tracker.
+- Create a **new blank Google Sheet** for the tracker. If you want to use an existing sheet, make a backup first. Setup checks the `Issues` headers and stops if they do not match; do not rename or delete existing tabs to force setup through.
+- Download and extract the [SheetFlow source ZIP](https://github.com/martingrossman/gsheetjira/archive/refs/heads/implement_mvp.zip). Open the extracted folder so you can copy code from the files listed below.
+
+#### 1. Create a script attached to your spreadsheet
+
+In the blank spreadsheet, choose **Extensions → Apps Script**. This opens a new Apps Script project attached to that spreadsheet. Give the project a recognizable name, such as **My SheetFlow tracker**.
+
+#### 2. Copy the app files into Apps Script
+
+For each `.js` file below, click **+ → Script**, enter the filename without `.js` (for example, `Code`), open the matching file from the extracted source folder in a text editor, copy all its contents, and paste them into Apps Script. For each `.html` file, click **+ → HTML**, enter the filename without `.html`, and paste that file's contents. Do not paste the `Index.html` template into `Code.gs`, or omit the generated `CoreScript.html`.
+
+Create these **12 script files**:
+
+```text
+Code.js · PersonalBatch.js · Core.js · Schema.js · Migrations.js
+Environment.js · Repository.js · History.js · Authorization.js
+Settings.js · Ordering.js · Comments.js
 ```
 
-The allowlist in `.claspignore` uploads the Apps Script runtime files: `Code.js`, `Core.js`, `CoreScript.html`, `Index.html`, `Styles.html`, `Client.html`, `QuickAdd.html`, `Schema.js`, `Migrations.js`, `Environment.js`, `Repository.js`, `History.js`, `Authorization.js`, `Settings.js`, `Ordering.js`, `Comments.js`, and `appsscript.json`. Tests, build scripts, `IMPLEMENTATION_PLAN.md`, and `dist/` are excluded.
+And these **5 HTML files**:
 
-Alternatively, open a Google Sheet, choose **Extensions → Apps Script**, and add those files manually. Add `Code.js` and `Core.js` as script files; Apps Script may display their extension as `.gs`. Keep all four HTML filenames exactly as shown, including the generated `CoreScript.html`. The project uses the V8 runtime.
+```text
+Index.html · Styles.html · Client.html · QuickAdd.html · CoreScript.html
+```
 
-### 2. Initialize the sheet
+The names shown in Apps Script should be `Index`, `Styles`, `Client`, `QuickAdd`, and `CoreScript`.
 
-Run **`setupTracker`** in the Apps Script editor and approve Google's authorization prompt.
+The project also needs the supplied `appsscript.json` manifest so the Sheets advanced service is enabled. In Apps Script, open **Project Settings** and turn on **Show "appsscript.json" manifest file in editor**. Return to the editor, open `appsscript.json`, and replace its contents with the matching file from the source folder. If Apps Script asks to enable the **Google Sheets API** advanced service, click **Add service**, select **Google Sheets API**, and add it. Use the V8 runtime specified in the manifest.
 
-- In a spreadsheet-bound script, setup uses the bound spreadsheet.
-- In a standalone script, setup creates a spreadsheet if no target is configured.
-- To use a specific existing spreadsheet from a standalone script, first add a script property named **`SPREADSHEET_ID`** in **Project Settings → Script properties**. Use the ID from its URL.
-- Setup creates and formats the legacy **Issues** tab plus the versioned v2 tabs, frozen headers, filtering, date/numeric validation, status colors, and overdue highlighting. Existing records are preserved. An Issues tab with different headers is rejected instead of overwritten.
-- Setup installs an edit trigger so typing or pasting issues directly in Sheets assigns IDs, fills defaults, and updates timestamps. Run setup once as the project owner. A bound script also provides a **SheetFlow** menu when the spreadsheet reopens.
-- The spreadsheet URL appears in the execution log and setup's return value. The deployed app also provides an **Open Google Sheet** link.
+#### 3. Initialize the spreadsheet
 
-For a demo inside Google Sheets, run **`loadSampleData`** after setup. This only works if Issues contains no data. Production sheets start empty unless you explicitly load samples.
+In the Apps Script function selector, choose **`setupTracker`** and click **Run**. Review Google's permission screen and allow the script to access this spreadsheet. The function creates the `Issues` tab, supporting tabs, formatting, and a direct-edit trigger. It does not load example tasks. Check the execution log for **“Tracker ready”**; the new spreadsheet URL is also returned there.
 
-### 3. Create a web app deployment
+If Google reports that the app is unverified, continue only if the script project is the one you just created under your own account: choose **Advanced → Go to My SheetFlow tracker** and continue through the permission screen. Never approve an unexpected script or a project you do not recognize.
 
-In Apps Script, choose **Deploy → New deployment → Web app**.
+#### 4. Deploy the web app
 
-For a shared team sheet, use **Execute as: User accessing the web app**, grant those users edit access to the spreadsheet, and restrict web-app access to the intended people or organization using the options available to your Google account. Each user authorizes the script. For a personal deployment, use **Execute as: Me** and **Who has access: Only myself**.
+In Apps Script, click **Deploy → New deployment**. Click the gear next to **Select type**, choose **Web app**, then set:
 
-Copy the deployment's `/exec` URL. It serves all three interactive views:
+- **Execute as:** Me (your Google account)
+- **Who has access:** Only myself
+
+Click **Deploy**, approve any additional permission prompt, then copy the **Web app URL** ending in `/exec`. Open it in a new tab. The app should show **Connected to Google Sheets**. Create one harmless test task, reload, and check that it remains in the `Issues` tab.
+
+`/exec` is your normal app link. To test a just-saved code change without updating the versioned deployment, use **Deploy → Test deployments → Web app**; its `/dev` URL is for script editors. See Google's [web app deployment guide](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app).
+
+**Sharing with other people:** start with the private setup above. Sharing the spreadsheet and changing the deployment to allow additional users are separate steps. Anyone you authorize to access the spreadsheet may also be able to edit a spreadsheet-bound script. The “Execute as” and access choices change whose Google permissions the app uses; do not select a broad access option just to get past an error. See [Apps Script web app permissions](https://developers.google.com/apps-script/guides/web#permissions) and review the separate [authorization foundation](#authorization-foundation) before setting up a team deployment.
+
+All three views are available from the same `/exec` link:
 
 ```text
 YOUR_WEB_APP_URL?view=sheet
@@ -104,9 +125,13 @@ YOUR_WEB_APP_URL?view=kanban
 YOUR_WEB_APP_URL?view=gantt
 ```
 
-Google documents deployment and execution identities in its [web app guide](https://developers.google.com/apps-script/guides/web). The frontend uses the supported [google.script.run API](https://developers.google.com/apps-script/guides/html/communication), so Sheets writes run inside the Apps Script deployment. A separately hosted static HTML file does not use this API.
+#### Updating your installation later
 
-After source changes, rebuild, push, then **Deploy → Manage deployments → Edit → New version → Deploy**. Pushing alone does not update a versioned production deployment.
+After changing the source, regenerate `CoreScript.html`, copy the changed files into your Apps Script project, and save. Then open **Deploy → Manage deployments**, select the pencil icon for the existing deployment, choose **New version**, and click **Deploy**. Keep using the same `/exec` URL. Saving editor files alone does not update a versioned `/exec` deployment.
+
+#### Command-line upload (for developers)
+
+This repository's `.clasp.json` is configured for a particular Apps Script project; **do not run `clasp push` from someone else's checkout**. To upload through `clasp`, first create/configure your own Apps Script project and verify its script ID is the target before pushing. The allowlist in `.claspignore` uploads the runtime files listed above and excludes tests, build scripts, and `dist/`.
 
 If the tracker opens but reports **Cannot read properties of null (reading 'issues')**, run `startupHealthCheck` and `getProject` in the Apps Script editor. Successful editor execution does not verify browser transport: `google.script.run` rejects raw `Date` values, including nested timestamps. Current sources convert response timestamps to ISO strings and omit internal issue records. Upload the complete current sources, then reload `/dev`; for `/exec`, update the existing deployment to a new version before reloading. The browser now shows a connection diagnostic for a missing/invalid project response. Spreadsheet cells retain native date values.
 
