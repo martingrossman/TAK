@@ -1596,6 +1596,23 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!cell) return;
     cell.focus({ preventScroll: true });
     if (snapshot.start !== null && cell.tagName === 'INPUT' && cell.type === 'text') cell.setSelectionRange(snapshot.start, snapshot.end);
+    if (snapshot.reveal) revealSheetCell(cell);
+  }
+  function revealSheetCell(cell) {
+    const viewport = cell.closest('.table-wrap');
+    if (!viewport) return;
+    const bounds = viewport.getBoundingClientRect(), target = cell.getBoundingClientRect();
+    const pinned = cell.closest('tr')?.cells[0], header = viewport.querySelector('thead th');
+    const left = Math.max(bounds.left + viewport.clientLeft, pinned && !pinned.contains(cell) && getComputedStyle(pinned).position === 'sticky' ? pinned.getBoundingClientRect().right : bounds.left);
+    const top = Math.max(bounds.top + viewport.clientTop, header ? header.getBoundingClientRect().bottom : bounds.top);
+    const right = bounds.left + viewport.clientLeft + viewport.clientWidth;
+    const bottom = bounds.top + viewport.clientTop + viewport.clientHeight;
+    // Move only the table, just far enough to expose the destination. For a
+    // control wider than the available space, keep its leading edge visible.
+    if (target.left < left) viewport.scrollLeft += target.left - left;
+    else if (target.right > right) viewport.scrollLeft += Math.min(target.right - right, target.left - left);
+    if (target.top < top) viewport.scrollTop += target.top - top;
+    else if (target.bottom > bottom) viewport.scrollTop += Math.min(target.bottom - bottom, target.top - top);
   }
   function boardQuickEntryKey(element) { return JSON.stringify([element.closest('.swimlane')?.dataset.epicLane || '', element.closest('.column')?.dataset.status || '']); }
   function captureBoardQuickEntries() {
@@ -2604,10 +2621,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         if (next) {
           event.preventDefault();
           if (!cell.checkValidity()) { cell.reportValidity(); return; }
-          const id = next.dataset.id, field = next.dataset.field;
-          pendingSheetFocus = { id, field, start: null, end: null };
+          const destination = { id: next.dataset.id, field: next.dataset.field, start: null, end: null, reveal: true };
+          pendingSheetFocus = destination;
           cell.dispatchEvent(new Event('change', { bubbles: true }));
-          document.querySelector(`.cell-input[data-id="${CSS.escape(id)}"][data-field="${CSS.escape(field)}"]`)?.focus({ preventScroll: true });
+          restoreSheetCellFocus(destination);
           pendingSheetFocus = null;
         }
         return;
@@ -2618,10 +2635,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         event.preventDefault();
         const sameColumn = $$('.cell-input').filter(input => input.dataset.field === cell.dataset.field);
         const next = sameColumn[sameColumn.indexOf(cell) + (event.shiftKey ? -1 : 1)];
-        const destination = next ? { id: next.dataset.id, field: next.dataset.field } : null;
-        pendingSheetFocus = destination ? { ...destination, start: null, end: null } : null;
+        const destination = next ? { id: next.dataset.id, field: next.dataset.field, start: null, end: null, reveal: true } : null;
+        pendingSheetFocus = destination;
         cell.dispatchEvent(new Event('change', { bubbles: true }));
-        if (destination) document.querySelector(`.cell-input[data-id="${CSS.escape(destination.id)}"][data-field="${CSS.escape(destination.field)}"]`)?.focus({ preventScroll: true });
+        if (destination) restoreSheetCellFocus(destination);
         pendingSheetFocus = null;
         return;
       }
