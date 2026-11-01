@@ -5,6 +5,7 @@
 |PRC1|Minimize token usage by doin tests locally|
 |PRC2|Review and update current Agents.md and other instructions for coding|
 |PRC3| Update readme so its updated wit code, setup, etc.|
+|PRC4| Add Shortcuts commands description for user, maybe some help| 
 
 **Issues table**
 
