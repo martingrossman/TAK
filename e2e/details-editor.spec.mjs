@@ -19,6 +19,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
       if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ issues: initial, comments: Object.values(discussion).flat(), sequence: 4 }));
     }, { key, initial, discussion });
     await page.goto('/#sheet'); await open(page, 'PRJ-2');
+    await page.locator('#create-more-options').click();
     await expect(page.locator('[data-comment-edit="COM-1"]')).toHaveValue('Parent discussion');
     await expect(page.locator('#editor-primary')).toBeVisible();
     await expect(page.locator('#editor-planning')).toBeVisible();
@@ -41,6 +42,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await page.locator('#save-issue').click();
     await expect(page.locator('#issue-dialog')).not.toBeVisible();
     await page.reload(); await open(page, 'PRJ-2');
+    await page.locator('#create-more-options').click();
     for (const [name, value] of Object.entries(values)) await expect(field(page, name)).toHaveValue(String(value));
     const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)).issues, key);
     expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).comments, key)).toEqual(Object.values(discussion).flat());
@@ -81,6 +83,7 @@ for (const outcome of ['saved', 'failed']) {
       }; } });
     }, { initial, discussion });
     await page.goto('/#sheet'); await open(page, 'PRJ-2');
+    await page.locator('#create-more-options').click();
     page.once('dialog', confirmation => confirmation.dismiss());
     // Edit and navigate in the same turn so the unsent-draft guard is checked
     // before the 700 ms debounce, regardless of the machine's click speed.
@@ -95,6 +98,7 @@ for (const outcome of ['saved', 'failed']) {
     await expect.poll(() => page.evaluate(() => detailsCloud.requests.length)).toBe(1);
     await page.locator('[data-child="PRJ-3"]').click();
     await expect(page.locator('#dialog-id')).toHaveText('PRJ-3');
+    await page.locator('#create-more-options').click();
     await page.evaluate(fail => finishDetails(0, fail), outcome === 'failed');
     await expect(field(page, 'summary')).toHaveValue('Child task');
     await expect(page.locator('[data-comment-edit="COM-2"]')).toHaveValue('Child discussion');

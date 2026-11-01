@@ -228,7 +228,7 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
 .quick-create .field textarea{min-height:72px;height:80px;resize:vertical}
 .quick-create .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
 .quick-create .field input,.quick-create .field select{width:100%}
-.quick-create .create-advanced{display:none}
+.quick-create .create-advanced,.quick-create #editor-related,.quick-create #delete-issue,.quick-create #duplicate-issue{display:none}
 .create-dialog .dialog-footer{padding:12px 16px;gap:8px;flex-wrap:wrap}
 .create-dialog .dialog-actions{gap:8px}
 .create-dialog .issue-footer-actions .button{height:36px}
@@ -2193,13 +2193,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const issue = { ...C.blank(), ...(original || createDefaults), ...(restoredDraft ? issueValues(restoredDraft.input) : {}) };
     createStarted = Boolean(id || restoredDraft);
     if (edited && restoredDraft) edited.version = restoredDraft.version;
-    dialog.classList.toggle('create-dialog', !id);
-    dialog.classList.toggle('quick-create', !id);
-    $('#create-more-options').hidden = Boolean(id);
+    dialog.classList.add('create-dialog', 'quick-create');
+    $('#create-more-options').hidden = false;
     $('#create-more-options').textContent = 'More options';
     $('#create-more-options').setAttribute('aria-expanded', 'false');
     $('#save-issue').textContent = id ? 'Save issue' : 'Create';
-    $('#dialog-id').textContent = id || 'NEW ISSUE'; $('#dialog-title').textContent = id ? 'A little more detail.' : 'Create issue';
+    $('#dialog-id').textContent = id || 'NEW ISSUE'; $('#dialog-title').textContent = id ? 'Edit issue' : 'Create issue';
     form.elements.type.innerHTML = options(C.types, issue.type);
     form.elements.taskTypeId.innerHTML = options(activityTypes(), issue.taskTypeId || 'algo');
     form.elements.status.innerHTML = options(C.statuses, issue.status);
@@ -2230,7 +2229,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     dialog.classList.toggle('quick-create', !expanded);
     $('#create-more-options').textContent = expanded ? 'Back to compact' : 'More options';
     $('#create-more-options').setAttribute('aria-expanded', String(expanded));
-    $('#dialog-title').textContent = expanded ? 'New issue details' : 'Create issue';
+    $('#dialog-title').textContent = edited ? (expanded ? 'Issue details' : 'Edit issue') : (expanded ? 'New issue details' : 'Create issue');
   }
   function closeIssue() {
     if (state.busy) return false;

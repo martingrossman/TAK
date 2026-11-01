@@ -86,12 +86,28 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     expect((await issues(page)).filter(issue => issue.summary === 'Compact draft')).toHaveLength(1);
     await page.locator(`.card[data-issue="${saved.id}"] .card-title`).click();
     await expect(dialog).toBeVisible();
-    await expect(dialog).not.toHaveClass(/create-dialog/);
-    await expect(dialog).not.toHaveClass(/quick-create/);
+    await expect(dialog).toHaveClass(/create-dialog/);
+    await expect(dialog).toHaveClass(/quick-create/);
+    await expect(field(page, 'estimate')).toBeHidden();
+    await expect(page.locator('#editor-related')).toBeHidden();
+    await expect(page.locator('#duplicate-issue')).toBeHidden();
+    await expect(page.locator('#create-more-options')).toBeVisible();
+    const editBox = await dialog.boundingBox();
+    if (viewport.width > 520) {
+      expect(editBox.width).toBe(box.width);
+      expect(Math.abs(editBox.x + editBox.width / 2 - viewport.width / 2)).toBeLessThan(2);
+    } else { expect(editBox.width).toBe(viewport.width); expect(editBox.height).toBe(viewport.height); }
+    await page.locator('#create-more-options').click();
     await expect(field(page, 'estimate')).toBeVisible();
+    await expect(page.locator('#editor-related')).toBeVisible();
+    await expect(page.locator('#duplicate-issue')).toBeVisible();
     await expect(field(page, 'estimate')).toHaveValue('3');
     await expect(field(page, 'description')).toHaveValue('Keep the context');
     await expect(page.locator('#save-issue')).toHaveText('Save issue');
+    await page.locator('#create-more-options').click();
+    await expect(dialog).toHaveClass(/quick-create/);
+    await expect(field(page, 'estimate')).toBeHidden();
+    await expect(field(page, 'estimate')).toHaveValue('3');
   });
 }
 

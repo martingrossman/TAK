@@ -27,7 +27,7 @@
 | Filters | Hidden behind several menus | Permanent long filter bar | Visible Filter control + active filter chips; advanced criteria in popover |
 | Priority | Task detail only | Multiple colored text badges | Small icon, direct editable click/focus |
 | Dashboard | No progress visibility | Persistent row of four oversized cards | Move summary to optional Overview or compact collapsible strip |
-| Details | No access to advanced data | Full 21-field form for everything | Grouped side drawer, optional sections |
+| Details | No access to advanced data | Full 21-field form for everything | Compact issue dialog with an expandable grouped editor |
 | Density | Tiny text | Huge whitespace/cards | Comfortable default + Compact preference |
 
 The goal is **minimum action cost**, not minimum element count.
@@ -122,11 +122,11 @@ Backlog (8)                       To Do (3)
 - Primary `N` shortcut preserved; optionally add `C` as alias after collision checks.
 - Enter in one-line title submits unless IME/autocomplete is active; Ctrl/Cmd+Enter submits from long fields; Shift+Enter creates a newline in a multiline field.
 - Esc closes if empty; if edited, respect unsaved draft through a lightweight discard confirmation or safe draft retention.
-- **More options** expands the new-issue dialog in place, keeping its center and revealing planning/hierarchy/effort fields (desktop expanded width up to ~720px, max ~85vh). **Back to compact** restores the compact layout. Preserve all entered values, including advanced fields hidden after collapsing. Mobile keeps the full-screen sheet in both modes. Existing issues continue to use the detailed drawer.
+- **More options** expands the new-issue dialog in place, keeping its center and revealing planning/hierarchy/effort fields (desktop expanded width up to ~720px, max ~85vh). **Back to compact** restores the compact layout. Preserve all entered values, including advanced fields hidden after collapsing. Mobile keeps the full-screen sheet in both modes. Existing issues also open in the compact layout; More options reveals their full editor, related work, comments and secondary actions without losing edits.
 
 ### 5.3 Detailed issue editor — deep work
 
-**Desktop:** responsive right drawer ~560–720px, maximum viewport width. **Mobile:** full-screen. Header has title, ID, close, secondary actions; group content in readable sections:
+**Desktop:** the expanded compact dialog stays centered, up to ~720px wide and at most ~85vh tall. **Mobile:** full-screen. Header has title, ID, close, secondary actions; group content in readable sections:
 
 1. **Primary:** status, priority, type, assignee and parent.
 2. **Description** with appropriately large edit area.
@@ -233,7 +233,7 @@ Aim for **WCAG 2.2 AA** on applicable UI. Verify keyboard tab order, visible foc
 
 1. **Repeated capture:** Enter three titles in one column with no full-form opening. Context is correct, save state visible, no duplicate on retry.
 2. **One-click editing:** Change a card priority and assignee without leaving board; use keyboard equivalents.
-3. **Deep edit:** Open drawer, change description and dependency, confirm validation and persistence.
+3. **Deep edit:** Expand More options, change description and dependency, confirm validation and persistence.
 4. **Keyboard-only:** Switch views, focus search, create, edit, close, and return focus correctly.
 5. **Failure state:** Fail an inline Sheet edit and task creation; draft remains available and Retry succeeds without duplicate.
 6. **Cross-view:** Filter Kanban, switch to Sheet and Gantt, confirm consistent issue selection and context.
@@ -243,7 +243,7 @@ Aim for **WCAG 2.2 AA** on applicable UI. Verify keyboard tab order, visible foc
 
 ## 14. Reference first slice
 
-Build this before polishing every screen: **Kanban inline create → optimistic Pending → real Saved/Failed → direct priority edit → details drawer → description update → reload → deliberate failure/conflict test.** This validates the entire design philosophy end-to-end.
+Build this before polishing every screen: **Kanban inline create → optimistic Pending → real Saved/Failed → direct priority edit → compact issue dialog → More options → description update → reload → deliberate failure/conflict test.** This validates the entire design philosophy end-to-end.
 
 ---
 

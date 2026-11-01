@@ -74,7 +74,7 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 
 ### FR-04 — Detailed task editor (P0)
 
-- Existing task opens a side panel with summary/ID, frequently changed properties first, and logically organized advanced sections.
+- Existing task opens the same compact dialog layout as Quick Create, with its ID and frequently changed properties visible first. **More options** expands the full detailed editor in place; **Back to compact** restores the smaller layout without discarding values.
 - Keep support for all existing fields: description, type, status, priority, parent, assignee, reporter, dates, estimate, time spent, progress, sprint, labels, dependencies and metadata.
 - Show save state, validation errors and conflict recovery. Never silently lose a draft during navigation or a failed request.
 - Preserve existing reference/deletion checks; destructive actions remain explicit.

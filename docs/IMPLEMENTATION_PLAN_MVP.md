@@ -87,11 +87,11 @@ Small slices (in recommended order):
 1. **P2.1 — Failed edit retention first:** reproduce the suspected inline-save data loss; create failure-injection test; retain local draft and give retry/copy/conflict path. Improve save-state modeling if needed. Avoid simultaneously changing underlying schema.
 2. **P2.2 — Inline Kanban Add:** column-specific title input; Enter create; context defaults; ready for next; pending/success/error; accessible form. Account for overlapping operations and duplicate retries.
 3. **P2.3 — Compact Quick Create:** split new-task flow from current full drawer; small modal with title and compact controls; `N` preserved; keyboard/focus/trap/IME and discarded-draft behavior tested.
-4. **P2.4 — Organized detailed editor:** maintain all current fields, reorganize into clear groups, expose primary props first, protect pending edits and child-navigation.
+4. **P2.4 — Organized detailed editor:** maintain all current fields, reorganize into clear groups, expose primary props first, protect pending edits and child-navigation. A later approved UX refinement opens existing issues in the same compact dialog as Quick Create and reveals this full editor through More options.
 5. **P2.5 — Direct card priority editing:** simplest high-frequency card edit, properly isolated from opening/dragging. Assignee follows using same pattern.
 6. **P2.6 — Sheet quick-add:** single-line title creation, preserve context and safe keyboard behavior.
 
-**End-to-end acceptance slice:** add 3 tasks in Kanban → change priority → edit description in drawer → refresh/reopen → verify all changes. Repeat using delayed, failed and conflicting saves. Test local and Sheets modes. Both UI state and backend write result must agree; never show `Saved` prematurely.
+**End-to-end acceptance slice:** add 3 tasks in Kanban → change priority → open More options and edit description → refresh/reopen → verify all changes. Repeat using delayed, failed and conflicting saves. Test local and Sheets modes. Both UI state and backend write result must agree; never show `Saved` prematurely.
 
 **Implementation caution:** Optimistic rendering should not bypass `Core.js` validation or the backend's version checks. If a server call can have an ambiguous result on timeout, do not blindly retry create without deduplication: retain draft, reconcile by stable operation identity if such support is added and approved, or require a safe user-assisted recovery procedure.
 
