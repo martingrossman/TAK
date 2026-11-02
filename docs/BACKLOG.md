@@ -20,6 +20,11 @@
 - **IM-04** `[Done · 2026-11-01]` — Getting started help describes shortcuts for view switching, search, new issue, the command palette and Escape.
 - **IM-05** `[Open]` — Remove unnecessary information, such as issue numbers, from dashboards and compact dialogs.
 - **IM-06** `[Open]` — The Sheet view displays the issue name twice: in the pinned ID column and again in the Summary column. See [[issue_sheet_twice_names.png]]
-- **IM-07** `[Open]` — Add controls to expand all swimlanes and collapse them again.
+- **IM-07** `[Open]` — Add controls to expand all swim lanes and collapse them again.
 - **IM-08** `[Open]` — Optionally show team member holidays in Gantt so availability is clear.
 - **IM-09** `[Open]` — Optionally connect people's calendars to Google Calendar; the user has a code proposal to review.
+- **IM-11** `[Open]` — Milestone type task addition , displayed as diamond on Gant view
+- **IM-12** `[Open]` — Improve mobile view and usage like trelo
+- **IM-13** `[Open]` — IMprove colors not to mimic Jira too much
+- _
+- 
