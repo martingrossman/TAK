@@ -1,6 +1,20 @@
 # SheetFlow
 
-A Jira-style project tracker using **Google Sheets as its shared data source**, with an editable sheet view, a drag-and-drop Kanban board, and an interactive Gantt timeline. All three views use the same issues. No Jira account or paid frontend libraries are required.
+A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban board, and an interactive Gantt timeline. Capture tasks with just a title, edit priorities and assignees directly, and plan dates in one workspace.
+
+### [▶ Open live demo](https://martingrossman.github.io/gsheetjira/)
+
+**No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For shared Google Sheets storage, [set up your own tracker](#deploy-the-shared-google-sheets-version).
+
+[**Kanban board**](https://martingrossman.github.io/gsheetjira/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/gsheetjira/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/gsheetjira/#gantt) · [**Local setup**](#project-setup)
+
+[![SheetFlow Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/gsheetjira/#kanban)
+
+| Edit work in Sheet | Plan dates in Gantt |
+| --- | --- |
+| [![SheetFlow editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/gsheetjira/#sheet) | [![SheetFlow Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/gsheetjira/#gantt) |
+
+*Screenshots show the standalone app with sample data. Click a preview to open that view in the live demo.*
 
 ## Project setup
 
