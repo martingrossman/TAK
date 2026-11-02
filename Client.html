@@ -27,7 +27,10 @@
   const statusBg = ['#F1F5F9', '#EFF6FF', '#F5F3FF', '#FFFBEB', '#F0FDF4'];
   const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
-  const shortDate = value => C.validDate(value) ? new Date(value + 'T12:00:00Z').toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'No date';
+  const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  const monthFormat = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' });
+  const weekdayFormat = new Intl.DateTimeFormat('en', { weekday: 'narrow', timeZone: 'UTC' });
+  const shortDate = value => C.validDate(value) ? shortDateFormat.format(new Date(value + 'T12:00:00Z')) : 'No date';
   const timestamp = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : '—';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
   function avatar(name) {
@@ -56,13 +59,13 @@
   }
   const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
-  let parentOptionIndex = null;
+  let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
   const scrollByView = {}, renderedView = { current: '' };
   let pendingSheetFocus = null;
   let edited = null, initialForm = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
-  let createStarted = false, issueReturnFocus = null;
+  let createStarted = false, issueReturnFocus = null, newFormDraftKey = '';
   try { state.drafts = JSON.parse(localStorage.getItem(draftStorageKey) || '{}') || {}; } catch (ignore) { state.drafts = {}; }
   try { state.quickQueue = JSON.parse(localStorage.getItem(quickQueueStorageKey) || '[]') || []; } catch (ignore) { state.quickQueue = []; }
   try { state.pendingDuplicate = JSON.parse(localStorage.getItem(duplicateDraftStorageKey) || 'null'); } catch (ignore) { state.pendingDuplicate = null; }
@@ -582,7 +585,7 @@
     return `<div class="error-banner draft-recovery-item" data-recovery-key="${escape(key)}"><strong>${escape(draft.input.id || 'New issue')} · ${escape(draftStatus(key, draft))}</strong><p>${escape(draft.input.summary || issueById(key)?.summary || '')}</p>${draft.error ? `<p>${escape(draft.error)}</p>` : ''}<div class="error-actions">${button('retry', 'Retry', saving)}${button('copy', 'Copy draft')}${button('compare', 'Compare with latest', saving || !draft.input.id)}${button('discard', 'Discard draft', saving)}</div><label hidden>Draft text — select and copy<textarea readonly rows="6" aria-label="Draft text"></textarea></label></div>`;
   }
   function renderDraftRecovery() {
-    const drafts = Object.entries(state.drafts).filter(([key, draft]) => !key.startsWith('quick-') || draft.input.id);
+    const drafts = Object.entries(state.drafts).filter(([key, draft]) => !key.startsWith('quick-') || (key.startsWith('quick-form-') && !quickSavesInFlight.has(key)) || draft.input.id);
     const workspace = $('#draft-recovery');
     const markup = drafts.map(([key, draft], index) => recoveryMarkup(key, draft, index === 0)).join('');
     if (workspace.dataset.markup !== markup) { workspace.innerHTML = markup; workspace.dataset.markup = markup; }
@@ -683,7 +686,6 @@
       cell.value = issueById(input.id)?.priority || cell.value;
       renderDraftRecovery();
     };
-    if (quickCreate) quickSavesInFlight.add(queueKey);
     saveDraft(requestInput, version, operationId);
     state.drafts[draftKeyNow].mutation = mutation;
     localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
@@ -691,6 +693,7 @@
       state.drafts[draftKeyNow].initialCreate = initialCreate;
       localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
     }
+    if (quickCreate) quickSavesInFlight.add(queueKey);
     if (input.id) {
       const current = issueById(input.id);
       if (current) { state.issues = state.issues.map(issue => issue.id === input.id ? { ...issue, ...issueValues(requestInput) } : issue); renderSavedPriority(); }
@@ -835,10 +838,26 @@
     } catch (error) { notify(`Could not undo: ${error.message}`, true); }
     finally { state.activeSaves = Math.max(0, state.activeSaves - 1); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); }
   }
-  function issueById(id) { return state.issues.find(i => i.id === id); }
+  function indexedIssues() {
+    if (issueIndex?.issues !== state.issues) {
+      issueIndex = {
+        issues: state.issues,
+        byId: new Map(state.issues.map(issue => [issue.id, issue])),
+        epics: state.issues.filter(issue => issue.type === 'Epic'),
+        containers: state.issues.filter(issue => issue.type === 'Epic' || issue.type === 'Story'),
+        schedules: new Map()
+      };
+    }
+    return issueIndex;
+  }
+  function issueById(id) { return indexedIssues().byId.get(id); }
   function effectiveDates(issue) {
     if (!issue || issue.type !== 'Epic') return issue || {};
-    return C.epicScheduleRange(issue.id, state.issues) || { startDate: '', dueDate: '' };
+    const schedules = indexedIssues().schedules;
+    if (!schedules.has(issue.id)) {
+      schedules.set(issue.id, C.epicScheduleRange(issue.id, state.issues) || { startDate: '', dueDate: '' });
+    }
+    return schedules.get(issue.id);
   }
   function updateEpicDateFields() {
     const isEpic = form.elements.type.value === 'Epic', keys = ['startDate', 'dueDate'];
@@ -880,7 +899,7 @@
   function filtered() {
     const q = state.query.toLowerCase().trim();
     return C.sorted(state.issues.filter(i => {
-      const dates = effectiveDates(i);
+      const dates = state.startAfter || state.dueBefore ? effectiveDates(i) : i;
       return (!state.types.length || state.types.includes(i.type)) && (!state.priority || i.priority === state.priority) && (!state.tag || C.split(i.labels).includes(state.tag)) && (!state.startAfter || (dates.startDate && dates.startDate >= state.startAfter)) && (!state.dueBefore || (dates.dueDate && dates.dueDate <= state.dueBefore)) && (!state.status || i.status === state.status) && (!state.sprint || i.sprint === state.sprint) && (!state.assignee || (state.assignee === '__unassigned' ? !i.assignee : i.assignee === state.assignee)) && inEpic(i) && (!q || [i.id, i.summary, i.description, i.assignee, i.labels, i.parentId, i.sprint].join(' ').toLowerCase().includes(q));
     }));
   }
@@ -1072,13 +1091,26 @@
     return C.sorted(state.issues.filter(item => item.id !== excludeId && item.type !== 'Epic' && item.status === status && (!state.swimlanes || (laneId ? inEpicWithin(item, laneId) : !hasEpic(item)))));
   }
   function epicLanes(issues, includeEmptyNoEpic = false) {
-    const epics = C.sorted(state.issues.filter(issue => issue.type === 'Epic'));
-    const lanes = epics.map(epic => ({
-      id: epic.id,
-      label: epic.summary,
-      items: issues.filter(issue => issue.id !== epic.id && inEpicWithin(issue, epic.id))
-    })).filter(lane => lane.items.length || issues.some(issue => issue.id === lane.id));
-    const noEpicItems = issues.filter(issue => !epics.some(epic => inEpicWithin(issue, epic.id)));
+    const lanesById = new Map(indexedIssues().epics.map(epic => [epic.id, { id: epic.id, label: epic.summary, items: [] }]));
+    const visibleEpics = new Set(), noEpicItems = [];
+    for (const issue of issues) {
+      let current = issue, grouped = false;
+      const seen = new Set();
+      while (current && !seen.has(current.id)) {
+        seen.add(current.id);
+        const lane = lanesById.get(current.id);
+        if (lane) {
+          grouped = true;
+          if (current.id === issue.id) visibleEpics.add(issue.id);
+          else lane.items.push(issue);
+        }
+        current = issueById(current.parentId);
+      }
+      if (!grouped) noEpicItems.push(issue);
+    }
+    const lanes = C.sorted(indexedIssues().epics)
+      .map(epic => lanesById.get(epic.id))
+      .filter(lane => lane.items.length || visibleEpics.has(lane.id));
     if (noEpicItems.length || includeEmptyNoEpic) lanes.push({ id: '', label: 'No epic', items: noEpicItems });
     return lanes;
   }
@@ -1125,7 +1157,8 @@
   }
   function sortSheetItems(items) {
     return items.slice().sort((a, b) => {
-      const x = effectiveDates(a)[state.sort] ?? a[state.sort], y = effectiveDates(b)[state.sort] ?? b[state.sort];
+      const byDate = state.sort === 'startDate' || state.sort === 'dueDate';
+      const x = (byDate ? effectiveDates(a) : a)[state.sort], y = (byDate ? effectiveDates(b) : b)[state.sort];
       const order = typeof x === 'number' ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true });
       return order * (state.ascending ? 1 : -1);
     });
@@ -1252,14 +1285,27 @@
     if (['createdAt', 'updatedAt', 'completedDate', 'rank'].includes(key)) return `<span class="cell-readonly" title="${escape(value)}">${escape(field.kind === 'timestamp' ? timestamp(value) : value || '—')}</span>`;
     const attr = `class="cell-input ${key === 'summary' ? 'cell-summary' : ''}" data-field="${key}" data-id="${escape(issue.id)}" aria-label="${escape(issue.id + ' ' + field.label)}"`;
     if (['type', 'status', 'priority'].includes(key)) return `<select ${attr}>${options({ type: C.types, status: C.statuses, priority: C.priorities }[key], value)}</select>`;
-    if (key === 'parentId') return `<select ${attr}>${options(parentsFor(issue), value, 'No parent')}</select>`;
+    if (key === 'parentId') {
+      const parent = issueById(value);
+      const selected = parent ? { value: parent.id, label: `${parent.id} · ${parent.summary}` } : { value: '', label: 'No parent' };
+      return `<select ${attr} data-load-parents>${options([selected], selected.value)}</select>`;
+    }
     return `<input ${attr} type="${field.kind === 'number' ? 'number' : field.kind === 'date' ? 'date' : 'text'}" ${field.kind === 'number' ? `min="0" step="${key === 'progress' ? '1' : '0.25'}" ${key === 'progress' ? 'max="100"' : ''}` : ''} ${field.kind === 'date' ? 'min="1900-01-01" max="2200-12-31"' : ''} ${key === 'summary' ? 'maxlength="250" required' : ''} value="${escape(value)}">`;
   }
+  function loadSheetParents(event) {
+    const select = event.target.closest('select[data-load-parents]');
+    if (!select) return;
+    const issue = issueById(select.dataset.id);
+    if (!issue) return;
+    select.innerHTML = options(parentsFor(issue), issue.parentId, 'No parent');
+    select.removeAttribute('data-load-parents');
+  }
+  $('#view-content').addEventListener('focusin', loadSheetParents);
+  $('#view-content').addEventListener('pointerdown', loadSheetParents);
   function parentsFor(issue, includeTaskParents = false) {
-    if (parentOptionIndex?.issues !== state.issues) parentOptionIndex = { issues: state.issues, byId: new Map(state.issues.map(item => [item.id, item])), epics: state.issues.filter(item => item.type === 'Epic'), containers: state.issues.filter(item => ['Epic', 'Story'].includes(item.type)) };
-    const byId = parentOptionIndex.byId, currentParent = byId.get(issue.parentId);
+    const index = indexedIssues(), byId = index.byId, currentParent = byId.get(issue.parentId);
     // Inline rows list project containers plus their current task parent; the full editor can list every task parent.
-    const candidates = issue.type === 'Story' ? parentOptionIndex.epics : includeTaskParents ? state.issues : [...parentOptionIndex.containers, ...(currentParent && ['Task', 'Bug'].includes(currentParent.type) ? [currentParent] : [])];
+    const candidates = issue.type === 'Story' ? index.epics : includeTaskParents ? state.issues : [...index.containers, ...(currentParent && ['Task', 'Bug'].includes(currentParent.type) ? [currentParent] : [])];
     return candidates.filter(candidate => {
       if (candidate.id === issue.id || !(issue.type === 'Story' ? candidate.type === 'Epic' : ['Task', 'Bug'].includes(issue.type) ? ['Epic', 'Story', 'Task', 'Bug'].includes(candidate.type) : false)) return false;
       let parent = candidate; const seen = new Set();
@@ -1524,9 +1570,9 @@
       const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
       const week = Math.ceil((((thursday - yearStart) / 86400000) + 1) / 7);
       const label = state.zoom === 'days'
-        ? `${date.getUTCDate() === 1 || offset === 0 ? date.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' }) : date.toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' })}<strong>${date.getUTCDate()}</strong>`
+        ? `${date.getUTCDate() === 1 || offset === 0 ? monthFormat.format(date) : weekdayFormat.format(date)}<strong>${date.getUTCDate()}</strong>`
         : state.zoom === 'months'
-          ? `<span>${date.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' })}</span><strong>${date.getUTCFullYear()}</strong>`
+          ? `<span>${monthFormat.format(date)}</span><strong>${date.getUTCFullYear()}</strong>`
           : (() => {
             const last = new Date(tickEnd + 'T12:00:00Z');
             const lastThursday = new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() + 3 - ((last.getUTCDay() + 6) % 7)));
@@ -1535,7 +1581,7 @@
             const weekLabel = state.zoom === 'twoWeeks' && lastWeek !== week ? `W${String(week).padStart(2, '0')}–W${String(lastWeek).padStart(2, '0')}` : `W${String(week).padStart(2, '0')}`;
             const dayLabels = Array.from({ length: count }, (_, day) => {
               const dayValue = C.addDays(value, day), dayDate = new Date(dayValue + 'T12:00:00Z');
-              const weekday = dayDate.toLocaleDateString('en', { weekday: 'narrow', timeZone: 'UTC' });
+              const weekday = weekdayFormat.format(dayDate);
               return `<span class="gantt-tick-day" title="${dayValue}"><span>${dayDate.getUTCDate()}</span><small>${weekday}</small></span>`;
             }).join('');
             return `<span class="gantt-tick-heading"><b>${weekLabel}</b> ${shortDate(value)} – ${shortDate(tickEnd)}</span><span class="gantt-tick-days">${dayLabels}</span>`;
@@ -1574,7 +1620,7 @@
         return `<div class="gantt-row gantt-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="gantt-row-label" style="--row-depth:${depth}">${typeIcon(issue.type)}<span class="gantt-label-copy"><strong>${label}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"><span class="gantt-pending-message">${escape(issue.error || 'Syncing with Sheets in the background')}</span></div></div>`;
       }
       const summary = issue.type === 'Epic';
-      const schedule = summary ? C.epicScheduleRange(issue.id, state.issues) : issue;
+      const schedule = effectiveDates(issue);
       const storyChildCount = issue.type === 'Story' ? items.filter(child => child.parentId === issue.id).length : 0;
       const hasStoryChildren = storyChildCount > 0;
       const storyCollapsed = hasStoryChildren && state.collapsedGanttStories[issue.id];
@@ -1587,7 +1633,7 @@
         const collapsed = laneCollapsed(lane);
         const topOffset = rowsHeight;
         const epic = lane.id ? issueById(lane.id) : null;
-        const epicSchedule = epic ? C.epicScheduleRange(epic.id, state.issues) : null;
+        const epicSchedule = epic ? effectiveDates(epic) : null;
         const epicHeader = `<div class="gantt-row gantt-epic-row" ${epic ? `data-gantt-row-id="${escape(epic.id)}"` : ''}><div class="gantt-row-label gantt-epic-label" data-open="${escape(epic?.id || '')}" data-preview-id="${escape(epic?.id || '')}">${renderSwimlaneHeader(lane, 'gantt-lane-title')}${epic ? ganttAddButton(epic) : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${epic ? renderTrack(epic, topOffset + 22, epicSchedule, true) : `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div>`}</div>`;
         rowsHeight += 45;
         const laneRows = collapsed ? '' : renderRows(lane.items, rowsHeight, lane.id);
@@ -1618,6 +1664,7 @@
   function openIssue(id = '', defaults = {}) {
     if (state.busy || !state.ready) return;
     formSession++;
+    newFormDraftKey = '';
     const original = id ? issueById(id) : null;
     if (id && !original) return;
     edited = original ? { ...original } : null; epicDateFormValues = null;
@@ -1716,30 +1763,39 @@
       }
     } catch (error) { if (dialog.open && formSession === session) renderDraftRecovery(); }
   }
-  async function saveForm(event) {
-    event.preventDefault(); if (state.busy || !form.reportValidity()) return;
-    if (formSaveTimer) clearTimeout(formSaveTimer); formSaveTimer = null;
-    if (formSnapshot() === initialForm && (edited || createStarted)) {
-      const session = formSession, key = saveQueueKeyFor(edited?.id), draftKeyValue = draftStorageKeyFor(edited?.id), pending = state.saveQueues[key], draft = state.drafts[draftKeyValue];
-      if (!pending && !draft) { dialog.close(); edited = null; formSession++; return; }
-      try {
-        const saved = pending ? await pending : await persist(draft.input, draft.version, 'Issue saved', draft.mutation || 'saveIssue', { retry: true });
-        if (saved && dialog.open && formSession === session && formSnapshot() === initialForm) { dialog.close(); edited = null; formSession++; setFormSaveStatus('Saved'); }
-      } catch (error) { if (dialog.open && formSession === session) renderDraftRecovery(); }
-      return;
-    }
-    const data = formInput(), submittedSnapshot = formSnapshot(), session = formSession; setFormSaveStatus('Saving…');
+  function saveForm(event) {
+    event.preventDefault();
+    if (!dialog.open || state.busy || !form.reportValidity()) return;
+    if (formSaveTimer) clearTimeout(formSaveTimer);
+    formSaveTimer = null;
     try {
-      C.validate(C.prepare(data, edited, today(), new Date().toISOString()), state.issues);
-      createStarted = true;
-      initialForm = submittedSnapshot;
-      const saved = await persist(data, edited?.version);
-      if (saved && dialog.open && formSession === session && (!edited?.id || edited.id === saved.id)) {
-        edited = { ...saved, ...(formSnapshot() === submittedSnapshot ? {} : Object.fromEntries(new FormData(form))) };
-        if (formSnapshot() === submittedSnapshot) { setFormSaveStatus('Saved'); dialog.close(); edited = null; formSession++; }
-        else setFormSaveStatus('Unsaved changes');
+      if (formSnapshot() === initialForm && (edited || createStarted)) {
+        const draft = state.drafts[draftStorageKeyFor(edited?.id)];
+        if (draft && !state.saveQueues[saveQueueKeyFor(edited?.id)]) {
+          persist(draft.input, draft.version, 'Issue saved', draft.mutation || 'saveIssue', { retry: true }).catch(showError);
+        }
+      } else {
+        const data = formInput();
+        C.validate(C.prepare(data, edited, today(), new Date().toISOString()), state.issues);
+        // New sessions get independent pending cards. Saved legacy drafts retain their original create identity.
+        if (!edited && !state.drafts.__new__) {
+          if (!newFormDraftKey) newFormDraftKey = `quick-form-${newOperationId()}`;
+          data._draftKey = newFormDraftKey;
+        }
+        persist(data, edited?.version).catch(showError);
       }
-    } catch (error) { if (dialog.open && formSession === session) { setFormSaveStatus('Save failed · draft kept', true); renderDraftRecovery(); $('#form-error').textContent = error.message; $('#form-error').hidden = false; $('#form-error').scrollIntoView({ block: 'nearest' }); } }
+      // persist stores the draft synchronously. Validation and storage failures keep the form open.
+      dialog.close();
+      edited = null;
+      formSession++;
+    } catch (error) {
+      setFormSaveStatus('Could not submit', true);
+      renderDraftRecovery();
+      const banner = $('#form-error');
+      banner.textContent = error.message;
+      banner.hidden = false;
+      banner.scrollIntoView({ block: 'nearest' });
+    }
   }
   function clearFilters() {
     ['query', 'priority', 'tag', 'startAfter', 'dueBefore', 'assignee', 'status', 'sprint', 'epic'].forEach(key => state[key] = '');

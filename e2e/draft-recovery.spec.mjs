@@ -136,11 +136,12 @@ test('failed manual Save exposes recovery without requiring another edit', async
   await cloud(page); await page.locator('[data-open="PRJ-1"]').click();
   await page.locator('[name="summary"]').fill('Manual save draft');
   await page.locator('#save-issue').click(); await expect.poll(() => count(page)).toBe(1);
+  await expect(page.locator('#issue-dialog')).toBeHidden();
   await finish(page, 0, 'fail');
-  await page.locator('#form-draft-recovery').getByRole('button', { name: 'Retry', exact: true }).click();
+  await recovery(page).getByRole('button', { name: 'Retry', exact: true }).click();
   await expect.poll(() => count(page)).toBe(2); await finish(page, 1);
   await expect.poll(() => drafts(page)).toEqual({});
-  await expect(page.locator('#form-save-status')).toHaveText('Saved');
+  await expect(page.locator('#sync-status')).toHaveText('Synced with Sheets');
 });
 
 test('local storage write failure is recoverable after reload and saves only locally', async ({ page }) => {

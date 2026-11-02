@@ -43,9 +43,16 @@ test('Kanban has a flat rendering path and preserves epic relationships', async 
 test('grouped lanes represent epics once and keep epic details and schedule accessible', async () => {
   const client = await read('Client.html');
 
-  assert.ok(client.includes('items: issues.filter(issue => issue.id !== epic.id && inEpicWithin(issue, epic.id))'));
+  const epics = [{ id: 'E', type: 'Epic', summary: 'One' }, { id: 'F', type: 'Epic', summary: 'Two' }];
+  const story = { id: 'S', type: 'Story', parentId: 'E' }, task = { id: 'T', parentId: 'S' }, orphan = { id: 'O', parentId: 'missing' };
+  const records = [...epics, story, task, orphan], byId = new Map(records.map(issue => [issue.id, issue]));
+  const source = client.slice(client.indexOf('  function epicLanes('), client.indexOf('  function laneCollapsedKey('));
+  const lanes = new Function('C', 'indexedIssues', 'issueById', source + 'return epicLanes;')({ sorted: items => items.slice() }, () => ({ epics }), id => byId.get(id));
+  assert.deepEqual(lanes([task, epics[1], orphan]), [
+    { id: 'E', label: 'One', items: [task] }, { id: 'F', label: 'Two', items: [] }, { id: '', label: 'No epic', items: [orphan] }
+  ]);
   assert.ok(client.includes('class="swimlane-edit" data-open="${escape(epic.id)}"'));
-  assert.ok(client.includes('const epicSchedule = epic ? C.epicScheduleRange(epic.id, state.issues) : null;'));
+  assert.ok(client.includes('const epicSchedule = epic ? effectiveDates(epic) : null;'));
   assert.ok(client.includes('renderTrack(epic, topOffset + 22, epicSchedule, true)'));
   assert.ok(client.includes('C.leafWorkProgress(state.issues)'));
   assert.ok(client.includes('visible ${visibleLabel} · ${done}/${total} leaf work done'));

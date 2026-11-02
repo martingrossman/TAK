@@ -268,3 +268,16 @@ test('two rapid parent drops use distinct operations and the second waits for th
   expect(businessValues(saved.find(issue => issue.id === 'PRJ-3'))).toEqual(businessValues(original('PRJ-3')));
   expect(saved.find(issue => issue.id === 'PRJ-10')).toEqual(original('PRJ-10'));
 });
+
+test('Sheet parent choices load on focus and remain usable after reparenting', async ({ page }) => {
+  const parent = page.locator('[data-id="PRJ-3"][data-field="parentId"]');
+  await expect(parent).toHaveValue('PRJ-2');
+  await expect(parent.locator('option')).toHaveCount(1);
+  await parent.focus();
+  await expect(parent.locator('option[value="PRJ-8"]')).toHaveCount(1);
+  await expect(parent.locator('option[value="PRJ-10"]')).toHaveCount(0);
+  await parent.selectOption('PRJ-8');
+  await expect.poll(async () => (await readIssues(page)).find(i => i.id === 'PRJ-3').parentId).toBe('PRJ-8');
+  await page.reload();
+  await expect(parent).toHaveValue('PRJ-8');
+});

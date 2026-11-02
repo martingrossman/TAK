@@ -117,9 +117,12 @@ test('local successive edits survive reload without transient operation metadata
 });
 
 for (const outcome of ['ok', 'lost']) test(`new issue edits reconcile the original create after ${outcome} acknowledgement`, async ({ page }) => {
-  await cloud(page); await page.locator('#create-issue').click();
-  await page.locator('[name="summary"]').fill('New item');
-  await page.locator('#save-issue').click();
+  await cloud(page);
+  await page.evaluate(() => localStorage.setItem('sheetflow.pending-drafts.v1', JSON.stringify({
+    __new__: { input: { summary: 'Restored legacy create', type: 'Task', operationId: 'legacy-create' }, operationId: 'legacy-create', initialCreate: { input: { summary: 'Restored legacy create', type: 'Task', operationId: 'legacy-create' } } }
+  })));
+  await page.reload(); await page.locator('#create-issue').click();
+  await page.locator('#form-draft-recovery').getByRole('button', { name: 'Retry', exact: true }).click();
   await expect.poll(() => count(page)).toBe(1);
   await page.locator('textarea[name="description"]').fill('Later description');
   await expect.poll(async () => (await drafts(page)).__new__?.input.description).toBe('Later description');
@@ -137,6 +140,22 @@ for (const outcome of ['ok', 'lost']) test(`new issue edits reconcile the origin
   expect(await count(page)).toBe(updateIndex + 1);
   await finish(page, updateIndex); await expect.poll(() => count(page)).toBe(updateIndex + 2);
   await finish(page, updateIndex + 1); await expect.poll(() => drafts(page)).toEqual({});
-  const items = await page.evaluate(() => intentHarness.issues.filter(i => i.summary === 'New item'));
+  const items = await page.evaluate(() => intentHarness.issues.filter(i => i.summary === 'Restored legacy create'));
   expect(items).toHaveLength(1); expect(items[0].description).toBe('Newest description');
+});
+
+test('two full-editor creates can finish in reverse order while the user keeps working', async ({ page }) => {
+  await cloud(page);
+  for (const title of ['First independent item', 'Second independent item']) {
+    await page.locator('#create-issue').click();
+    await page.locator('[name="summary"]').fill(title);
+    await page.locator('#save-issue').click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    await expect(page.locator('#quick-entry-pending')).toContainText(title);
+  }
+  await expect.poll(() => count(page)).toBe(2);
+  await finish(page, 1); await finish(page, 0);
+  await expect.poll(() => drafts(page)).toEqual({});
+  expect(await page.evaluate(() => intentHarness.issues.slice(2).map(i => i.summary).sort()))
+    .toEqual(['First independent item', 'Second independent item']);
 });

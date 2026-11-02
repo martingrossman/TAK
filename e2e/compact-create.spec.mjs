@@ -213,9 +213,10 @@ test('unconfirmed cloud create keeps its draft and retries with the original ide
   await form(page).dispatchEvent('submit');
   await expect.poll(() => page.evaluate(() => compactCloud.requests.length)).toBe(1);
   await page.evaluate(() => finishCompact(0, true));
-  await expect(page.locator('#form-error')).toBeVisible();
-  await expect(field(page, 'summary')).toHaveValue('Retry this create');
-  await page.locator('#save-issue').click();
+  await expect(page.locator('#issue-dialog')).toBeHidden();
+  const recovery = page.locator('#draft-recovery');
+  await expect(recovery).toContainText('Retry this create');
+  await recovery.getByRole('button', { name: 'Retry', exact: true }).click();
   await expect.poll(() => page.evaluate(() => compactCloud.requests.length)).toBe(2);
   expect(await page.evaluate(() => compactCloud.requests[1].input)).toEqual(await page.evaluate(() => compactCloud.requests[0].input));
   await page.evaluate(() => finishCompact(1, false));
