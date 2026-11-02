@@ -28,6 +28,29 @@
 .card-move{min-height:40px;padding:0 8px;font-size:var(--text-control)}#board-move-dialog{width:min(440px,calc(100vw - 24px))}#board-move-dialog .field{margin-top:12px}#board-move-note{font-size:var(--text-control);margin-top:12px}
 </style>
 
+<style>
+/* Visible shortcut help, with scroll contained inside the native modal. */
+.topbar-right{flex-wrap:wrap;justify-content:flex-end}
+.shortcuts-dialog{width:680px;max-height:85dvh}
+.shortcuts-dialog[open]{display:flex;flex-direction:column}
+.shortcuts-dialog .dialog-header{flex-shrink:0}
+.shortcuts-dialog .help-body{overflow-y:auto;min-height:0;padding:20px;gap:16px}
+.shortcuts-dialog h3{font-size:var(--text-body);color:var(--ink)}
+.shortcuts-dialog kbd{display:inline-block;padding:1px 5px;border:1px solid var(--control-border);border-bottom-width:2px;border-radius:4px;background:var(--surface-muted);font:inherit;font-size:var(--text-meta);color:var(--ink)}
+.shortcut-list{margin:8px 0 0}
+.shortcut-list>div{display:grid;grid-template-columns:minmax(170px,2fr) 3fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.shortcut-list dt,.shortcut-list dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.shortcut-group>summary{cursor:pointer;color:var(--ink);font-weight:550;min-height:44px;padding:10px 0}
+.shortcut-group>summary:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.help-overview{display:grid;gap:12px;padding-top:8px}
+@media(max-width:520px){
+  .topbar-right #sync-status{flex-basis:100%;max-width:none}
+  #help-button{min-height:44px}
+  .shortcuts-dialog .help-body{padding:16px}
+  .shortcut-list>div{grid-template-columns:1fr;gap:5px}
+}
+</style>
+
 <style>.swimlanes{display:grid;gap:18px}.swimlane{border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--canvas);padding:0 10px 10px}.swimlane-header{width:100%;display:flex;align-items:center;gap:8px;padding:11px 5px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:var(--text-meta);text-align:left;cursor:pointer}.swimlane-header:focus-visible{outline:2px solid var(--primary);outline-offset:1px;border-radius:var(--radius-control)}.swimlane-progress{margin-left:auto;color:var(--muted);font-size:var(--text-meta)}.swimlane-toggle{display:inline-flex;flex:0 0 24px;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid var(--line);border-radius:var(--radius-control);color:var(--muted);background:var(--surface);font-size:16px;line-height:1}.swimlane-header:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary)}.swimlane .board{min-height:0;padding-bottom:0}.swimlane.collapsed{padding-bottom:0}.swimlane.collapsed .swimlane-header{padding-bottom:13px}</style>
 <style>.comments-section{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.comment-item{border-bottom:1px solid var(--line);padding:9px 0}.comment-item small{display:block;color:var(--muted);font-size:var(--text-meta);margin-bottom:5px}.comment-item textarea,#new-comment{display:block;width:100%;min-height:54px;border:1px solid var(--line);border-radius:var(--radius-control);padding:7px;font-size:var(--text-meta);resize:vertical;margin-bottom:5px}.comment-item .button{height:26px;font-size:var(--text-meta);padding:0 9px}</style>
 <style>.column-quick-add{display:flex;gap:5px;margin-top:4px}.column-quick-add select{width:67px;border:1px solid transparent;border-radius:var(--radius-control);background:transparent;padding:0 2px;font-size:var(--text-meta);color:var(--muted)}.column-quick-add select:focus,.column-quick-add select:hover{border-color:var(--line);background:var(--surface);outline:none}.column-quick-add input{flex:1;min-width:0;border:1px solid transparent;border-radius:var(--radius-control);background:transparent;padding:7px 6px;font-size:var(--text-meta)}.column-quick-add input:hover,.column-quick-add input:focus{border-color:var(--line);background:var(--surface);outline:none}.column-quick-add button{width:28px;border-radius:var(--radius-control);color:var(--muted);font-size:16px}.column-quick-add button:hover{background:var(--surface-muted);color:var(--primary)}</style>

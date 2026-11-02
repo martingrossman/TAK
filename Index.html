@@ -22,12 +22,11 @@
     <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
     <div class="sidebar-bottom">
       <div class="connection-card"><span class="connection-icon" data-icon="sheet"></span><strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small><a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet <span>↗</span></a></div>
-      <button id="help-button" class="help-button"><span data-icon="help"></span>Getting started<span>↗</span></button>
     </div>
     </details>
   </aside>
   <div class="app-shell">
-    <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>Project tracker</strong></div><div class="topbar-right"><span id="sync-status" class="sync-status" role="status">Loading…</span><button id="command-open" class="button subtle" type="button" aria-keyshortcuts="Control+K Meta+K" disabled>Commands</button><button id="create-issue" class="button primary"><span data-icon="plus"></span>New issue</button></div></header>
+    <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>Project tracker</strong></div><div class="topbar-right"><span id="sync-status" class="sync-status" role="status">Loading…</span><button id="help-button" class="button subtle" type="button" aria-haspopup="dialog" aria-controls="help-dialog">Shortcuts</button><button id="command-open" class="button subtle" type="button" aria-keyshortcuts="Control+K Meta+K" disabled>Commands</button><button id="create-issue" class="button primary"><span data-icon="plus"></span>New issue</button></div></header>
     <main>
     <div class="quick-entry" aria-label="Quick create task"><input id="quick-title" type="text" maxlength="250" placeholder="What needs doing? Press Enter to add a task" aria-label="New task title"><button id="quick-add" class="button primary" type="button">Add task</button><button id="bulk-create-open" class="button secondary" type="button">Paste list</button></div>
     <section id="quick-entry-pending" class="quick-entry-pending" aria-label="Pending quick additions" aria-live="polite" hidden></section>
@@ -108,7 +107,70 @@
     <div class="dialog-header"><h2 id="command-title">Go to or open</h2><button id="command-close" type="button" class="icon-button" aria-label="Close commands">×</button></div>
     <div class="command-body"><label for="command-query">Search issues and actions</label><input id="command-query" type="search" autocomplete="off" aria-controls="command-results" placeholder="Issue title or ID…"><div id="command-results" class="command-results" aria-live="polite"></div></div>
   </dialog>
-  <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title"><div class="dialog-header"><h2 id="help-title">One project. Three perspectives.</h2><button class="icon-button" id="close-help" aria-label="Close help">×</button></div><div class="help-body"><p><strong>Sheet</strong> is your editable issue register. Change cells directly, or open an issue for every detail.</p><p><strong>Kanban</strong> keeps work moving. Drag a card to change its status or reorder it. You can also change status in the issue editor, including on touch devices.</p><p><strong>Gantt</strong> shows your schedule. Drag a bar to move its dates; drag the right edge to change its due date. Open an issue for precise dates and dependencies. Focus a row label and use Alt + ↑/↓ to reorder, Alt + ← to unparent, or Alt + → to nest under the previous eligible sibling.</p><p><strong>Hierarchy:</strong> epics contain stories; tasks and bugs can belong to either. Choose an epic in the sidebar to focus on all its descendants.</p><p id="help-storage"></p><p><strong>Shortcuts:</strong> 1 / 2 / 3 switch views, / searches, N creates an issue, Ctrl/Cmd + K opens commands, Esc closes an editor.</p><p>CSV export includes all fields for the currently filtered issues.</p></div></dialog>
+  <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
+    <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
+    <div class="help-body">
+      <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
+      <section aria-labelledby="shortcuts-navigation"><h3 id="shortcuts-navigation">Navigation</h3>
+        <dl class="shortcut-list">
+          <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
+          <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
+          <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
+          <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Close a dialog; unsaved edits may require confirmation</dd></div>
+        </dl>
+      </section>
+      <p>Use <kbd>Tab</kbd> to focus a control before using its shortcuts, or <kbd>Shift</kbd> + <kbd>Tab</kbd> to go back.</p>
+      <details class="shortcut-group"><summary>Create &amp; edit</summary>
+        <dl class="shortcut-list">
+          <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
+          <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In the main or Kanban quick-add input: clear the unsent title and leave the input</dd></div>
+        </dl>
+      </details>
+      <details class="shortcut-group"><summary>Sheet</summary>
+        <dl class="shortcut-list">
+          <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Commit and move to the next / previous editable cell</dd></div>
+          <div><dt><kbd>Enter</kbd> / <kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>In a text, number, or date input: commit and move down / up in the same column</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In a text, number, or date input: cancel the unsent edit and restore the current issue value</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On the dotted row grip: reorder siblings, keeping the same parent</dd></div>
+        </dl>
+      </details>
+      <details class="shortcut-group"><summary>Kanban</summary>
+        <dl class="shortcut-list">
+          <div><dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt><dd>On a focused card: open the issue</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On a focused card: reorder within its column and lane</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>On a focused card: move to the previous / next status, keeping its parent</dd></div>
+          <div><dt><kbd>Enter</kbd> / <kbd>Esc</kbd></dt><dd>In an assignee input: submit / cancel the unsent change</dd></div>
+        </dl>
+      </details>
+      <details class="shortcut-group"><summary>Gantt</summary>
+        <dl class="shortcut-list">
+          <div><dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt><dd>On a task label or bar: open the issue</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On a task label or Epic lane heading: reorder siblings</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>On a task label: remove its parent / nest under the previous sibling when valid</dd></div>
+          <div><dt><kbd>←</kbd> / <kbd>→</kbd></dt><dd>On the label/timeline divider: narrow / widen labels by 10 pixels</dd></div>
+        </dl>
+      </details>
+      <details class="shortcut-group"><summary>Commands</summary>
+        <dl class="shortcut-list">
+          <div><dt><kbd>Enter</kbd></dt><dd>In search: run the first result. On a result: run that result.</dd></div>
+          <div><dt><kbd>↓</kbd> / <kbd>↑</kbd></dt><dd>Move through results; Up from the first returns to search</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Close Commands and restore focus</dd></div>
+        </dl>
+      </details>
+      <details class="shortcut-group"><summary>Getting started</summary>
+        <div class="help-overview">
+          <p><strong>Sheet</strong> is your editable issue register. Change cells directly, or open an issue for every detail.</p>
+          <p><strong>Kanban</strong> keeps work moving. Drag a card to change status or order. Use the card's Move button for status and legal Epic moves with keyboard or touch.</p>
+          <p><strong>Gantt</strong> shows your schedule. Drag a bar to move its dates; drag its right edge to change its due date. Open an issue for precise dates and dependencies.</p>
+          <p><strong>Hierarchy:</strong> epics contain stories; tasks and bugs can belong to either. Choose an epic under Epics &amp; connection to focus on its descendants.</p>
+          <p id="help-storage"></p>
+          <p>CSV export includes all fields for the currently filtered issues.</p>
+        </div>
+      </details>
+    </div>
+  </dialog>
   <dialog id="board-move-dialog" class="help-dialog" aria-labelledby="board-move-title">
     <form id="board-move-form">
       <div class="dialog-header"><h2 id="board-move-title">Move issue</h2><button type="button" id="board-move-close" class="icon-button" aria-label="Close move">×</button></div>

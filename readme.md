@@ -6,7 +6,7 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 
 **No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For shared Google Sheets storage, [set up your own tracker](#deploy-the-shared-google-sheets-version).
 
-[**Kanban board**](https://martingrossman.github.io/gsheetjira/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/gsheetjira/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/gsheetjira/#gantt) · [**Local setup**](#project-setup)
+[**Kanban board**](https://martingrossman.github.io/gsheetjira/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/gsheetjira/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/gsheetjira/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
 
 [![SheetFlow Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/gsheetjira/#kanban)
 
@@ -15,6 +15,47 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 | [![SheetFlow editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/gsheetjira/#sheet) | [![SheetFlow Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/gsheetjira/#gantt) |
 
 *Screenshots show the standalone app with sample data. Click a preview to open that view in the live demo.*
+
+## Keyboard shortcuts
+
+Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts work when focus is outside an input, text area, select, or editable text, and no dialog is open. They pause during IME text composition. Click the view heading to leave a field before using them.
+
+| Key | Action |
+| --- | --- |
+| `1` | Switch to Sheet. |
+| `2` | Switch to Kanban. |
+| `3` | Switch to Gantt. |
+| `/` | Focus search. |
+| `N` | Open the compact New issue dialog. |
+| `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
+
+Creation and editing shortcuts depend on the focused control:
+
+| Where / focus | Key | Action |
+| --- | --- | --- |
+| Quick-add title, including Kanban column entry | `Enter` | Submit the title; keep the input ready for another task. |
+| Main or Kanban column quick-add title | `Esc` | Clear the unsent title and leave the input. |
+| Issue dialog title | `Enter` | Submit the issue form. |
+| Issue dialog | `Ctrl/Cmd + Enter` | Submit the issue form, including from the description. |
+| Issue dialog | `Tab` / `Shift + Tab` | Move forward/backward through controls within the dialog. |
+| Issue dialog | `Esc` | Request closing; unsaved changes may require confirmation. |
+| Sheet editable cell | `Tab` / `Shift + Tab` | Commit the cell change and move to the next/previous editable cell. |
+| Sheet text, number, or date input | `Enter` / `Shift + Enter` | Commit the change and move down/up in the same column. |
+| Sheet text, number, or date input | `Esc` | Restore the current issue value in the input, cancelling the unsent edit. |
+| Kanban assignee input | `Enter` / `Esc` | Submit the assignee change / cancel the unsent change. |
+| Focused Kanban card | `Enter` or `Space` | Open the issue editor. |
+| Focused Kanban card | `Alt + ↑` / `Alt + ↓` | Reorder the card within its current column and lane. |
+| Focused Kanban card | `Alt + ←` / `Alt + →` | Move to the previous/next status column, keeping its parent. |
+| Sheet dotted row grip | `Alt + ↑` / `Alt + ↓` | Reorder siblings while keeping the same parent. |
+| Gantt task label or bar | `Enter` or `Space` | Open the issue editor. |
+| Gantt task label or Epic lane heading | `Alt + ↑` / `Alt + ↓` | Reorder siblings. |
+| Gantt task label | `Alt + ←` / `Alt + →` | Remove the parent / nest under the previous sibling when that relationship is valid. |
+| Gantt label/timeline divider | `←` / `→` | Narrow/widen the label area by 10 pixels. |
+| Commands search | `Enter` / `↓` | Run the first result / focus the first result. |
+| Focused Commands result | `↑` / `↓` | Move between results; Up from the first returns to search. |
+| Commands dialog | `Esc` | Close Commands and restore focus. |
+
+Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. The **Commands** button also opens the palette with a mouse or touch. Click **Shortcuts** in the app header for the in-app reference and Getting started help.
 
 ## Project setup
 
@@ -201,7 +242,7 @@ The ordering foundation exposes `reorderIssue(id, beforeId, expectedVersion)`. I
 - **Issue editor:** create, edit, or delete issues, with descriptions, assignees, priorities, sprints, labels, estimates, time spent, progress, and dependencies. Deletion is blocked while another issue references the item as a parent or dependency.
 - **Filters:** search text and filter by type, assignee, status, sprint, or epic across every view. Statistics reflect the filtered issues. Totals count records, including epics; they are not sums of child estimates.
 - **CSV:** export the filtered issues with all fields. Formula-like text is neutralized for spreadsheet imports. CSV import is not included.
-- **Shortcuts:** `1` Sheet, `2` Kanban, `3` Gantt, `/` search, `N` new issue, `Esc` close editor. Shortcuts are inactive while typing.
+- **Shortcuts:** see the [keyboard shortcut reference](#keyboard-shortcuts) for navigation, creation, editing, and view-specific controls.
 
 ## Sheet columns
 

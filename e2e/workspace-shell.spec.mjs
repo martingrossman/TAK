@@ -1,6 +1,39 @@
 import { test, expect } from '@playwright/test';
 
 for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+  test(`shortcut help is discoverable and restores workspace focus at ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto('/#kanban');
+    await expect(page.locator('#sync-status')).toHaveText('Saved in this browser');
+    await page.locator('#search').fill('guide');
+    const help = page.getByRole('button', { name: 'Shortcuts', exact: true });
+    await expect(page.locator('.workspace-options')).not.toHaveAttribute('open', '');
+    await expect(help).toBeInViewport();
+    await help.click();
+    const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts & help' });
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close help', exact: true })).toBeFocused();
+    await expect(dialog.getByText('Switch to Sheet / Kanban / Gantt', { exact: true })).toBeVisible();
+    // Global navigation must not run while help is open.
+    await page.keyboard.press('1');
+    await expect(page).toHaveURL(/#kanban$/);
+    for (const group of ['Create & edit', 'Sheet', 'Kanban', 'Gantt', 'Commands', 'Getting started']) {
+      await dialog.locator('summary').filter({ hasText: new RegExp(`^${group}$`) }).click();
+    }
+    await expect(dialog.locator('#help-storage')).toContainText('only in this browser');
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    await expect(help).toBeFocused();
+    await expect(page.locator('#search')).toHaveValue('guide');
+    await help.press('Enter');
+    await expect(dialog).toBeVisible();
+    await page.getByRole('button', { name: 'Close help', exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(help).toBeFocused();
+  });
+
   test(`workspace navigation and controls remain reachable at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto('/#kanban');
