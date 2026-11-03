@@ -54,7 +54,12 @@ test('unavailable draft storage blocks the request and offers an in-page copy', 
 });
 
 test('failed edit restores exact draft and recovery controls in the editor after reload', async ({ page }) => {
-  await cloud(page); await priority(page, 'High'); await finish(page, 0, 'fail');
+  await cloud(page); await priority(page, 'High');
+  await expect.poll(() => count(page)).toBe(1);
+  await expect(page.locator('#draft-recovery')).toBeHidden();
+  await expect(page.locator('#sync-status')).toHaveText('Saving…');
+  expect((await drafts(page))['PRJ-1'].input.priority).toBe('High');
+  await finish(page, 0, 'fail');
   const original = (await drafts(page))['PRJ-1'];
   await page.reload();
   await expect(recovery(page)).toContainText('Failed');
@@ -67,6 +72,9 @@ test('failed edit restores exact draft and recovery controls in the editor after
   await page.locator('#form-draft-recovery').getByRole('button', { name: 'Retry', exact: true }).click();
   await expect.poll(() => count(page)).toBe(1);
   expect(await page.evaluate(() => recoveryServer.requests[0].input)).toEqual(original.input);
+  await expect(page.locator('#draft-recovery')).toBeHidden();
+  await expect(page.locator('#form-draft-recovery')).toBeHidden();
+  await expect(page.locator('#form-save-status')).toHaveText('Saving…');
   await finish(page); await expect.poll(() => drafts(page)).toEqual({});
   await expect(page.locator('#form-save-status')).toHaveText('Saved');
   await page.locator('#close-dialog').click(); await page.reload();
@@ -95,7 +103,12 @@ test('reloaded pending edit stays unconfirmed and cannot overwrite a newer remot
 
 test('another issue saving cannot hide a failed draft or its recovery actions', async ({ page }) => {
   await cloud(page); await priority(page, 'High'); await finish(page, 0, 'fail');
-  await priority(page, 'Low', 'PRJ-2'); await finish(page, 1);
+  await priority(page, 'Low', 'PRJ-2');
+  await expect.poll(() => count(page)).toBe(2);
+  await expect(recovery(page, 'PRJ-2')).toBeHidden();
+  await expect(recovery(page)).toContainText('Failed');
+  await expect(recovery(page).getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
+  await finish(page, 1);
   await expect(recovery(page)).toContainText('Failed');
   await expect(recovery(page).getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
   await expect(page.locator('#sync-status')).toContainText('Failed');

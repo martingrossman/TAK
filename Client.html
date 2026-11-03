@@ -585,13 +585,14 @@
     return `<div class="error-banner draft-recovery-item" data-recovery-key="${escape(key)}"><strong>${escape(draft.input.id || 'New issue')} · ${escape(draftStatus(key, draft))}</strong><p>${escape(draft.input.summary || issueById(key)?.summary || '')}</p>${draft.error ? `<p>${escape(draft.error)}</p>` : ''}<div class="error-actions">${button('retry', 'Retry', saving)}${button('copy', 'Copy draft')}${button('compare', 'Compare with latest', saving || !draft.input.id)}${button('discard', 'Discard draft', saving)}</div><label hidden>Draft text — select and copy<textarea readonly rows="6" aria-label="Draft text"></textarea></label></div>`;
   }
   function renderDraftRecovery() {
-    const drafts = Object.entries(state.drafts).filter(([key, draft]) => !key.startsWith('quick-') || (key.startsWith('quick-form-') && !quickSavesInFlight.has(key)) || draft.input.id);
+    const drafts = Object.entries(state.drafts).filter(([key, draft]) =>
+      !state.saveQueues[saveQueueKeyFor(key)] && (!key.startsWith('quick-') || (key.startsWith('quick-form-') && !quickSavesInFlight.has(key)) || draft.input.id));
     const workspace = $('#draft-recovery');
     const markup = drafts.map(([key, draft], index) => recoveryMarkup(key, draft, index === 0)).join('');
     if (workspace.dataset.markup !== markup) { workspace.innerHTML = markup; workspace.dataset.markup = markup; }
     workspace.hidden = !drafts.length;
     const panel = $('#form-draft-recovery'), key = draftStorageKeyFor(edited?.id), draft = state.drafts[key];
-    const formMarkup = dialog.open && draft ? recoveryMarkup(key, draft) : '';
+    const formMarkup = dialog.open && draft && !state.saveQueues[saveQueueKeyFor(key)] ? recoveryMarkup(key, draft) : '';
     if (panel.dataset.markup !== formMarkup) { panel.innerHTML = formMarkup; panel.dataset.markup = formMarkup; }
     panel.hidden = !formMarkup;
     if (dialog.open && draft && !formSaveTimer && formSnapshot() === initialForm) setFormSaveStatus(draftStatus(key, draft), !state.saveQueues[saveQueueKeyFor(key)]);

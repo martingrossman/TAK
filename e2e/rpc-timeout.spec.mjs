@@ -19,6 +19,8 @@ test('a missing Apps Script callback leaves an actionable unconfirmed draft', as
   await page.goto('/#sheet');
   await page.locator('[data-field="priority"][data-id="PRJ-1"]').selectOption('High');
   await expect.poll(() => page.evaluate(() => timeoutHarness.requests.length)).toBe(1);
+  await expect(page.locator('#draft-recovery')).toBeHidden();
+  await expect(page.locator('#sync-status')).toHaveText('Saving…');
   await page.clock.fastForward(30001);
   await expect(page.locator('#draft-recovery')).toContainText('Save unconfirmed · draft kept');
   const draft = await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.pending-drafts.v1'))['PRJ-1']);
