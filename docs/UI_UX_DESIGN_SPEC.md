@@ -36,58 +36,36 @@ The goal is **minimum action cost**, not minimum element count.
 
 ### Desktop layout
 
-```text
-┌────────────────┬─────────────────────────────────────────────────────────────┐
-│ GSheetJira     │  Project / Board             Search    Saved    [+ New]      │
-│                ├─────────────────────────────────────────────────────────────┤
-│ Project        │  Kanban                      Filter  Sort  Display           │
-│ ─────────────  ├─────────────────────────────────────────────────────────────┤
-│ Board          │  Backlog       To Do         In Progress       Review ...   │
-│ Sheet          │  [ task ]      [ task ]      [ task ]          [ task ]      │
-│ Gantt          │  [ task ]      [ task ]      [ task ]                        │
-│                │  + Add task    + Add task    + Add task                     │
-│ Epics          │                                                             │
-│ • Project X    │                                                             │
-│ • Project Y    │                                                             │
-│                │                                                             │
-└────────────────┴─────────────────────────────────────────────────────────────┘
-```
+The header contains the project identity, save status and one switcher for Sheet, Kanban and Gantt. Undo, Commands, Shortcuts and New issue sit on its right.
 
-- **Sidebar:** ~208–224px on desktop, collapsible. One view switcher for Sheet/Kanban/Gantt and current epic navigation. Do not duplicate those views in the page header. If the app has no multi-project concept yet, label the current workspace honestly rather than inventing a project manager.
-- **Top bar:** ~52–60px with breadcrumb/view, search/command entry, persistence status and primary **New**. Keep visually lightweight.
-- **View toolbar:** ~40–48px; name/count and relevant Filter, Sort, Group/Display controls. Keep detailed settings contextual.
-- **Main content:** starts immediately after toolbar. Board can scroll horizontally; table and Gantt own their scroll regions.
-- **No permanent hero** (“Good work starts here”) in daily task views. Empty-state onboarding can still be warm and concise.
-- Preserve view and applicable filter context, meaningful scroll positions and selection when possible.
+The toolbar below shows the view name, issue count, quick task entry and search. Filters and Saved views open on demand. Group by epic is directly accessible. Open **More** for Paste list, Refresh, Export CSV, Epic selection and the Sheet connection.
+
+The work view uses the full width below the toolbar. Keep each view’s filters, selection and scroll position when switching views.
 
 ### Narrow screens
 
-- Small laptop/tablet: collapsed/icon sidebar, compact top controls, filters in popover, board scrolling with usable column width.
-- Mobile: list/Sheet-first experience or horizontally scrolling board; bottom/visible add action; full-screen editor; touch-sized hit targets. Do not crush five columns into tiny cards.
-- Gantt retains horizontal navigation; labels remain legible. A compact layout must never remove access to editing or save errors.
+The header and toolbar wrap to fit the screen. Keep the view names and save status visible. The board, table and timeline scroll horizontally within their own regions. The editor uses the full phone screen.
 
 ## 4. Design tokens (light theme first)
 
-Proposed starting palette; adjust through browser screenshot/contrast review, not subjective last-minute one-off CSS.
+The workspace uses SmartGantAI’s light gray canvas, white surfaces, navy text and blue actions.
 
 | CSS token | Value | Intended role |
 |---|---|---|
-| `--color-primary` | `#4F46E5` | Main CTA, selected navigation, primary focus |
-| `--color-primary-hover` | `#4338CA` | Active/hover CTA |
-| `--color-canvas` | `#F8FAFC` | Main workspace background |
-| `--color-surface` | `#FFFFFF` | Cards, menus, dialogs |
-| `--color-sidebar` | `#F1F5F9` | Navigation background |
-| `--color-text` | `#172033` | Headings/body |
-| `--color-muted` | `#64748B` | Secondary text |
-| `--color-border` | `#E2E8F0` | Dividers/borders |
-| `--color-success` | `#15803D` | Done/successful save |
-| `--color-warning` | `#B45309` | Warnings/due soon |
-| `--color-danger` | `#B91C1C` | Errors/destructive actions |
-| `--color-focus` | `#818CF8` | Focus ring (contrast test required) |
+| `--primary` | `#0052CC` | Primary action and active view |
+| `--primary-dark` | `#0747A6` | Hovered primary action |
+| `--canvas` | `#F4F5F7` | Workspace background |
+| `--surface` | `#FFFFFF` | Cards, header, menus and dialogs |
+| `--surface-muted` | `#EBECF0` | Board columns and view switcher |
+| `--ink` | `#172B4D` | Headings and body text |
+| `--muted` | `#5E6C84` | Secondary text |
+| `--line` | `#DFE1E6` | Dividers and surface borders |
+| `--success` | `#006644` | Confirmed save |
+| `--gold` | `#804B00` | High priority |
+| `--red` | `#BF2600` | Errors, overdue work and highest priority |
+| `--focus` | `#0052CC` | Keyboard focus |
 
-**Semantic status and priority:** Existing statuses need distinguishable labels/icons/markers; don't use primary indigo for every status. Severity/priority is conveyed with an icon and accessible name; color is supplementary. Reuse the same semantics in cards, table and detail panel.
-
-**Typography:** Inter with system fallback; body 13–14px, secondary/metadata 12–13px, section titles 16–20px, workspace title ~20–24px. Avoid 9–11px critical controls. Use regular/medium weights; make dense data scannable without bolding everything.
+Use text or an accessible name alongside each status or priority color. Use the system font at 14px for body text, 13px for controls and 12px for metadata.
 
 **Shape and spacing:** 4px base rhythm; 6–10px corner radii; borders rather than dramatic shadows; card gap 8–12px; major section spacing 16–24px. Icons ~16–18px, always paired with text or accessible labels where meaning is uncertain.
 

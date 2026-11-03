@@ -144,7 +144,7 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 
 ### FR-11 — Appearance and accessibility (P0–P1)
 
-- Follow [`UI_UX_DESIGN_SPEC.md`](UI_UX_DESIGN_SPEC.md): neutral/indigo design, semantic statuses, clear focus, readable body text, consistent spacing and components.
+- Use a light gray workspace, white surfaces and blue actions with consistent status colors, visible focus and readable text across views. See the [UI/UX design specification](UI_UX_DESIGN_SPEC.md).
 - Comfortable default density; optional Compact after accessibility verification. Dark/system theme is P2.
 - Use semantically labeled controls, keyboard-accessible dialogs, proper focus restoration and motion reduction. Target WCAG 2.2 AA on applicable flows.
 - Desktop-first but usable on narrow screens and touch devices; never depend on hover alone.

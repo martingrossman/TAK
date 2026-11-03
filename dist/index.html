@@ -7,18 +7,19 @@
   <title>SheetFlow — Project tracker</title>
   <style>
 :root{
-  --ink:#172033;--muted:#526178;
-  --primary:#4F46E5;--primary-dark:#4338CA;--primary-soft:#EEF2FF;
-  --line:#E2E8F0;--control-border:#94A3B8;
-  --canvas:#F8FAFC;--surface:#FFFFFF;--surface-muted:#F1F5F9;
-  --purple:#6D28D9;--purple-soft:#F5F3FF;
-  --gold:#92400E;--gold-soft:#FFFBEB;
-  --red:#B91C1C;--red-soft:#FEF2F2;--danger-border:#FECACA;
-  --success:#15803D;--success-soft:#F0FDF4;--focus:#4F46E5;
+  --ink:#172b4d;--muted:#5e6c84;
+  --primary:#0052cc;--primary-dark:#0747a6;--primary-soft:#deebff;
+  --line:#dfe1e6;--control-border:#8993a4;
+  --canvas:#f4f5f7;--surface:#fff;--surface-muted:#ebecf0;
+  --purple:#5243aa;--purple-soft:#eae6ff;
+  --gold:#804b00;--gold-soft:#fff0b3;
+  --red:#bf2600;--red-soft:#ffebe6;--danger-border:#ffbdad;
+  --success:#006644;--success-soft:#e3fcef;--focus:#0052cc;
   --text-body:14px;--text-control:13px;--text-meta:12px;
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;
-  --radius-control:6px;--radius-panel:8px;
-  --sidebar:228px;--font:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+  --radius-control:6px;--radius-panel:6px;
+  --page-gutter:clamp(12px,1.6vw,26px);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif
 }
 *{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);font:var(--text-body)/1.5 var(--font)}button,input,select,textarea{font:inherit;color:inherit}button,a,input,select,textarea{-webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:wait;opacity:.55}button{border:0;background:none}a{color:var(--primary);text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--primary);outline-offset:3px}[hidden]{display:none!important}svg.icon{width:18px;height:18px;display:block;flex-shrink:0}span[data-icon]{display:inline-flex;align-items:center}h1,h2,h3,p{margin:0}h1{font-size:32px;line-height:1.22;letter-spacing:-1.3px;font-weight:640}h1>span{color:var(--primary)}h2{font-size:21px;letter-spacing:-.55px}input,textarea,select{min-width:0}input::placeholder,textarea::placeholder{color:var(--muted)}.sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:30px 19px 18px;z-index:20}.brand{display:flex;align-items:center;font-size:26px;letter-spacing:-1.4px;font-weight:750;color:var(--ink);padding:0 7px}.brand-period{color:var(--primary)}.brand-mark{display:inline-flex;position:relative;justify-content:center;align-items:center;background:var(--primary);color:var(--surface);font-size:29px;font-weight:600;width:34px;height:34px;border-radius:11px;margin-right:10px;font-style:italic;line-height:1}.brand-mark span{width:8px;height:8px;background:var(--control-border);position:absolute;right:-2px;top:-2px;border:2px solid var(--surface);border-radius:50%}.workspace{display:flex;gap:10px;align-items:center;padding:29px 5px 30px}.workspace-icon{background:var(--surface-muted);border:1px solid var(--line);border-radius:var(--radius-panel);width:33px;height:34px;display:grid;place-items:center;font-family:Georgia,serif;font-weight:bold;font-size:17px}.workspace strong{font-size:var(--text-meta);display:block}.workspace small{display:block;font-size:var(--text-meta);color:var(--muted);margin-top:2px}.nav-caption{font-size:var(--text-meta);letter-spacing:1.6px;color:var(--muted);margin:0 12px 11px;font-weight:650}.view-nav{display:grid;gap:5px}.view-nav button{display:flex;align-items:center;gap:12px;text-align:left;border-radius:var(--radius-control);padding:11px 13px;color:var(--muted);font-size:var(--text-control)}.view-nav button.active{background:var(--primary-soft);color:var(--primary-dark);font-weight:650}.view-nav button:hover{background:var(--surface-muted)}.nav-key{margin-left:auto;opacity:.4;font-size:var(--text-meta)}.epic-caption{display:flex;align-items:center;justify-content:space-between;margin-top:35px;margin-bottom:9px}.icon-button{width:30px;height:30px;display:inline-grid;place-items:center;border-radius:var(--radius-control);font-size:22px;color:var(--muted)}.icon-button:hover{background:var(--surface-muted);color:var(--ink)}.epic-caption .icon-button{font-size:18px;width:20px;height:20px}.epic-nav{display:grid;gap:5px;overflow:auto}.epic-nav button{padding:9px 11px;display:flex;gap:10px;text-align:left;align-items:center;color:var(--muted);font-size:var(--text-meta);border-radius:var(--radius-control)}.epic-nav button.active{background:var(--surface-muted);color:var(--primary)}.epic-nav button:hover{background:var(--surface-muted)}.epic-dot{width:6px;height:6px;flex-shrink:0;border-radius:2px;background:var(--purple)}.epic-nav button:nth-child(2n) .epic-dot{background:var(--gold)}.epic-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sidebar-bottom{margin-top:auto;padding-top:32px}.connection-card{border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface-muted);padding:15px 13px;position:relative}.connection-icon{color:var(--success);margin-bottom:8px}.connection-card strong{display:block;font-size:var(--text-meta)}.connection-card small{display:block;font-size:var(--text-meta);color:var(--muted);line-height:1.7;margin-top:3px}.connection-card a{font-size:var(--text-meta);display:flex;justify-content:space-between;margin-top:13px}.help-button{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:var(--text-meta);width:100%;padding:20px 5px 0}.help-button>span:last-child{margin-left:auto}.help-button svg{width:15px;height:15px}.app-shell{margin-left:var(--sidebar)}.topbar{height:70px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 35px;background:var(--surface)}.breadcrumb{font-size:var(--text-meta);color:var(--muted);display:flex;align-items:center;gap:14px}.breadcrumb strong{font-weight:500;color:var(--muted)}.breadcrumb span{color:var(--line)}.topbar-right{display:flex;gap:22px;align-items:center}.sync-status{font-size:var(--text-meta);color:var(--muted);display:flex;gap:7px;align-items:center}.sync-status:before{content:'';width:5px;height:5px;border-radius:50%;background:var(--success)}.sync-status.error{color:var(--red)}.sync-status.error:before{background:var(--red)}.profile{border-radius:50%;width:29px;height:29px;border:3px solid var(--surface);background:var(--primary-soft);color:var(--muted);display:grid;place-items:center;font-size:var(--text-meta);box-shadow:0 0 0 1px var(--line)}main{padding:34px 35px 20px;max-width:2100px;margin:auto}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}.eyebrow{font-size:var(--text-meta);letter-spacing:1.65px;font-weight:600;color:var(--muted);margin-bottom:12px;display:block}.page-heading p{color:var(--muted);font-size:var(--text-control);margin-top:11px}.button{height:36px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius-control);padding:0 14px;font-size:var(--text-meta);font-weight:550;white-space:nowrap;transition:background .15s}.button svg.icon{width:15px;height:15px}.primary{background:var(--primary);color:var(--surface);border:1px solid var(--primary);box-shadow:0 2px 2px #0F172A0A}.primary:hover{background:var(--primary-dark)}.secondary{background:var(--surface);border:1px solid var(--line)}.secondary:hover{background:var(--surface-muted)}.subtle{color:var(--muted)}.subtle:hover{background:var(--surface-muted)}.danger{color:var(--red);background:var(--red-soft)}.stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;background:var(--surface);margin:30px 0 24px;padding:19px 0}.stat{padding:0 23px;position:relative;border-right:1px solid var(--line)}.stat:last-child{border:0}.stat-label{color:var(--muted);font-size:var(--text-meta);display:flex;align-items:center;gap:6px}.stat-label svg.icon{width:13px;height:13px}.stat-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:5px;gap:10px}.stat-number{font-size:25px;letter-spacing:-1px;font-weight:550}.stat-note{font-size:var(--text-meta);color:var(--muted)}.stat-note.positive{color:var(--success);background:var(--success-soft);padding:3px 6px;border-radius:4px}.mini-progress{height:4px;width:60px;border-radius:var(--radius-panel);background:var(--line);overflow:hidden}.mini-progress span{height:100%;display:block;background:var(--success)}.view-bar{border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}.tabs{display:flex;gap:23px}.tabs button{display:flex;gap:7px;align-items:center;height:47px;padding:0 4px;border-bottom:2px solid transparent;color:var(--muted);font-size:var(--text-meta)}.tabs button.active{border-color:var(--primary);color:var(--primary);font-weight:650}.tabs svg.icon{width:15px;height:15px}.view-actions{display:flex;gap:3px}.toolbar{display:flex;align-items:center;gap:12px;padding:20px 0}.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-control);height:33px;padding:0 10px;max-width:225px;min-width:160px;color:var(--muted)}.search input{width:100%;border:0;background:transparent;outline:0;font-size:var(--text-meta)}.search:focus-within{border-color:var(--primary)}.search svg.icon{width:14px;height:14px}.search kbd{font-family:inherit;border:1px solid var(--line);border-radius:3px;font-size:var(--text-meta);padding:0 4px}.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.filters select{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-control);font-size:var(--text-meta);height:32px;padding:0 23px 0 10px;max-width:150px}.filters .button{font-size:var(--text-meta);padding:0 5px}.issue-count{font-size:var(--text-meta);color:var(--muted);margin-left:auto;white-space:nowrap}.filter-context{font-size:var(--text-meta);padding:0 0 13px;color:var(--primary)}.board{display:grid;grid-template-columns:repeat(5,minmax(210px,1fr));gap:13px;overflow:auto;min-height:460px;padding-bottom:16px;align-items:start}.column{background:var(--surface-muted);border:1px solid var(--line);border-radius:var(--radius-panel);padding:12px 9px;min-height:430px;transition:background .15s}.column.drag-over{background:var(--primary-soft);border-color:var(--control-border)}.column-header{display:flex;align-items:center;gap:7px;margin:0 4px 14px;font-size:var(--text-meta);font-weight:650}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--status-color);display:inline-block;flex-shrink:0}.column-count{font-size:var(--text-meta);color:var(--muted);font-weight:500;background:var(--surface-muted);min-width:17px;text-align:center;border-radius:4px;padding:0 3px}.column-header button{margin-left:auto;font-size:18px;width:22px;height:22px;color:var(--muted)}.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-control);margin-bottom:9px;padding:12px 12px 10px;box-shadow:0 2px 3px #0F172A03;cursor:grab;position:relative;transition:box-shadow .16s,border-color .16s}.card:hover{border-color:var(--control-border);box-shadow:0 3px 8px #0F172A10}.card.dragging{opacity:.35}.card.drop-before{border-top:3px solid var(--primary)}.card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}.card-id{font-size:var(--text-meta);color:var(--muted);display:flex;align-items:center;gap:5px;letter-spacing:.2px}.type-icon{width:12px;height:12px;border-radius:3px;display:inline-grid;place-items:center;font-size:var(--text-meta);font-weight:700;color:var(--surface);flex-shrink:0;background:var(--type-color)}.priority{display:inline-flex;align-items:center;gap:3px;font-size:var(--text-meta);color:var(--muted)}.priority.high,.priority.highest{color:var(--gold)}.priority.highest{color:var(--red)}.priority.low,.priority.lowest{color:var(--muted)}.card-title{font-size:var(--text-meta);line-height:1.65;font-weight:550;margin:0 0 10px;color:var(--ink);overflow-wrap:anywhere}.card-parent{color:var(--purple);font-size:var(--text-meta);display:flex;align-items:center;gap:4px;margin:0 0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card-labels{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}.label-tag{font-size:var(--text-meta);color:var(--muted);background:var(--primary-soft);border:1px solid var(--line);padding:2px 5px;border-radius:4px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.label-tag:nth-child(2n){color:var(--muted);background:var(--gold-soft);border-color:var(--line)}.card-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:9px;gap:6px}.card-due{font-size:var(--text-meta);color:var(--muted);display:flex;gap:4px;align-items:center}.card-due svg.icon{width:11px;height:11px}.card-due.overdue{color:var(--red)}.avatar{width:22px;height:22px;border-radius:50%;background:var(--avatar-bg,var(--primary-soft));color:var(--muted);font-size:var(--text-meta);display:inline-flex;align-items:center;justify-content:center;font-weight:650;border:2px solid var(--surface);flex-shrink:0}.avatar.unassigned{border:1px dashed var(--line);background:var(--canvas);color:var(--muted)}.column-add{display:flex;align-items:center;gap:7px;width:100%;padding:8px 6px;color:var(--muted);font-size:var(--text-meta);text-align:left}.column-add:hover{color:var(--primary);background:var(--surface-muted);border-radius:var(--radius-control)}.column-empty{border:1px dashed var(--line);border-radius:var(--radius-control);padding:22px 8px;color:var(--muted);font-size:var(--text-meta);text-align:center;margin-bottom:9px}.view-footer{display:flex;justify-content:space-between;gap:20px;align-items:center;color:var(--muted);font-size:var(--text-meta);margin-top:12px}.footer-wordmark{font-size:var(--text-meta);letter-spacing:1.1px;white-space:nowrap}.footer-wordmark span{color:var(--primary);margin-left:5px}.error-banner{background:var(--red-soft);border:1px solid var(--danger-border);border-radius:var(--radius-control);padding:12px 14px;margin-bottom:15px;color:var(--red);font-size:var(--text-control);overflow-wrap:anywhere}.error-banner button{font-weight:bold;text-decoration:underline;margin-left:10px}.empty-state{text-align:center;padding:75px 20px;color:var(--muted);border:1px dashed var(--line);border-radius:10px}.empty-state h2{color:var(--ink);font-size:20px;margin-bottom:8px}.empty-state p{font-size:var(--text-control);margin-bottom:20px}.empty-state .icon{width:30px;height:30px;margin:0 auto 15px}.loader{width:28px;height:28px;border:2px solid var(--line);border-top-color:var(--primary);border-radius:50%;margin:0 auto 20px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .sheet-tools,.gantt-tools{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 12px;font-size:var(--text-meta);color:var(--muted)}.sheet-tools label{display:flex;gap:6px;align-items:center}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);max-height:65vh}.issue-table{border-collapse:separate;border-spacing:0;width:100%;font-size:var(--text-meta)}.issue-table th{position:sticky;top:0;background:var(--surface-muted);z-index:2;text-align:left;font-size:var(--text-meta);font-weight:550;color:var(--muted);border-bottom:1px solid var(--line);padding:12px 10px;white-space:nowrap}.issue-table th button{font:inherit;color:inherit;padding:0;display:flex;align-items:center;gap:5px}.issue-table td{border-bottom:1px solid var(--line);padding:7px 8px;height:47px;white-space:nowrap}.issue-table tr:last-child td{border-bottom:0}.issue-table tr:hover td{background:var(--canvas)}.issue-table td:first-child,.issue-table th:first-child{position:sticky;left:0;z-index:1;background:var(--surface);border-right:1px solid var(--line)}.issue-table th:first-child{z-index:3;background:var(--surface-muted)}.issue-link{color:var(--primary);font-size:var(--text-meta);font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:7px}.cell-input{border:1px solid transparent;border-radius:4px;background:transparent;padding:6px;min-width:110px;width:100%;height:31px;font-size:var(--text-meta)}.cell-input:hover{border-color:var(--line)}.cell-input:focus{border-color:var(--primary);background:var(--surface);outline:none}.cell-summary{min-width:260px}.cell-input[type=number]{min-width:70px;width:80px}.cell-input[type=date]{min-width:130px}.cell-readonly{font-size:var(--text-meta);color:var(--muted);max-width:190px;overflow:hidden;text-overflow:ellipsis}.status-badge{font-size:var(--text-meta);background:var(--status-bg);color:var(--status-color);padding:3px 7px;border-radius:4px;display:inline-flex;gap:6px;align-items:center}.gantt-tools .left,.gantt-tools .right{display:flex;align-items:center;gap:7px}.gantt-tools input,.gantt-tools select{background:var(--surface);border:1px solid var(--line);padding:5px;border-radius:var(--radius-control);font-size:var(--text-meta)}.gantt-tools button{height:29px;padding:0 10px}.gantt-viewport{overflow:auto;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);max-height:65vh;position:relative}.gantt-grid{width:max-content;position:relative}.gantt-header{height:58px;position:sticky;top:0;z-index:5;background:var(--surface-muted);display:flex;border-bottom:1px solid var(--line)}.gantt-label-head{position:sticky;left:0;width:260px;min-width:260px;z-index:6;background:var(--surface-muted);padding:19px 16px;font-size:var(--text-meta);color:var(--muted);border-right:1px solid var(--line)}.gantt-dates{position:relative;display:flex}.gantt-date{flex-shrink:0;border-right:1px solid var(--line);text-align:center;padding-top:8px;font-size:var(--text-meta);color:var(--muted);position:relative}.gantt-date strong{display:block;font-size:var(--text-meta);font-weight:500;color:var(--muted);padding-top:3px}.gantt-date.today{background:var(--primary-soft)}.gantt-date.today strong{background:var(--primary);color:var(--surface);border-radius:50%;width:20px;height:20px;margin:0 auto;padding-top:2px}.gantt-date.weekend{background:var(--surface-muted)}.gantt-row{height:45px;display:flex;border-bottom:1px solid var(--line)}.gantt-row-label{width:260px;min-width:260px;background:var(--surface);position:sticky;left:0;z-index:3;display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid var(--line);font-size:var(--text-meta);text-align:left}.gantt-row-label:hover{background:var(--primary-soft)}.gantt-row-label strong{font-size:var(--text-meta);color:var(--muted);display:block;font-weight:500}.gantt-row-label>span:last-child{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.gantt-track{position:relative;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:var(--day-width) 100%}.gantt-bar{position:absolute;top:9px;height:26px;border-radius:var(--radius-control);background:var(--bar-bg);color:var(--bar-color);border:1px solid var(--bar-border);cursor:grab;touch-action:none;font-size:var(--text-meta);text-align:left;padding:0 10px;min-width:8px;overflow:hidden;z-index:2;user-select:none}.gantt-bar:active{cursor:grabbing}.bar-progress{position:absolute;inset:0 auto 0 0;background:var(--bar-fill);pointer-events:none}.bar-text{position:relative;pointer-events:none;white-space:nowrap}.resize-handle{position:absolute;top:0;right:0;height:100%;width:9px;cursor:ew-resize;background:#ffffff40;border-left:1px solid #ffffff60}.today-line{position:absolute;top:58px;bottom:0;width:1px;background:var(--primary);pointer-events:none;z-index:1}.timeline-links{position:absolute;top:58px;left:260px;pointer-events:none;z-index:1}.schedule-note{position:absolute;top:13px;left:12px;font-size:var(--text-meta);color:var(--muted)}.gantt-legend{display:flex;gap:14px;align-items:center;font-size:var(--text-meta);color:var(--muted);margin-top:10px}.gantt-legend span{display:flex;gap:5px;align-items:center}.gantt-legend i{width:7px;height:7px;border-radius:2px;display:inline-block}.issue-dialog{margin:0 0 0 auto;width:570px;max-width:100%;height:100%;max-height:100%;padding:0;border:0;box-shadow:-20px 0 80px #0F172A26;color:var(--ink);background:var(--surface)}.issue-dialog::backdrop,.help-dialog::backdrop{background:#0F172A38;backdrop-filter:blur(2px)}.issue-dialog form{height:100%;display:flex;flex-direction:column}.dialog-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:25px 28px;border-bottom:1px solid var(--line)}.dialog-header .eyebrow{margin-bottom:5px}.dialog-header h2{font-size:22px}.form-body{padding:23px 28px;overflow:auto;flex:1}.field{display:flex;flex-direction:column;gap:6px;font-size:var(--text-meta);font-weight:550;margin-bottom:17px}.field input,.field select,.field textarea{border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);padding:9px 10px;font-size:var(--text-control);font-weight:400;width:100%}.field textarea{resize:vertical;min-height:90px}.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}.field small{font-size:var(--text-meta);font-weight:400;color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.dialog-footer{padding:18px 28px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface)}.dialog-footer>div{margin-left:auto;display:flex;gap:8px}.issue-metadata{font-size:var(--text-meta);color:var(--muted);line-height:1.9;border-top:1px solid var(--line);padding-top:14px}.child-heading{font-size:var(--text-meta);margin:15px 0 8px}.child-link{display:flex;gap:8px;font-size:var(--text-meta);align-items:center;width:100%;text-align:left;padding:7px 0;border-bottom:1px solid var(--line)}.help-dialog{padding:0;border:1px solid var(--line);border-radius:13px;width:560px;max-width:94vw;color:var(--ink)}.help-dialog .dialog-header h2{font-size:20px}.help-body{padding:25px;display:grid;gap:17px;font-size:var(--text-control);color:var(--muted)}.help-body strong{color:var(--ink)}.toast{position:fixed;bottom:26px;left:calc(50% + 70px);transform:translateX(-50%);z-index:100;background:var(--primary-dark);color:var(--surface);box-shadow:0 5px 30px #0F172A26;padding:11px 20px;border-radius:var(--radius-panel);font-size:var(--text-control);max-width:90vw}.toast.error{background:var(--red)}.busy #view-content{pointer-events:none;opacity:.75}
@@ -88,10 +89,10 @@
 .field input:disabled{color:var(--muted);background:var(--surface-muted);cursor:not-allowed}
 .field .derived-date-note{font-size:var(--text-meta);color:var(--muted);font-weight:400}
 .task-type-badge{flex:0 0 18px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--task-type-color) 24%,white);border-radius:var(--radius-control);background:color-mix(in srgb,var(--task-type-color) 11%,white);color:var(--task-type-color);font-size:var(--text-meta);font-weight:700;line-height:1}
-.gantt-grid{--label-width:260px}.gantt-label-head{box-sizing:border-box;width:calc(var(--label-width) - 8px);min-width:calc(var(--label-width) - 8px);flex:0 0 calc(var(--label-width) - 8px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.gantt-row-label{box-sizing:border-box;width:calc(var(--label-width) - 8px)!important;min-width:calc(var(--label-width) - 8px)!important;flex:0 0 calc(var(--label-width) - 8px);padding:0 5px!important;gap:2px;overflow:hidden}.gantt-resize-gutter{box-sizing:border-box;width:8px;min-width:8px;flex:0 0 8px;background:var(--surface-muted);border-right:1px solid var(--line);position:sticky;left:calc(var(--label-width) - 8px);z-index:4}.gantt-resizer{position:sticky;left:calc(var(--label-width) - 8px);cursor:col-resize;touch-action:none;background:linear-gradient(90deg,var(--surface-muted) 3px,var(--line) 3px 4px,var(--surface-muted) 4px);z-index:7}.gantt-resizer:hover,.gantt-resizer:focus-visible{background:linear-gradient(90deg,var(--surface-muted) 2px,var(--primary) 2px 5px,var(--surface-muted) 5px);outline:none}.gantt-row-label .gantt-label-hit{min-width:0;flex:1;display:flex;align-items:center;gap:5px;overflow:hidden;text-align:left;padding:0 0 0 calc(4px + var(--row-depth,0)*12px);font-size:var(--text-meta)}.gantt-label-copy{display:flex;flex-direction:column;min-width:0;flex:1;overflow:hidden}.gantt-label-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-label-summary{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-row-label>.task-type-badge{width:16px;height:16px;flex-basis:16px;font-size:var(--text-meta)}.gantt-add-button{flex:0 0 21px;width:21px;height:21px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--muted);font-size:14px;line-height:1;padding:0;z-index:8}.gantt-add-button:hover,.gantt-add-button:focus-visible{color:var(--primary);border-color:var(--primary);outline:none}.gantt-epic-label{display:flex;align-items:center}.gantt-epic-label .swimlane-header{min-width:0;flex:1;overflow:hidden}.gantt-epic-label .swimlane-collapse{min-width:0;overflow:hidden;gap:4px}.gantt-epic-label .swimlane-collapse strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-epic-label .swimlane-progress,.gantt-epic-label .swimlane-dates{display:none}.gantt-epic-label .swimlane-edit{padding:3px 5px;font-size:var(--text-meta)}.gantt-epic-row .gantt-track{flex:0 0 auto}.timeline-links{left:var(--label-width,260px)}.gantt-bar{max-width:100%}.epic-summary-bar{cursor:pointer;pointer-events:auto}.epic-summary-bar:focus-visible,.gantt-label-hit:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}.gantt-quick-anchor{position:relative;flex:0 0 auto}.gantt-quick-popover{position:absolute;top:25px;right:0;z-index:12;width:230px;padding:9px;display:grid;gap:7px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);box-shadow:0 8px 25px #0F172A24}.gantt-quick-popover input,.gantt-quick-popover select{width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);padding:7px;font-size:var(--text-meta)}.gantt-quick-popover button{padding:6px 9px;border-radius:var(--radius-control);background:var(--primary);color:var(--surface);font-size:var(--text-meta)}.gantt-comment-preview{position:fixed;z-index:30;width:min(300px,calc(100vw - 24px));max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);box-shadow:0 8px 28px #0F172A26;padding:10px;color:var(--ink);font-size:var(--text-meta);pointer-events:auto}.gantt-comment-preview h4{font-size:var(--text-meta);margin:0 0 7px}.gantt-comment-item{border-top:1px solid var(--line);padding:7px 0 2px}.gantt-comment-meta{font-size:var(--text-meta);color:var(--muted);margin-bottom:4px}.gantt-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;max-height:80px;overflow:auto;line-height:1.45}
+.gantt-grid{--label-width:260px}.gantt-label-head{box-sizing:border-box;width:calc(var(--label-width) - 8px);min-width:calc(var(--label-width) - 8px);flex:0 0 calc(var(--label-width) - 8px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.gantt-row-label{box-sizing:border-box;width:calc(var(--label-width) - 8px)!important;min-width:calc(var(--label-width) - 8px)!important;flex:0 0 calc(var(--label-width) - 8px);padding:0 5px!important;gap:2px;overflow:hidden}.gantt-resize-gutter{box-sizing:border-box;width:8px;min-width:8px;flex:0 0 8px;background:var(--surface-muted);border-right:1px solid var(--line);position:sticky;left:calc(var(--label-width) - 8px);z-index:4}.gantt-resizer{position:sticky;left:calc(var(--label-width) - 8px);cursor:col-resize;touch-action:none;background:linear-gradient(90deg,var(--surface-muted) 3px,var(--line) 3px 4px,var(--surface-muted) 4px);z-index:7}.gantt-resizer:hover,.gantt-resizer:focus-visible{background:linear-gradient(90deg,var(--surface-muted) 2px,var(--primary) 2px 5px,var(--surface-muted) 5px);outline:none}.gantt-row-label .gantt-label-hit{min-width:0;flex:1;display:flex;align-items:center;gap:5px;overflow:hidden;text-align:left;padding:0 0 0 calc(4px + var(--row-depth,0)*12px);font-size:var(--text-meta)}.gantt-label-copy{display:flex;flex-direction:column;min-width:0;flex:1;overflow:hidden}.gantt-label-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-label-summary{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-row-label>.task-type-badge{width:16px;height:16px;flex-basis:16px;font-size:var(--text-meta)}.gantt-add-button{min-width:32px;min-height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--primary-dark);font-size:var(--text-meta);line-height:1;padding:0 4px;z-index:8}.gantt-add-button:hover,.gantt-add-button:focus-visible{color:var(--primary);border-color:var(--primary);outline:none}.gantt-epic-label{display:flex;align-items:center}.gantt-epic-label .swimlane-header{min-width:0;flex:1;overflow:hidden}.gantt-epic-label .swimlane-collapse{min-width:0;overflow:hidden;gap:4px}.gantt-epic-label .swimlane-collapse strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-epic-label .swimlane-progress,.gantt-epic-label .swimlane-dates{display:none}.gantt-epic-label .swimlane-edit{padding:3px 5px;font-size:var(--text-meta)}.gantt-epic-row .gantt-track{flex:0 0 auto}.timeline-links{left:var(--label-width,260px)}.gantt-bar{max-width:100%}.epic-summary-bar{cursor:pointer;pointer-events:auto}.epic-summary-bar:focus-visible,.gantt-label-hit:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}.gantt-quick-anchor{position:relative;flex:0 0 auto}.gantt-quick-popover{position:absolute;top:25px;right:0;z-index:12;width:230px;padding:9px;display:grid;gap:7px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);box-shadow:0 8px 25px #0F172A24}.gantt-quick-popover input,.gantt-quick-popover select{width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);padding:7px;font-size:var(--text-meta)}.gantt-quick-popover button{padding:6px 9px;border-radius:var(--radius-control);background:var(--primary);color:var(--surface);font-size:var(--text-meta)}.gantt-comment-preview{position:fixed;z-index:30;width:min(300px,calc(100vw - 24px));max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);box-shadow:0 8px 28px #0F172A26;padding:10px;color:var(--ink);font-size:var(--text-meta);pointer-events:auto}.gantt-comment-preview h4{font-size:var(--text-meta);margin:0 0 7px}.gantt-comment-item{border-top:1px solid var(--line);padding:7px 0 2px}.gantt-comment-meta{font-size:var(--text-meta);color:var(--muted);margin-bottom:4px}.gantt-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;max-height:80px;overflow:auto;line-height:1.45}
 .gantt-row-label{overflow:visible!important}.gantt-quick-popover{position:fixed;left:0;right:auto;top:auto;z-index:50;max-width:calc(100vw - 24px)}.busy .gantt-quick-popover{pointer-events:none;opacity:.65}
 .gantt-label-hit[draggable=true],.swimlane-collapse[data-gantt-drag-id]{cursor:grab}.gantt-label-hit[draggable=true]:active,.swimlane-collapse[data-gantt-drag-id]:active{cursor:grabbing}.gantt-label-hit[draggable=true]::before,.swimlane-collapse[data-gantt-drag-id]::before{content:'⠿';flex:0 0 auto;color:var(--muted);font-size:var(--text-meta);line-height:1}.gantt-row.gantt-drop-before{box-shadow:inset 0 2px var(--primary)}.gantt-row.gantt-drop-after{box-shadow:inset 0 -2px var(--primary)}.gantt-row.gantt-drop-parent .gantt-row-label{outline:2px dashed var(--primary);outline-offset:-3px;background:var(--primary-soft)!important}.gantt-row.gantt-drop-invalid .gantt-row-label{outline:2px dashed var(--red);outline-offset:-3px}.gantt-unparent-drop{border:1px dashed var(--line)!important;border-radius:var(--radius-control);background:var(--surface)!important;color:var(--muted)!important;font-size:var(--text-meta)!important;white-space:nowrap}.gantt-unparent-drop.gantt-drop-unparent{border-color:var(--primary)!important;background:var(--primary-soft)!important;color:var(--primary)!important}.gantt-unparent-drop.gantt-drop-invalid{border-color:var(--red)!important;color:var(--red)!important}.gantt-drag-help{font-size:var(--text-meta);color:var(--muted)}
-.gantt-story-toggle{flex:0 0 18px;width:18px;height:20px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--line);border-radius:4px;background:var(--surface-muted);color:var(--ink);font-size:var(--text-control);line-height:1;cursor:pointer}.gantt-story-toggle:hover,.gantt-story-toggle:focus-visible{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);outline:none}.gantt-row-label.has-story-toggle .gantt-label-hit{padding-left:var(--row-label-indent,0px)}
+.gantt-tree-toggle{flex:0 0 26px;width:26px;height:28px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--control-border);border-radius:4px;background:var(--surface);color:var(--primary-dark);font-size:16px;font-weight:600;line-height:1;cursor:pointer}.gantt-tree-toggle:hover,.gantt-tree-toggle:focus-visible{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);outline:none}.gantt-row-label.has-story-toggle .gantt-label-hit{padding-left:var(--row-label-indent,0px)}
 .gantt-comment-preview{pointer-events:none}
 </style>
 <style>.dialog-actions{align-items:center;flex-wrap:wrap}#form-save-status{margin-right:6px;color:var(--muted);font-size:var(--text-meta);min-width:74px}#form-save-status.error{color:var(--red)}.draft-recovery-item .error-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.draft-recovery-item .button{margin:0;min-height:40px;font-size:var(--text-control)}.draft-recovery-item textarea{display:block;width:100%;margin-top:8px;font-size:var(--text-control)}.draft-recovery-item p{white-space:pre-wrap}</style>
@@ -159,66 +160,135 @@
 </style>
 
 <style>
-/* P1.2 workspace shell. Work views retain their own horizontal scroll areas. */
-:root{--sidebar:216px}
-.sidebar{padding:20px 16px;height:100dvh;overflow-y:auto}
-.brand{font-size:23px}.workspace{padding:20px 4px}.workspace small{margin-top:2px}
-.sidebar .nav-caption{margin-bottom:8px}.sidebar .epic-caption{margin-top:16px}
-.sidebar-bottom{padding-top:16px;margin-top:0}.connection-card{padding:12px}
-.workspace-options{margin-top:20px;min-width:0}
-.workspace-options>summary,.workspace-filters>summary,.workspace-saved-views>summary{cursor:pointer;font-size:var(--text-control);padding:8px;border-radius:var(--radius-control);color:var(--muted)}
-.workspace-options>summary:hover,.workspace-filters>summary:hover,.workspace-saved-views>summary:hover{background:var(--surface-muted);color:var(--ink)}
-.topbar{height:auto;min-height:56px;padding:8px 24px;gap:12px}
-.topbar-right{gap:16px;min-width:0}.sync-status{font-size:var(--text-meta);max-width:none}
-main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
-.view-bar{gap:12px;flex-wrap:wrap;padding:8px 0 12px;align-items:center}
-#view-title{font-size:22px;line-height:1.3;letter-spacing:-.4px}
-.view-actions{flex-wrap:wrap;gap:4px;min-width:0}
-.view-actions .button{padding:0 10px}
-.quick-entry{margin:0 0 12px;padding:8px;flex-wrap:wrap}
-.quick-entry input{min-width:140px}
-.toolbar{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;padding:12px 0}
-.search{flex:1 1 220px;max-width:360px;min-width:0}
-.workspace-filters{flex:0 1 auto;min-width:0}
-.workspace-filters[open]{flex:1 1 100%;order:3}
-.workspace-filters>summary{border:1px solid var(--control-border);background:var(--surface);min-height:36px}
-.workspace-filters .filters{padding:12px 0 4px;gap:8px}
-.workspace-filters .filters select{max-width:180px}
-.issue-count{display:block;margin:10px 0 0 auto;font-size:var(--text-meta)}
-.workspace-saved-views{margin-bottom:12px}
-.workspace-saved-views>summary{width:fit-content}
-.saved-view-bar{padding:8px;flex-wrap:wrap;gap:8px;background:var(--surface-muted);border-radius:var(--radius-control)}
-.active-filter-chips{margin:0 0 12px}.filter-context{padding-bottom:12px}
-#view-content{min-width:0;max-width:100%}
-.swimlane{min-width:0;max-width:100%}
-.sheet-tools,.sheet-tool-actions,.gantt-tools,.gantt-tools .left,.gantt-tools .right{flex-wrap:wrap}
-.gantt-legend{flex-wrap:wrap}.view-footer{flex-wrap:wrap}
-@media(max-width:800px){
-  :root{--sidebar:0px}
-  .sidebar{position:static;width:auto;height:auto;padding:12px 16px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--line)}
-  .sidebar .brand{font-size:20px;padding:0}.brand-mark{width:28px;height:28px;margin-right:8px;font-size:24px}.brand-period{display:inline}
-  .sidebar>.workspace,.sidebar>.nav-caption{display:none}
-  .view-nav{display:flex;flex-wrap:wrap;margin:0 0 0 auto;gap:4px}
-  .view-nav button{font-size:var(--text-control);padding:10px;gap:6px;min-height:44px}.view-nav .nav-key{display:none}
-  .workspace-options{flex:1 1 100%;margin:0}
-  .workspace-options .epic-caption{display:flex}.workspace-options .epic-nav{display:grid;max-height:180px}
-  .workspace-options .sidebar-bottom{display:block}.workspace-options .connection-card{max-width:420px}
-  .topbar{padding:8px 16px}.breadcrumb{display:none}.topbar-right{width:100%;justify-content:space-between}
-  main{padding:12px 16px}.toast{left:50%}
+/* Shared workspace chrome. Each work view owns its horizontal scrolling. */
+.topbar {
+  display:flex; align-items:center; justify-content:flex-start; flex-wrap:wrap;
+  min-height:56px; height:auto; padding:8px var(--page-gutter); gap:8px 18px;
+  border-bottom:1px solid var(--line); background:var(--surface);
 }
-@media(max-width:520px){
-  .sidebar{padding:8px 12px;gap:8px}.sidebar .brand{font-size:18px}
-  .view-nav{width:100%;justify-content:space-between}.view-nav button{flex:1;justify-content:center}
-  .workspace-options>summary{padding:6px 0}
-  .topbar{padding:8px 12px}.topbar-right{gap:8px}.sync-status{max-width:180px}
-  main{padding:12px}.view-actions{width:100%}.view-actions .button span:not([data-icon]){display:inline}
-  .view-actions .button{padding:0 8px;min-height:40px}.view-toggle{white-space:normal}
-  .quick-entry input{flex-basis:100%;width:100%}.quick-entry .button{flex:1}
-  .search{flex-basis:100%;max-width:none}.workspace-filters .filters{align-items:stretch}
-  .workspace-filters .filters>select{flex:1 1 130px;max-width:100%}
-  .saved-view-bar label{flex-wrap:wrap}.saved-view-bar select{min-width:0;max-width:100%}
-  .saved-view-bar>span{display:block;margin-left:0}
-  .board{grid-template-columns:repeat(5,280px)}
+.brand-group, .header-tools, .view-nav { display:flex; align-items:center }
+.brand-group { gap:12px; min-width:0 }
+.brand { padding:0; font-size:19px; letter-spacing:-.65px; line-height:1 }
+.brand-mark { width:28px; height:28px; margin-right:7px; font-size:23px; border-radius:6px }
+.sync-status { font-size:var(--text-meta); line-height:1.3; gap:5px; max-width:none }
+.sync-status::before { flex:none; background:var(--primary) }
+.sync-status.ready::before { background:var(--success) }
+.sync-status.error::before { background:var(--red) }
+.view-nav { margin:0; padding:3px; gap:2px; border-radius:var(--radius-control); background:var(--surface-muted) }
+.view-nav button {
+  justify-content:center; gap:6px; min-height:30px; padding:3px 10px;
+  border-radius:4px; font-size:var(--text-control); color:var(--muted); font-weight:600;
+}
+.view-nav button svg.icon { width:15px; height:15px }
+.view-nav button:hover { color:var(--ink); background:var(--canvas) }
+.view-nav button.active { color:var(--primary); background:var(--surface); box-shadow:0 1px 3px #091e4229 }
+.header-tools { gap:2px; margin-left:auto }
+.header-tools .button { padding:0 8px; gap:5px }
+.topbar .primary { box-shadow:none }
+main { max-width:2100px; min-width:0; padding:0 var(--page-gutter) 20px; margin-inline:auto }
+.workspace-bar {
+  position:relative; z-index:15; display:flex; align-items:center; flex-wrap:wrap;
+  gap:8px 16px; padding:14px 0;
+}
+.view-heading { display:flex; align-items:baseline; flex-wrap:wrap; gap:3px 8px }
+#view-title { margin:0; font-size:21px; line-height:1.3; letter-spacing:-.4px }
+.issue-count { display:inline; margin:0; color:var(--muted); font-variant-numeric:tabular-nums }
+.workspace-bar .quick-entry {
+  flex:1 1 160px; max-width:300px; min-width:0; gap:0;
+  padding:0; margin:0; border:1px solid var(--control-border); background:var(--surface);
+}
+.quick-entry #quick-title { width:0; min-width:0; height:34px; padding:0 9px; border:0; background:transparent }
+#quick-add { display:grid; place-items:center; min-width:34px; color:var(--primary); border-left:1px solid var(--line) }
+#quick-add:hover { background:var(--primary-soft) }
+.quick-entry:focus-within, .search:focus-within { border-color:var(--primary) }
+.workspace-tools { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-width:0; margin-left:auto }
+.workspace-tools .search { flex:1 1 160px; min-width:0; max-width:200px; border-color:var(--control-border) }
+.tool-menu { position:relative; margin:0 }
+.tool-menu > summary, .view-toggle {
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:36px; padding:0 8px; border-radius:var(--radius-control);
+  color:var(--ink); font-size:var(--text-control); white-space:nowrap; cursor:pointer;
+}
+.tool-menu > summary { list-style:none }
+.tool-menu > summary::-webkit-details-marker { display:none }
+.tool-menu > summary::after {
+  content:""; width:5px; height:5px; margin:-3px 1px 0 2px;
+  border:solid currentColor; border-width:0 1.5px 1.5px 0; transform:rotate(45deg);
+}
+.tool-menu[open] > summary::after { transform:rotate(225deg); margin-top:3px }
+.tool-menu[open] > summary, .tool-menu > summary:hover, .view-toggle:hover { background:var(--surface-muted) }
+.view-toggle input { margin:0; accent-color:var(--primary) }
+.tool-menu-panel {
+  position:absolute; z-index:30; top:calc(100% + 4px); right:0;
+  width:292px; max-width:calc(100vw - 2 * var(--page-gutter)); max-height:min(65dvh,440px);
+  padding:12px; overflow:auto; border:1px solid var(--line); border-radius:var(--radius-panel);
+  background:var(--surface); box-shadow:0 5px 18px #091e4226;
+}
+.workspace-filters .filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:340px }
+.workspace-filters .filters select, .workspace-filters .filters input[type=date] { min-width:0; max-width:100%; width:100% }
+.saved-view-bar { flex-wrap:wrap; gap:8px }
+.saved-view-bar label { width:100%; flex-wrap:wrap }
+.saved-view-bar select { flex:1; min-width:0; max-width:100% }
+.saved-view-bar > span { display:block; width:100%; margin:0 }
+.workspace-actions { display:flex; flex-wrap:wrap; gap:2px; padding-bottom:8px; border-bottom:1px solid var(--line) }
+.workspace-actions .button, .epic-caption .button { padding:0 7px }
+.workspace-panel .epic-caption { display:flex; align-items:center; justify-content:space-between; margin:8px 0 2px; font-weight:600 }
+.workspace-panel .epic-nav { display:grid; max-height:145px; gap:2px }
+.workspace-panel .epic-nav button { padding:7px; color:var(--ink) }
+.connection-card { margin-top:8px; padding:9px; background:var(--canvas); border:0 }
+.connection-card a { margin-top:5px }
+.active-filter-chips { margin:0 0 10px }
+.filter-context { padding-bottom:10px }
+#view-content, .swimlane { min-width:0; max-width:100% }
+.board { grid-template-columns:repeat(5,minmax(215px,1fr)); gap:10px }
+.column { padding:8px; min-height:300px }
+.column-header { margin:0 2px 8px; min-height:28px; font-size:var(--text-control) }
+.column-count { background:var(--surface); font-variant-numeric:tabular-nums }
+.column-empty { padding:14px 8px }
+.swimlane .column { min-height:0 }
+.sheet-tools, .sheet-tool-actions, .gantt-tools, .gantt-tools .left, .gantt-tools .right, .gantt-legend { flex-wrap:wrap }
+.sheet-tool-actions { margin-left:auto }
+.sheet-tools, .gantt-tools { margin-bottom:8px }
+.issue-table th { padding-block:8px }
+.view-footer { flex-wrap:wrap }
+.toast { left:50% }
+
+@media(max-width:1000px) {
+  .topbar { gap:8px 12px }
+  .header-tools .tool-label { display:none }
+  .header-tools .button { width:36px; padding:0 }
+  .workspace-tools { flex:1 1 100%; margin-left:0 }
+  .workspace-tools .search { max-width:none }
+  .workspace-bar .quick-entry { margin-left:auto; max-width:360px }
+}
+@media(max-width:700px) {
+  .topbar {
+    display:grid; grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"identity create" "views tools"; gap:4px 8px;
+  }
+  .brand-group { grid-area:identity; flex-wrap:wrap; gap:4px 8px }
+  .brand-group .brand { font-size:18px }
+  .brand-mark { width:25px; height:25px; font-size:20px }
+  #create-issue { grid-area:create; justify-self:end; min-height:44px }
+  .view-nav { grid-area:views; justify-self:start }
+  .view-nav button { min-height:44px; padding:4px 8px; gap:4px }
+  .header-tools { grid-area:tools; justify-self:end }
+  .header-tools .button { width:44px; min-height:44px }
+  .workspace-bar { gap:6px 10px; padding:10px 0 }
+  .workspace-tools { gap:2px 4px }
+  .workspace-tools .search { flex-basis:100%; height:42px }
+  .workspace-bar .quick-entry { flex:1 1 125px; max-width:300px }
+  .quick-entry #quick-title { height:42px; font-size:16px }
+  #quick-add { min-width:44px }
+  .tool-menu { position:static }
+  .tool-menu-panel { right:0; top:calc(100% - 5px) }
+  .tool-menu > summary, .view-toggle, .workspace-actions .button, .epic-caption .button, .workspace-panel .epic-nav button { min-height:44px }
+  .board { grid-template-columns:repeat(5,minmax(255px,78vw)); gap:8px }
+}
+@media(max-width:400px) {
+  .view-nav button { padding-inline:7px }
+  .view-nav button svg.icon { display:none }
+  .tool-menu > summary, .view-toggle { padding-inline:5px }
 }
 </style>
 
@@ -262,10 +332,50 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
   .create-dialog .dialog-header,.create-dialog .form-body{padding:16px}
   .create-dialog .dialog-footer .button{min-height:44px}
 }
-.card-priority{min-height:36px;max-width:105px;padding:0 5px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);font-size:var(--text-meta);cursor:pointer}
-.card-priority:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
-.card-assignee-field{display:flex;align-items:center;gap:6px;margin:0 0 9px;color:var(--muted);font-size:var(--text-meta)}
-.card-assignee-field input{min-width:0;width:100%;height:32px;padding:0 7px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--ink)}
+/* Card identity and edit controls share two compact rows around the title. */
+.card { padding:10px 11px; margin-bottom:8px; box-shadow:0 1px 2px #091e4210 }
+.card-top { flex-wrap:nowrap; margin-bottom:5px }
+.card-id { min-width:0; gap:5px; font-variant-numeric:tabular-nums }
+.card-id .task-type-badge { margin-left:2px }
+.card-title { margin:0; font-size:var(--text-body); font-weight:600; line-height:1.4 }
+.card-parent { display:block; margin:5px 0 0; color:var(--muted) }
+.card-labels { margin:6px 0 0 }
+.card-labels .label-tag { background:var(--canvas); color:var(--muted); padding:0 5px }
+.card-priority {
+  max-width:95px; min-height:27px; padding:1px 4px; border:1px solid transparent; border-radius:4px;
+  background:var(--canvas); color:var(--muted); font:600 var(--text-meta)/1.3 var(--font); cursor:pointer;
+}
+.card-priority.high { color:var(--gold); background:var(--gold-soft) }
+.card-priority.highest { color:var(--red); background:var(--red-soft) }
+.card-priority:hover, .card-priority:focus-visible { border-color:var(--control-border) }
+.card-footer { flex-wrap:wrap; justify-content:flex-start; gap:4px 6px; margin-top:8px; padding-top:5px }
+.card-assignee-field { display:flex; flex:1 1 76px; min-width:0; align-items:center; gap:2px; margin:0 }
+.card-assignee-field .avatar { width:22px; height:22px; border:0; font-size:11px }
+.card-assignee-field input {
+  width:0; min-width:0; flex:1; height:28px; padding:0 3px; border:1px solid transparent;
+  border-radius:4px; background:transparent; color:var(--ink); font-size:var(--text-meta); text-overflow:ellipsis;
+}
+.card-assignee-field input:hover, .card-assignee-field input:focus { border-color:var(--control-border); background:var(--surface) }
+.card-due { white-space:nowrap; font-variant-numeric:tabular-nums }
+.card-move { min-height:28px; height:auto; padding:0 4px; font-size:var(--text-meta) }
+.swimlane > .swimlane-header { padding-block:0 }
+.swimlane-collapse { padding-block:8px }
+.gantt-epic-label, .gantt-epic-row .gantt-track { background-color:#ebf2fa }
+/* Stack the Epic name below its metadata so the fold, Edit and Add controls fit at narrow label widths. */
+.gantt-epic-label .gantt-lane-title { gap:3px }
+.gantt-epic-label .swimlane-collapse { padding-inline:2px; gap:3px }
+.gantt-lane-copy { display:flex; flex-direction:column; flex:1; min-width:0; overflow:hidden; line-height:1.25 }
+.gantt-lane-meta { display:flex; align-items:center; gap:3px; min-width:0; overflow:hidden }
+.gantt-lane-meta .swimlane-epic-id { flex:none }
+.gantt-lane-meta .status-badge { display:block; min-width:0; padding:0 3px; overflow:hidden; text-overflow:ellipsis }
+.gantt-lane-copy strong { color:var(--ink); font-weight:600 }
+.gantt-lane-title .swimlane-toggle {
+  flex:0 0 24px; width:24px; height:26px; border-color:var(--control-border);
+  background:var(--surface); color:var(--primary-dark); font-weight:600;
+}
+@media(max-width:700px) {
+  .card-move, .card-priority, .card-assignee-field input { min-height:44px }
+}
 </style>
 
 <style>
@@ -279,39 +389,82 @@ main{padding:16px 24px;min-width:0}.app-shell{min-width:0}
 
 </head>
 <body data-initial-view="kanban">
-  <aside class="sidebar" aria-label="Workspace navigation">
-    <a class="brand" href="#kanban" aria-label="SheetFlow home"><span class="brand-mark">s<span></span></span>sheetflow<span class="brand-period">.</span></a>
-    <div class="workspace"><span class="workspace-icon">P</span><div><strong>Project workspace</strong><small>Tasks and planning</small></div></div>
-    <div class="nav-caption">WORKSPACE</div>
-    <nav class="view-nav" aria-label="Project view">
-      <button data-view="sheet"><span data-icon="sheet"></span>Sheet<span class="nav-key">1</span></button>
-      <button data-view="kanban"><span data-icon="board"></span>Kanban<span class="nav-key">2</span></button>
-      <button data-view="gantt"><span data-icon="timeline"></span>Gantt<span class="nav-key">3</span></button>
-    </nav>
-    <details class="workspace-options"><summary>Epics &amp; connection</summary>
-    <div class="nav-caption epic-caption">EPICS <button id="add-epic" class="icon-button" aria-label="Create epic">+</button></div>
-    <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
-    <div class="sidebar-bottom">
-      <div class="connection-card"><span class="connection-icon" data-icon="sheet"></span><strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small><a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet <span>↗</span></a></div>
+  <header class="topbar">
+    <div class="brand-group">
+      <a class="brand" href="#kanban" aria-label="SheetFlow home"><span class="brand-mark" aria-hidden="true">s</span>SheetFlow</a>
+      <span id="sync-status" class="sync-status" role="status">Loading…</span>
     </div>
-    </details>
-  </aside>
-  <div class="app-shell">
-    <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>Project tracker</strong></div><div class="topbar-right"><span id="sync-status" class="sync-status" role="status">Loading…</span><button id="help-button" class="button subtle" type="button" aria-haspopup="dialog" aria-controls="help-dialog">Shortcuts</button><button id="command-open" class="button subtle" type="button" aria-keyshortcuts="Control+K Meta+K" disabled>Commands</button><button id="create-issue" class="button primary"><span data-icon="plus"></span>New issue</button></div></header>
-    <main>
-    <div class="quick-entry" aria-label="Quick create task"><input id="quick-title" type="text" maxlength="250" placeholder="What needs doing? Press Enter to add a task" aria-label="New task title"><button id="quick-add" class="button primary" type="button">Add task</button><button id="bulk-create-open" class="button secondary" type="button">Paste list</button></div>
+    <nav class="view-nav" aria-label="Project view">
+      <button type="button" data-view="sheet" aria-keyshortcuts="1" title="Sheet (1)"><span data-icon="sheet" aria-hidden="true"></span>Sheet</button>
+      <button type="button" data-view="kanban" aria-keyshortcuts="2" title="Kanban (2)"><span data-icon="board" aria-hidden="true"></span>Kanban</button>
+      <button type="button" data-view="gantt" aria-keyshortcuts="3" title="Gantt (3)"><span data-icon="timeline" aria-hidden="true"></span>Gantt</button>
+    </nav>
+    <div class="header-tools">
+      <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
+      <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
+      <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
+    </div>
+    <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New issue</button>
+  </header>
+  <main>
+    <div class="workspace-bar">
+      <div class="view-heading"><h1 id="view-title">Kanban</h1><span id="issue-count" class="issue-count"></span></div>
+      <div class="quick-entry" role="group" aria-label="Quick create task">
+        <input id="quick-title" type="text" maxlength="250" placeholder="Quick add a task…" aria-label="New task title">
+        <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
+      </div>
+      <div class="workspace-tools">
+        <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search" placeholder="Search issues…" aria-label="Search issues"><kbd>/</kbd></label>
+        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools">
+          <summary>Filters</summary>
+          <div class="filters tool-menu-panel">
+            <details id="type-filter-menu" class="filter-menu"><summary id="type-filter-label" aria-label="Filter by one or more types">All types</summary><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></details>
+            <select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select>
+            <select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select>
+            <select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select>
+            <select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select>
+            <select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select>
+            <label class="date-filter"><span>Start ≥</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label>
+            <label class="date-filter"><span>Due ≤</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label>
+            <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
+          </div>
+        </details>
+        <details class="workspace-saved-views tool-menu" name="workspace-tools">
+          <summary>Saved views</summary>
+          <div class="saved-view-bar tool-menu-panel">
+            <label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label>
+            <button type="button" id="save-view-open" class="button secondary">Save current view</button>
+            <button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view" hidden>Delete view</button>
+            <span>Personal to this browser</span>
+          </div>
+        </details>
+        <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox">Group by epic</label>
+        <details class="workspace-options tool-menu" name="workspace-tools">
+          <summary title="Workspace actions, epics and connection">More</summary>
+          <div class="workspace-panel tool-menu-panel">
+            <div class="workspace-actions">
+              <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
+              <button id="refresh" class="button subtle" type="button"><span data-icon="refresh" aria-hidden="true"></span>Refresh</button>
+              <button id="export" class="button subtle" type="button"><span data-icon="download" aria-hidden="true"></span>Export CSV</button>
+            </div>
+            <div class="epic-caption">Epics <button id="add-epic" class="button subtle" type="button" aria-label="Create epic">+ New epic</button></div>
+            <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
+            <div class="connection-card">
+              <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
+              <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+    <div id="active-filter-chips" class="active-filter-chips" hidden></div>
+    <div id="filter-context" class="filter-context" hidden></div>
+    <div id="error-banner" class="error-banner" role="alert" hidden></div>
     <section id="quick-entry-pending" class="quick-entry-pending" aria-label="Pending quick additions" aria-live="polite" hidden></section>
-    <div class="view-bar"><h1 id="view-title">Kanban</h1><div class="view-actions"><label class="button subtle view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox"> Swimlanes</label><button id="undo-last-action" class="button subtle" type="button" disabled title="Undo the last saved issue change">Undo</button><button id="refresh" class="button subtle"><span data-icon="refresh"></span><span>Refresh</span></button><button id="export" class="button subtle"><span data-icon="download"></span><span>Export CSV</span></button></div></div>
-      <div class="toolbar"><label class="search"><span data-icon="search"></span><input id="search" type="search" placeholder="Search issues…" aria-label="Search issues"><kbd>/</kbd></label><details id="workspace-filters" class="workspace-filters"><summary>Filters</summary><div class="filters"><details id="type-filter-menu" class="filter-menu"><summary id="type-filter-label" aria-label="Filter by one or more types">All types</summary><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></details><select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select><select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select><select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select><select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select><select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select><label class="date-filter"><span>Start ≥</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label><label class="date-filter"><span>Due ≤</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label><button id="clear-filters" class="button subtle" hidden>Clear filters</button></div></details><span id="issue-count" class="issue-count"></span></div>
-      <details class="workspace-saved-views"><summary>Saved views</summary><div class="saved-view-bar"><label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label><button type="button" id="save-view-open" class="button secondary">Save current view</button><button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view" hidden>Delete view</button><span>Personal to this browser</span></div></details>
-      <div id="active-filter-chips" class="active-filter-chips" hidden></div>
-      <div id="filter-context" class="filter-context" hidden></div>
-      <div id="error-banner" class="error-banner" role="alert" hidden></div>
-      <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
-      <section id="view-content" aria-label="Project issues"><div class="empty-state"><div class="loader"></div><h2>Getting your workspace ready</h2><p>Your issues will appear here.</p></div></section>
-      <footer class="view-footer"><span id="view-hint"></span><span class="footer-wordmark">MADE FOR MOVING FORWARD <span>↗</span></span></footer>
-    </main>
-  </div>
+    <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
+    <section id="view-content" aria-label="Project issues"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
+    <footer class="view-footer"><span id="view-hint"></span></footer>
+  </main>
   <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="dialog-title" tabindex="-1">
     <form id="issue-form">
       <div class="dialog-header"><div><span id="dialog-id" class="eyebrow">NEW ISSUE</span><h2 id="dialog-title">Make the next move.</h2></div><button type="button" id="close-dialog" class="icon-button" aria-label="Close issue">×</button></div>
@@ -728,6 +881,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     refresh: '<path d="M20 7v5h-5M4 17v-5h5M5.6 8a7 7 0 0 1 12-3l2.4 3M4 16l2.4 3a7 7 0 0 0 12-3"/>',
     download: '<path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 4M12 17h.01"/>',
+    command: '<path d="M18 8a3 3 0 1 0-3-3v14a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V5a3 3 0 1 0-3 3z"/>',
+    undo: '<path d="m9 5-5 5 5 5M4 10h10a5 5 0 0 1 0 10h-2"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 11h18"/>',
     check: '<path d="m5 12 4 4L19 6"/>',
     circle: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
@@ -736,9 +891,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
-  const typeColors = { Epic: '#7C3AED', Story: '#0891B2', Task: '#2563EB', Bug: '#DC2626' };
-  const statusColors = ['#64748B', '#3B82F6', '#8B5CF6', '#D97706', '#16A34A'];
-  const statusBg = ['#F1F5F9', '#EFF6FF', '#F5F3FF', '#FFFBEB', '#F0FDF4'];
+  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600' };
+  const statusColors = ['#7a869a', '#4c9aff', '#0052cc', '#975a16', '#00875a'];
+  const statusBg = ['#ebecf0', '#e9f2ff', '#deebff', '#fff0b3', '#e3fcef'];
   const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
   const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -748,7 +903,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   const timestamp = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : '—';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
   function avatar(name) {
-    const colors = ['#DBEAFE', '#F3E8FF', '#CCFBF1', '#FFEDD5'];
+    const colors = ['#deebff', '#eae6ff', '#e3fcef', '#fff0b3'];
     return `<span class="avatar ${name ? '' : 'unassigned'}" title="${escape(name || 'Unassigned')}" style="--avatar-bg:${colors[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length]}">${escape(name ? initials(name) : '?')}</span>`;
   }
   const isCloud = !!(window.google && google.script && google.script.run);
@@ -771,7 +926,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     order.unshift('id');
     return order;
   }
-  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -786,9 +941,26 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   try { state.bulkDraft = JSON.parse(localStorage.getItem(bulkDraftStorageKey) || 'null'); } catch (ignore) { state.bulkDraft = null; }
   try { state.undoStack = JSON.parse(localStorage.getItem(undoStorageKey) || '[]') || []; } catch (ignore) { state.undoStack = []; }
   try { const saved = JSON.parse(localStorage.getItem(savedViewsStorageKey) || '[]'); state.savedViews = Array.isArray(saved) ? saved.filter(view => view && view.id && view.name && view.state) : []; } catch (ignore) { state.savedViews = []; }
-  try { const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}'); state.collapsedEpics = ui.collapsedEpics || {}; state.collapsedGanttStories = ui.collapsedGanttStories || {}; state.collapsedSheetParents = ui.collapsedSheetParents || {}; state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder); state.swimlanes = ui.swimlanes === true; state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260); } catch (ignore) { state.collapsedEpics = {}; state.collapsedGanttStories = {}; state.collapsedSheetParents = {}; state.visibleColumns = defaultSheetColumnOrder.slice(); }
+  try {
+    const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}');
+    state.collapsedEpics = ui.collapsedEpics || {};
+    if (ui.previousGanttEpics && typeof ui.previousGanttEpics === 'object' && !Array.isArray(ui.previousGanttEpics)) {
+      state.previousGanttEpics = ui.previousGanttEpics;
+    }
+    state.collapsedGanttStories = ui.collapsedGanttStories || {};
+    state.collapsedSheetParents = ui.collapsedSheetParents || {};
+    state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder);
+    state.swimlanes = ui.swimlanes === true;
+    state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
+  } catch (ignore) {
+    state.collapsedEpics = {};
+    state.previousGanttEpics = null;
+    state.collapsedGanttStories = {};
+    state.collapsedSheetParents = {};
+    state.visibleColumns = defaultSheetColumnOrder.slice();
+  }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
     return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
@@ -815,6 +987,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
     state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
+    state.previousGanttEpics = null;
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
     state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks', 'twoWeeks', 'months'].includes(view.zoom) ? view.zoom : 'weeks';
@@ -849,9 +1022,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.undoStack.push({ id: after.id, before: undoSnapshot(before), after: undoSnapshot(after), afterVersion: after.version, operationId, savedAt: new Date().toISOString() });
     state.undoStack = state.undoStack.slice(-50); saveUndoState();
   }
-  function setEpicCollapsed(id, collapsed) {
-    if (!id) return;
-    if (collapsed) state.collapsedEpics[id] = true; else delete state.collapsedEpics[id];
+  function setEpicCollapseStates(layout) {
+    for (const [id, collapsed] of Object.entries(layout)) {
+      if (collapsed) state.collapsedEpics[id] = true;
+      else delete state.collapsedEpics[id];
+    }
     saveUiState();
   }
   function setGanttStoryCollapsed(id, collapsed) {
@@ -1096,7 +1271,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         text = Object.values(state.drafts).some(draft => draft.status === 'conflict') ? 'Conflict · draft kept' : Object.values(state.drafts).some(draft => draft.error) ? 'Failed · draft kept' : 'Save unconfirmed'; error = true;
       }
     }
-    $('#sync-status').textContent = text; $('#sync-status').classList.toggle('error', error);
+    const status = $('#sync-status');
+    status.textContent = text;
+    status.classList.toggle('error', error);
+    status.classList.toggle('ready', !error && ['Synced with Sheets', 'Saved in this browser'].includes(text));
   }
   function setBusy(value) {
     state.busy = value; document.body.classList.toggle('busy', value);
@@ -1676,7 +1854,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     renderedView.current = state.view;
     $('#view-title').textContent = { sheet: 'Sheet', kanban: 'Kanban', gantt: 'Gantt' }[state.view];
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
-    $('#issue-count').textContent = `${issues.length} of ${state.issues.length} issues`;
+    const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
+    $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
     const hasPendingRows = pendingQuickTasks().length;
     if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; return; }
@@ -1777,14 +1956,33 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function card(issue) {
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
     const parent = issueById(issue.parentId);
-    const dates = effectiveDates(issue);
-    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}" title="Alt + ↑/↓ reorder · Alt + ←/→ change status"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${escape(issue.id)}</span><select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select></div><h3 class="card-title">${escape(issue.summary)}</h3>${parent ? `<div class="card-parent" title="${escape(parent.summary)}">ϟ ${escape(parent.summary)}</div>` : ''}<div class="card-labels">${taskTypeBadge(issue.taskTypeId)}${C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('')}</div><label class="card-assignee-field"><span>Assignee</span><input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label><div class="card-footer"><span class="card-due ${dates.dueDate && dates.dueDate < today() && issue.status !== 'Done' ? 'overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${dates.dueDate ? escape(shortDate(dates.dueDate)) : 'No due date'}</span>${avatar(issue.assignee)}<button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button></div></article>`;
+    const showParent = parent && !(state.swimlanes && parent.type === 'Epic');
+    const { dueDate } = effectiveDates(issue);
+    const overdue = dueDate && dueDate < today() && issue.status !== 'Done';
+    const labels = C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('');
+    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}"
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
+        aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}"
+        title="Alt + ↑/↓ reorder · Alt + ←/→ change status">
+      <div class="card-top">
+        <span class="card-id">${typeIcon(issue.type)}${escape(issue.id)} ${taskTypeBadge(issue.taskTypeId)}</span>
+        <select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select>
+      </div>
+      <h3 class="card-title">${escape(issue.summary)}</h3>
+      ${showParent ? `<div class="card-parent" title="${escape(parent.summary)}">↳ ${escape(parent.summary)}</div>` : ''}
+      ${labels ? `<div class="card-labels">${labels}</div>` : ''}
+      <div class="card-footer">
+        <label class="card-assignee-field" title="Edit assignee">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label>
+        ${dueDate ? `<span class="card-due${overdue ? ' overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${escape(shortDate(dueDate))}</span>` : ''}
+        <button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button>
+      </div>
+    </article>`;
   }
   function renderBoard(issues) {
     const pending = pendingQuickTasks();
     const renderColumns = (items, pendingItems = pending) => C.statuses.map((status, index) => {
       const cards = items.filter(i => i.status === status), pendingCards = pendingItems.filter(i => i.status === status);
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">A little room for what’s next</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a task, story, or epic…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a title…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(issues)}</div>`; return; }
     $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(issues, true).map(lane => {
@@ -1845,8 +2043,22 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const dates = epic ? effectiveDates(epic) : null;
     const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
-    const dragHint = epic && extraClass.includes('gantt-lane-title') ? '; drag to reorder' : '';
-    return `<div class="swimlane-header ${extraClass}"><button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${epic && extraClass.includes('gantt-lane-title') ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ''} aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${escape(lane.label)}${dragHint}"><span class="epic-dot"></span>${epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : ''}<strong>${escape(lane.label)}</strong>${epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#F1F5F9'};--status-color:${statusColors[statusIndex] || '#64748B'}">${escape(epic.status)}</span>` : ''}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span><span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span></button>${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}</div>`;
+    const inGantt = extraClass === 'gantt-lane-title';
+    const identity = epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
+    const statusBadge = epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
+    const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
+    const heading = inGantt
+      ? `<span class="gantt-lane-copy">${epic ? `<span class="gantt-lane-meta">${identity}${statusBadge}</span>` : ''}${name}</span>`
+      : `${identity}${name}${statusBadge}`;
+    const draggable = epic && inGantt ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : '';
+    const action = collapsed ? 'Expand' : 'Collapse';
+    return `<div class="swimlane-header ${extraClass}">
+      <button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${draggable} aria-expanded="${!collapsed}" aria-label="${action} ${escape(lane.label)}${draggable ? '. Drag to reorder.' : ''}">
+        <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
+        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>
+      </button>
+      ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}
+    </div>`;
   }
   function renderSheet(issues) {
     const definitions = sheetColumnDefinitions(), columns = normalizeSheetColumnOrder(state.visibleColumns).map(key => definitions.get(key)).filter(Boolean);
@@ -1866,7 +2078,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       : `<tbody>${sheetHierarchyRows(list).map(renderRow).join('')}</tbody>`;
     state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
-    const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : 'Every detail, in one place.';
+    const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
     $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button><button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table"><thead><tr>${columns.map(field => `<th>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}</th>`).join('')}</tr></thead>${body}</table></div>`;
     const selectAllControl = $('[data-sheet-select-visible]'); if (selectAllControl) selectAllControl.indeterminate = selectedCount > 0 && !selectAll;
   }
@@ -2031,9 +2243,20 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function ganttHierarchyRows(items, laneParentId = '') {
     const byId = new Map(items.map(issue => [issue.id, issue])), children = new Map(), roots = [];
     items.forEach(issue => {
-      const parent = byId.has(issue.parentId) ? issue.parentId : '';
-      if (!parent) roots.push(issue);
-      else { if (!children.has(parent)) children.set(parent, []); children.get(parent).push(issue); }
+      let parent = issue.parentId;
+      // Filters can leave an Epic and a matching task visible while omitting its Story.
+      if (parent && !byId.has(parent)) {
+        const ancestors = new Set();
+        while (parent && parent !== laneParentId && !byId.has(parent) && !ancestors.has(parent)) {
+          ancestors.add(parent);
+          parent = issueById(parent)?.parentId;
+        }
+      }
+      if (!byId.has(parent)) roots.push(issue);
+      else {
+        if (!children.has(parent)) children.set(parent, []);
+        children.get(parent).push(issue);
+      }
     });
     const rows = [], seen = new Set();
     function hideDescendants(parentId) {
@@ -2052,9 +2275,16 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       return depth;
     }
     function add(issue) {
-      if (seen.has(issue.id)) return; seen.add(issue.id); rows.push({ issue, depth: actualDepth(issue) });
-      if (issue.type === 'Story' && state.collapsedGanttStories[issue.id]) { hideDescendants(issue.id); return; }
-      C.sorted(children.get(issue.id) || []).forEach(add);
+      if (seen.has(issue.id)) return;
+      seen.add(issue.id);
+      const branch = children.get(issue.id) || [];
+      rows.push({ issue, depth: actualDepth(issue), childCount: branch.length });
+      if ((issue.type === 'Epic' && state.collapsedEpics[issue.id]) ||
+          (issue.type === 'Story' && state.collapsedGanttStories[issue.id])) {
+        hideDescendants(issue.id);
+        return;
+      }
+      C.sorted(branch).forEach(add);
     }
     C.sorted(roots).forEach(add);
     C.sorted(items.filter(issue => !seen.has(issue.id))).forEach(add);
@@ -2062,7 +2292,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function ganttAddButton(issue) {
     if (!['Epic', 'Story'].includes(issue.type)) return '';
-    return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">＋</button></span>`;
+    return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">Add</button></span>`;
   }
   function ganttCanParent(issue, parent) {
     return parent && ((parent.type === 'Epic' && ['Story', 'Task', 'Bug'].includes(issue.type)) || (parent.type === 'Story' && ['Task', 'Bug'].includes(issue.type)));
@@ -2257,6 +2487,33 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (grid) grid.style.setProperty('--label-width', `${state.ganttLabelWidth}px`);
     if (resizer) { const max = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
   }
+  function addGanttEpicViewButton(epicIds) {
+    const previous = state.previousGanttEpics;
+    if (!epicIds.length && !previous) return;
+    const expand = epicIds.some(id => state.collapsedEpics[id]);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'gantt-epic-view';
+    button.className = 'button secondary';
+    button.textContent = expand ? 'Expand all epics' : 'Collapse all epics';
+    button.title = button.textContent + ' shown on this timeline';
+    if (previous) {
+      button.textContent = 'Go back';
+      button.title = 'Restore the Epics you had open before expanding all';
+    }
+    button.addEventListener('click', () => {
+      if (previous) {
+        state.previousGanttEpics = null;
+        setEpicCollapseStates(previous);
+      } else {
+        if (expand) state.previousGanttEpics = Object.fromEntries(epicIds.map(id => [id, Boolean(state.collapsedEpics[id])]));
+        setEpicCollapseStates(Object.fromEntries(epicIds.map(id => [id, !expand])));
+      }
+      render();
+      $('#gantt-epic-view')?.focus({ preventScroll: true });
+    });
+    $('#view-content .gantt-tools .left').append(button);
+  }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
     const scale = {
@@ -2329,35 +2586,47 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       return `${barStart} style="left:${left}px;width:${right - left}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}"><span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span><span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
     };
     const renderTrack = (issue, y, schedule = issue, summary = false) => `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px">${renderTrackContent(issue, y, schedule, summary)}</div>`;
-    const renderRows = (items, topOffset, laneParentId = '') => ganttHierarchyRows(items, laneParentId).map(({ issue, depth }, row) => {
+    const epicIds = [];
+    const renderRows = (nodes, topOffset) => nodes.map(({ issue, depth, childCount }, row) => {
       if (issue.draftKey) {
         const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
         return `<div class="gantt-row gantt-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="gantt-row-label" style="--row-depth:${depth}">${typeIcon(issue.type)}<span class="gantt-label-copy"><strong>${label}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"><span class="gantt-pending-message">${escape(issue.error || 'Syncing with Sheets in the background')}</span></div></div>`;
       }
       const summary = issue.type === 'Epic';
       const schedule = effectiveDates(issue);
-      const storyChildCount = issue.type === 'Story' ? items.filter(child => child.parentId === issue.id).length : 0;
-      const hasStoryChildren = storyChildCount > 0;
-      const storyCollapsed = hasStoryChildren && state.collapsedGanttStories[issue.id];
-      const storyToggle = hasStoryChildren ? `<button type="button" class="gantt-story-toggle" data-toggle-gantt-story="${escape(issue.id)}" aria-expanded="${!storyCollapsed}" aria-label="${storyCollapsed ? 'Expand' : 'Collapse'} ${storyChildCount} child work items under ${escape(issue.summary)}" title="${storyCollapsed ? 'Expand' : 'Collapse'} ${storyChildCount} child work items">${storyCollapsed ? '+' : '−'}</button>` : '';
-      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${storyToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!storyCollapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.id)}: ${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong>${escape(issue.id)}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
+      const hasStoryChildren = issue.type === 'Story' && childCount > 0;
+      const hasEpicChildren = summary && childCount > 0;
+      const collapsed = Boolean(summary ? state.collapsedEpics[issue.id] : state.collapsedGanttStories[issue.id]);
+      let treeToggle = '';
+      if (hasEpicChildren || hasStoryChildren) {
+        if (hasEpicChildren) epicIds.push(issue.id);
+        const action = collapsed ? 'Expand' : 'Collapse';
+        const attribute = summary ? 'data-toggle-lane' : 'data-toggle-gantt-story';
+        const label = escape(summary ? `${action} epic ${issue.id}: ${issue.summary}` : `${action} ${childCount} child work items under ${issue.summary}`);
+        const toggleClass = summary ? 'gantt-epic-toggle' : 'gantt-story-toggle';
+        treeToggle = `<button type="button" class="gantt-tree-toggle ${toggleClass}" ${attribute}="${escape(issue.id)}" aria-expanded="${!collapsed}" aria-label="${label}" title="${label}">${collapsed ? '+' : '−'}</button>`;
+      }
+      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${treeToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!collapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.id)}: ${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong>${escape(issue.id)}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
     }).join('');
     let rows = '', rowsHeight = 0;
     if (state.swimlanes) {
       rows = epicLanes(displayIssues).map(lane => {
+        if (lane.id) epicIds.push(lane.id);
         const collapsed = laneCollapsed(lane);
         const topOffset = rowsHeight;
         const epic = lane.id ? issueById(lane.id) : null;
         const epicSchedule = epic ? effectiveDates(epic) : null;
         const epicHeader = `<div class="gantt-row gantt-epic-row" ${epic ? `data-gantt-row-id="${escape(epic.id)}"` : ''}><div class="gantt-row-label gantt-epic-label" data-open="${escape(epic?.id || '')}" data-preview-id="${escape(epic?.id || '')}">${renderSwimlaneHeader(lane, 'gantt-lane-title')}${epic ? ganttAddButton(epic) : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${epic ? renderTrack(epic, topOffset + 22, epicSchedule, true) : `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div>`}</div>`;
         rowsHeight += 45;
-        const laneRows = collapsed ? '' : renderRows(lane.items, rowsHeight, lane.id);
-        if (!collapsed) rowsHeight += ganttHierarchyRows(lane.items, lane.id).length * 45;
+        const nodes = collapsed ? [] : ganttHierarchyRows(lane.items, lane.id);
+        const laneRows = renderRows(nodes, rowsHeight);
+        rowsHeight += nodes.length * 45;
         return `<section class="gantt-swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${epicHeader}${laneRows}</section>`;
       }).join('');
     } else {
-      rows = renderRows(displayIssues, 0);
-      rowsHeight = ganttHierarchyRows(displayIssues).length * 45;
+      const nodes = ganttHierarchyRows(displayIssues);
+      rows = renderRows(nodes, 0);
+      rowsHeight = nodes.length * 45;
     }
     let links = '';
     issues.forEach(issue => C.split(issue.dependencies).forEach(id => {
@@ -2370,6 +2639,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
     $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    addGanttEpicViewButton(epicIds);
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
   }
@@ -2582,6 +2852,19 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.view = view; if (location.hash !== '#' + view) location.hash = view; render();
   }
   $$('[data-view]').forEach(el => el.addEventListener('click', () => setView(el.dataset.view)));
+  const workspaceBar = $('.workspace-bar');
+  document.addEventListener('pointerdown', event => {
+    const menu = workspaceBar.querySelector('.tool-menu[open]');
+    if (menu && !menu.contains(event.target) && !event.target.closest('dialog')) menu.open = false;
+  });
+  workspaceBar.addEventListener('keydown', event => {
+    const menu = event.target.closest('.tool-menu[open]');
+    if (event.key === 'Escape' && menu) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+      event.preventDefault();
+    }
+  });
   window.addEventListener('hashchange', () => {
     const view = location.hash.slice(1);
     if (view !== state.view) setView(view);
@@ -2726,7 +3009,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       retryQuickDraft(retryQuick.dataset.retryQuick);
       return;
     }
-    if (event.target.closest('[data-card-priority], [data-card-assignee]')) return;
+    if (event.target.closest('[data-card-priority], .card-assignee-field')) return;
     if (state.view === 'sheet' && event.target.closest('.sheet-columns-menu > summary')) { state.sheetColumnsMenuOpen = !state.sheetColumnsMenuOpen; return; }
     const boardMove = event.target.closest('[data-board-move]');
     if (boardMove) { openBoardMove(boardMove.dataset.boardMove); return; }
@@ -2738,7 +3021,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const target = event.target.closest('[data-open], [data-issue], [data-new], [data-quick-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
     if (target.hasAttribute('data-bulk-edit-open')) openBulkEdit();
-    else if (target.hasAttribute('data-toggle-lane')) { const id = target.dataset.toggleLane; setEpicCollapsed(id, !state.collapsedEpics[id]); render(); }
+    else if (target.hasAttribute('data-toggle-lane')) {
+      const id = target.dataset.toggleLane;
+      setEpicCollapseStates({ [id]: !state.collapsedEpics[id] });
+      render();
+      $('#view-content [data-toggle-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
+    }
     else if (target.hasAttribute('data-toggle-gantt-story')) { cancelGanttStoryClick(); const id = target.dataset.toggleGanttStory; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }
     else if (target.hasAttribute('data-toggle-sheet-parent')) { const id = target.dataset.toggleSheetParent; setSheetParentCollapsed(id, !state.collapsedSheetParents[id]); render(); }
     else if (target.hasAttribute('data-gantt-add')) {
@@ -2765,7 +3053,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
       const next = target.dataset.timeline === 'today' ? C.addDays(today(), -7) : C.addDays(state.timelineStart, Number(target.dataset.timeline) * step);
       if (C.validDate(next) && next <= '2200-01-01') { state.timelineStart = next; render(); }
-    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-story-toggle, .gantt-add-button')) {
+    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-tree-toggle, .gantt-add-button')) {
       if (event.detail === 1) {
         cancelGanttStoryClick(); const id = storyLabel.dataset.open;
         ganttStoryClickTimer = { id, timer: setTimeout(() => { ganttStoryClickTimer = null; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }, 350) };
@@ -2780,7 +3068,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   $('#view-content').addEventListener('dblclick', event => {
     if (state.view !== 'gantt') return;
     const target = event.target.closest('.gantt-row-label, .gantt-bar');
-    if (!target || event.target.closest('.gantt-add-button, .swimlane-collapse')) return;
+    if (!target || event.target.closest('.gantt-add-button, .gantt-tree-toggle, .swimlane-collapse')) return;
     cancelGanttStoryClick();
     const id = target.dataset.open || target.dataset.bar; if (!id) return;
     event.preventDefault(); openIssue(id);

@@ -72,7 +72,7 @@ Tasks:
 Suggested small slices:
 
 - **P1.1 — Tokens:** establish semantic palette, fonts, spacing, radii, focus, states, contrast; replace hardcoded olive/green variants in actively touched components. Keep color meaning consistent.
-- **P1.2 — Workspace shell:** compact sidebar/header, remove duplicate view navigation, shrink hero/stats from everyday work surfaces, preserve direct view hashes/links.
+- **P1.2 — Workspace shell.** Put the view switcher in the compact header, start each work view directly below the toolbar and preserve direct view links.
 - **P1.3 — Shared controls:** standard buttons, inputs, chips, menus, cards, dialogs, status indicators, tooltips and responsive breakpoints; prefer reusable CSS patterns without introducing a frontend framework.
 - **P1.4 — Accessibility baseline:** document keyboard order, focus visibility, mobile overflow and reduced-motion behavior; fix obvious regressions.
 

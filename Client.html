@@ -14,6 +14,8 @@
     refresh: '<path d="M20 7v5h-5M4 17v-5h5M5.6 8a7 7 0 0 1 12-3l2.4 3M4 16l2.4 3a7 7 0 0 0 12-3"/>',
     download: '<path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/>',
     help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 .5c0 2-2.5 2-2.5 4M12 17h.01"/>',
+    command: '<path d="M18 8a3 3 0 1 0-3-3v14a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V5a3 3 0 1 0-3 3z"/>',
+    undo: '<path d="m9 5-5 5 5 5M4 10h10a5 5 0 0 1 0 10h-2"/>',
     calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 11h18"/>',
     check: '<path d="m5 12 4 4L19 6"/>',
     circle: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
@@ -22,9 +24,9 @@
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
-  const typeColors = { Epic: '#7C3AED', Story: '#0891B2', Task: '#2563EB', Bug: '#DC2626' };
-  const statusColors = ['#64748B', '#3B82F6', '#8B5CF6', '#D97706', '#16A34A'];
-  const statusBg = ['#F1F5F9', '#EFF6FF', '#F5F3FF', '#FFFBEB', '#F0FDF4'];
+  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600' };
+  const statusColors = ['#7a869a', '#4c9aff', '#0052cc', '#975a16', '#00875a'];
+  const statusBg = ['#ebecf0', '#e9f2ff', '#deebff', '#fff0b3', '#e3fcef'];
   const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
   const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -34,7 +36,7 @@
   const timestamp = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : '—';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
   function avatar(name) {
-    const colors = ['#DBEAFE', '#F3E8FF', '#CCFBF1', '#FFEDD5'];
+    const colors = ['#deebff', '#eae6ff', '#e3fcef', '#fff0b3'];
     return `<span class="avatar ${name ? '' : 'unassigned'}" title="${escape(name || 'Unassigned')}" style="--avatar-bg:${colors[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length]}">${escape(name ? initials(name) : '?')}</span>`;
   }
   const isCloud = !!(window.google && google.script && google.script.run);
@@ -57,7 +59,7 @@
     order.unshift('id');
     return order;
   }
-  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -72,9 +74,26 @@
   try { state.bulkDraft = JSON.parse(localStorage.getItem(bulkDraftStorageKey) || 'null'); } catch (ignore) { state.bulkDraft = null; }
   try { state.undoStack = JSON.parse(localStorage.getItem(undoStorageKey) || '[]') || []; } catch (ignore) { state.undoStack = []; }
   try { const saved = JSON.parse(localStorage.getItem(savedViewsStorageKey) || '[]'); state.savedViews = Array.isArray(saved) ? saved.filter(view => view && view.id && view.name && view.state) : []; } catch (ignore) { state.savedViews = []; }
-  try { const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}'); state.collapsedEpics = ui.collapsedEpics || {}; state.collapsedGanttStories = ui.collapsedGanttStories || {}; state.collapsedSheetParents = ui.collapsedSheetParents || {}; state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder); state.swimlanes = ui.swimlanes === true; state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260); } catch (ignore) { state.collapsedEpics = {}; state.collapsedGanttStories = {}; state.collapsedSheetParents = {}; state.visibleColumns = defaultSheetColumnOrder.slice(); }
+  try {
+    const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}');
+    state.collapsedEpics = ui.collapsedEpics || {};
+    if (ui.previousGanttEpics && typeof ui.previousGanttEpics === 'object' && !Array.isArray(ui.previousGanttEpics)) {
+      state.previousGanttEpics = ui.previousGanttEpics;
+    }
+    state.collapsedGanttStories = ui.collapsedGanttStories || {};
+    state.collapsedSheetParents = ui.collapsedSheetParents || {};
+    state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder);
+    state.swimlanes = ui.swimlanes === true;
+    state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
+  } catch (ignore) {
+    state.collapsedEpics = {};
+    state.previousGanttEpics = null;
+    state.collapsedGanttStories = {};
+    state.collapsedSheetParents = {};
+    state.visibleColumns = defaultSheetColumnOrder.slice();
+  }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
     return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
@@ -101,6 +120,7 @@
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
     state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
+    state.previousGanttEpics = null;
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
     state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks', 'twoWeeks', 'months'].includes(view.zoom) ? view.zoom : 'weeks';
@@ -135,9 +155,11 @@
     state.undoStack.push({ id: after.id, before: undoSnapshot(before), after: undoSnapshot(after), afterVersion: after.version, operationId, savedAt: new Date().toISOString() });
     state.undoStack = state.undoStack.slice(-50); saveUndoState();
   }
-  function setEpicCollapsed(id, collapsed) {
-    if (!id) return;
-    if (collapsed) state.collapsedEpics[id] = true; else delete state.collapsedEpics[id];
+  function setEpicCollapseStates(layout) {
+    for (const [id, collapsed] of Object.entries(layout)) {
+      if (collapsed) state.collapsedEpics[id] = true;
+      else delete state.collapsedEpics[id];
+    }
     saveUiState();
   }
   function setGanttStoryCollapsed(id, collapsed) {
@@ -382,7 +404,10 @@
         text = Object.values(state.drafts).some(draft => draft.status === 'conflict') ? 'Conflict · draft kept' : Object.values(state.drafts).some(draft => draft.error) ? 'Failed · draft kept' : 'Save unconfirmed'; error = true;
       }
     }
-    $('#sync-status').textContent = text; $('#sync-status').classList.toggle('error', error);
+    const status = $('#sync-status');
+    status.textContent = text;
+    status.classList.toggle('error', error);
+    status.classList.toggle('ready', !error && ['Synced with Sheets', 'Saved in this browser'].includes(text));
   }
   function setBusy(value) {
     state.busy = value; document.body.classList.toggle('busy', value);
@@ -962,7 +987,8 @@
     renderedView.current = state.view;
     $('#view-title').textContent = { sheet: 'Sheet', kanban: 'Kanban', gantt: 'Gantt' }[state.view];
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
-    $('#issue-count').textContent = `${issues.length} of ${state.issues.length} issues`;
+    const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
+    $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
     const hasPendingRows = pendingQuickTasks().length;
     if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; return; }
@@ -1063,14 +1089,33 @@
   function card(issue) {
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
     const parent = issueById(issue.parentId);
-    const dates = effectiveDates(issue);
-    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}" title="Alt + ↑/↓ reorder · Alt + ←/→ change status"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${escape(issue.id)}</span><select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select></div><h3 class="card-title">${escape(issue.summary)}</h3>${parent ? `<div class="card-parent" title="${escape(parent.summary)}">ϟ ${escape(parent.summary)}</div>` : ''}<div class="card-labels">${taskTypeBadge(issue.taskTypeId)}${C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('')}</div><label class="card-assignee-field"><span>Assignee</span><input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label><div class="card-footer"><span class="card-due ${dates.dueDate && dates.dueDate < today() && issue.status !== 'Done' ? 'overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${dates.dueDate ? escape(shortDate(dates.dueDate)) : 'No due date'}</span>${avatar(issue.assignee)}<button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button></div></article>`;
+    const showParent = parent && !(state.swimlanes && parent.type === 'Epic');
+    const { dueDate } = effectiveDates(issue);
+    const overdue = dueDate && dueDate < today() && issue.status !== 'Done';
+    const labels = C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('');
+    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}"
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
+        aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}"
+        title="Alt + ↑/↓ reorder · Alt + ←/→ change status">
+      <div class="card-top">
+        <span class="card-id">${typeIcon(issue.type)}${escape(issue.id)} ${taskTypeBadge(issue.taskTypeId)}</span>
+        <select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select>
+      </div>
+      <h3 class="card-title">${escape(issue.summary)}</h3>
+      ${showParent ? `<div class="card-parent" title="${escape(parent.summary)}">↳ ${escape(parent.summary)}</div>` : ''}
+      ${labels ? `<div class="card-labels">${labels}</div>` : ''}
+      <div class="card-footer">
+        <label class="card-assignee-field" title="Edit assignee">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label>
+        ${dueDate ? `<span class="card-due${overdue ? ' overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${escape(shortDate(dueDate))}</span>` : ''}
+        <button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button>
+      </div>
+    </article>`;
   }
   function renderBoard(issues) {
     const pending = pendingQuickTasks();
     const renderColumns = (items, pendingItems = pending) => C.statuses.map((status, index) => {
       const cards = items.filter(i => i.status === status), pendingCards = pendingItems.filter(i => i.status === status);
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">A little room for what’s next</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a task, story, or epic…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a title…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(issues)}</div>`; return; }
     $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(issues, true).map(lane => {
@@ -1131,8 +1176,22 @@
     const dates = epic ? effectiveDates(epic) : null;
     const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
-    const dragHint = epic && extraClass.includes('gantt-lane-title') ? '; drag to reorder' : '';
-    return `<div class="swimlane-header ${extraClass}"><button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${epic && extraClass.includes('gantt-lane-title') ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : ''} aria-expanded="${!collapsed}" aria-label="${collapsed ? 'Expand' : 'Collapse'} ${escape(lane.label)}${dragHint}"><span class="epic-dot"></span>${epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : ''}<strong>${escape(lane.label)}</strong>${epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#F1F5F9'};--status-color:${statusColors[statusIndex] || '#64748B'}">${escape(epic.status)}</span>` : ''}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span><span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span></button>${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}</div>`;
+    const inGantt = extraClass === 'gantt-lane-title';
+    const identity = epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
+    const statusBadge = epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
+    const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
+    const heading = inGantt
+      ? `<span class="gantt-lane-copy">${epic ? `<span class="gantt-lane-meta">${identity}${statusBadge}</span>` : ''}${name}</span>`
+      : `${identity}${name}${statusBadge}`;
+    const draggable = epic && inGantt ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : '';
+    const action = collapsed ? 'Expand' : 'Collapse';
+    return `<div class="swimlane-header ${extraClass}">
+      <button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${draggable} aria-expanded="${!collapsed}" aria-label="${action} ${escape(lane.label)}${draggable ? '. Drag to reorder.' : ''}">
+        <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
+        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>
+      </button>
+      ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}
+    </div>`;
   }
   function renderSheet(issues) {
     const definitions = sheetColumnDefinitions(), columns = normalizeSheetColumnOrder(state.visibleColumns).map(key => definitions.get(key)).filter(Boolean);
@@ -1152,7 +1211,7 @@
       : `<tbody>${sheetHierarchyRows(list).map(renderRow).join('')}</tbody>`;
     state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
-    const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : 'Every detail, in one place.';
+    const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
     $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button><button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table"><thead><tr>${columns.map(field => `<th>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}</th>`).join('')}</tr></thead>${body}</table></div>`;
     const selectAllControl = $('[data-sheet-select-visible]'); if (selectAllControl) selectAllControl.indeterminate = selectedCount > 0 && !selectAll;
   }
@@ -1317,9 +1376,20 @@
   function ganttHierarchyRows(items, laneParentId = '') {
     const byId = new Map(items.map(issue => [issue.id, issue])), children = new Map(), roots = [];
     items.forEach(issue => {
-      const parent = byId.has(issue.parentId) ? issue.parentId : '';
-      if (!parent) roots.push(issue);
-      else { if (!children.has(parent)) children.set(parent, []); children.get(parent).push(issue); }
+      let parent = issue.parentId;
+      // Filters can leave an Epic and a matching task visible while omitting its Story.
+      if (parent && !byId.has(parent)) {
+        const ancestors = new Set();
+        while (parent && parent !== laneParentId && !byId.has(parent) && !ancestors.has(parent)) {
+          ancestors.add(parent);
+          parent = issueById(parent)?.parentId;
+        }
+      }
+      if (!byId.has(parent)) roots.push(issue);
+      else {
+        if (!children.has(parent)) children.set(parent, []);
+        children.get(parent).push(issue);
+      }
     });
     const rows = [], seen = new Set();
     function hideDescendants(parentId) {
@@ -1338,9 +1408,16 @@
       return depth;
     }
     function add(issue) {
-      if (seen.has(issue.id)) return; seen.add(issue.id); rows.push({ issue, depth: actualDepth(issue) });
-      if (issue.type === 'Story' && state.collapsedGanttStories[issue.id]) { hideDescendants(issue.id); return; }
-      C.sorted(children.get(issue.id) || []).forEach(add);
+      if (seen.has(issue.id)) return;
+      seen.add(issue.id);
+      const branch = children.get(issue.id) || [];
+      rows.push({ issue, depth: actualDepth(issue), childCount: branch.length });
+      if ((issue.type === 'Epic' && state.collapsedEpics[issue.id]) ||
+          (issue.type === 'Story' && state.collapsedGanttStories[issue.id])) {
+        hideDescendants(issue.id);
+        return;
+      }
+      C.sorted(branch).forEach(add);
     }
     C.sorted(roots).forEach(add);
     C.sorted(items.filter(issue => !seen.has(issue.id))).forEach(add);
@@ -1348,7 +1425,7 @@
   }
   function ganttAddButton(issue) {
     if (!['Epic', 'Story'].includes(issue.type)) return '';
-    return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">＋</button></span>`;
+    return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">Add</button></span>`;
   }
   function ganttCanParent(issue, parent) {
     return parent && ((parent.type === 'Epic' && ['Story', 'Task', 'Bug'].includes(issue.type)) || (parent.type === 'Story' && ['Task', 'Bug'].includes(issue.type)));
@@ -1543,6 +1620,33 @@
     if (grid) grid.style.setProperty('--label-width', `${state.ganttLabelWidth}px`);
     if (resizer) { const max = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
   }
+  function addGanttEpicViewButton(epicIds) {
+    const previous = state.previousGanttEpics;
+    if (!epicIds.length && !previous) return;
+    const expand = epicIds.some(id => state.collapsedEpics[id]);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'gantt-epic-view';
+    button.className = 'button secondary';
+    button.textContent = expand ? 'Expand all epics' : 'Collapse all epics';
+    button.title = button.textContent + ' shown on this timeline';
+    if (previous) {
+      button.textContent = 'Go back';
+      button.title = 'Restore the Epics you had open before expanding all';
+    }
+    button.addEventListener('click', () => {
+      if (previous) {
+        state.previousGanttEpics = null;
+        setEpicCollapseStates(previous);
+      } else {
+        if (expand) state.previousGanttEpics = Object.fromEntries(epicIds.map(id => [id, Boolean(state.collapsedEpics[id])]));
+        setEpicCollapseStates(Object.fromEntries(epicIds.map(id => [id, !expand])));
+      }
+      render();
+      $('#gantt-epic-view')?.focus({ preventScroll: true });
+    });
+    $('#view-content .gantt-tools .left').append(button);
+  }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
     const scale = {
@@ -1615,35 +1719,47 @@
       return `${barStart} style="left:${left}px;width:${right - left}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}"><span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span><span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
     };
     const renderTrack = (issue, y, schedule = issue, summary = false) => `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px">${renderTrackContent(issue, y, schedule, summary)}</div>`;
-    const renderRows = (items, topOffset, laneParentId = '') => ganttHierarchyRows(items, laneParentId).map(({ issue, depth }, row) => {
+    const epicIds = [];
+    const renderRows = (nodes, topOffset) => nodes.map(({ issue, depth, childCount }, row) => {
       if (issue.draftKey) {
         const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
         return `<div class="gantt-row gantt-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="gantt-row-label" style="--row-depth:${depth}">${typeIcon(issue.type)}<span class="gantt-label-copy"><strong>${label}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"><span class="gantt-pending-message">${escape(issue.error || 'Syncing with Sheets in the background')}</span></div></div>`;
       }
       const summary = issue.type === 'Epic';
       const schedule = effectiveDates(issue);
-      const storyChildCount = issue.type === 'Story' ? items.filter(child => child.parentId === issue.id).length : 0;
-      const hasStoryChildren = storyChildCount > 0;
-      const storyCollapsed = hasStoryChildren && state.collapsedGanttStories[issue.id];
-      const storyToggle = hasStoryChildren ? `<button type="button" class="gantt-story-toggle" data-toggle-gantt-story="${escape(issue.id)}" aria-expanded="${!storyCollapsed}" aria-label="${storyCollapsed ? 'Expand' : 'Collapse'} ${storyChildCount} child work items under ${escape(issue.summary)}" title="${storyCollapsed ? 'Expand' : 'Collapse'} ${storyChildCount} child work items">${storyCollapsed ? '+' : '−'}</button>` : '';
-      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${storyToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!storyCollapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.id)}: ${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong>${escape(issue.id)}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
+      const hasStoryChildren = issue.type === 'Story' && childCount > 0;
+      const hasEpicChildren = summary && childCount > 0;
+      const collapsed = Boolean(summary ? state.collapsedEpics[issue.id] : state.collapsedGanttStories[issue.id]);
+      let treeToggle = '';
+      if (hasEpicChildren || hasStoryChildren) {
+        if (hasEpicChildren) epicIds.push(issue.id);
+        const action = collapsed ? 'Expand' : 'Collapse';
+        const attribute = summary ? 'data-toggle-lane' : 'data-toggle-gantt-story';
+        const label = escape(summary ? `${action} epic ${issue.id}: ${issue.summary}` : `${action} ${childCount} child work items under ${issue.summary}`);
+        const toggleClass = summary ? 'gantt-epic-toggle' : 'gantt-story-toggle';
+        treeToggle = `<button type="button" class="gantt-tree-toggle ${toggleClass}" ${attribute}="${escape(issue.id)}" aria-expanded="${!collapsed}" aria-label="${label}" title="${label}">${collapsed ? '+' : '−'}</button>`;
+      }
+      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${treeToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!collapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.id)}: ${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong>${escape(issue.id)}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
     }).join('');
     let rows = '', rowsHeight = 0;
     if (state.swimlanes) {
       rows = epicLanes(displayIssues).map(lane => {
+        if (lane.id) epicIds.push(lane.id);
         const collapsed = laneCollapsed(lane);
         const topOffset = rowsHeight;
         const epic = lane.id ? issueById(lane.id) : null;
         const epicSchedule = epic ? effectiveDates(epic) : null;
         const epicHeader = `<div class="gantt-row gantt-epic-row" ${epic ? `data-gantt-row-id="${escape(epic.id)}"` : ''}><div class="gantt-row-label gantt-epic-label" data-open="${escape(epic?.id || '')}" data-preview-id="${escape(epic?.id || '')}">${renderSwimlaneHeader(lane, 'gantt-lane-title')}${epic ? ganttAddButton(epic) : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${epic ? renderTrack(epic, topOffset + 22, epicSchedule, true) : `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div>`}</div>`;
         rowsHeight += 45;
-        const laneRows = collapsed ? '' : renderRows(lane.items, rowsHeight, lane.id);
-        if (!collapsed) rowsHeight += ganttHierarchyRows(lane.items, lane.id).length * 45;
+        const nodes = collapsed ? [] : ganttHierarchyRows(lane.items, lane.id);
+        const laneRows = renderRows(nodes, rowsHeight);
+        rowsHeight += nodes.length * 45;
         return `<section class="gantt-swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${epicHeader}${laneRows}</section>`;
       }).join('');
     } else {
-      rows = renderRows(displayIssues, 0);
-      rowsHeight = ganttHierarchyRows(displayIssues).length * 45;
+      const nodes = ganttHierarchyRows(displayIssues);
+      rows = renderRows(nodes, 0);
+      rowsHeight = nodes.length * 45;
     }
     let links = '';
     issues.forEach(issue => C.split(issue.dependencies).forEach(id => {
@@ -1656,6 +1772,7 @@
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
     $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    addGanttEpicViewButton(epicIds);
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
   }
@@ -1868,6 +1985,19 @@
     state.view = view; if (location.hash !== '#' + view) location.hash = view; render();
   }
   $$('[data-view]').forEach(el => el.addEventListener('click', () => setView(el.dataset.view)));
+  const workspaceBar = $('.workspace-bar');
+  document.addEventListener('pointerdown', event => {
+    const menu = workspaceBar.querySelector('.tool-menu[open]');
+    if (menu && !menu.contains(event.target) && !event.target.closest('dialog')) menu.open = false;
+  });
+  workspaceBar.addEventListener('keydown', event => {
+    const menu = event.target.closest('.tool-menu[open]');
+    if (event.key === 'Escape' && menu) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+      event.preventDefault();
+    }
+  });
   window.addEventListener('hashchange', () => {
     const view = location.hash.slice(1);
     if (view !== state.view) setView(view);
@@ -2012,7 +2142,7 @@
       retryQuickDraft(retryQuick.dataset.retryQuick);
       return;
     }
-    if (event.target.closest('[data-card-priority], [data-card-assignee]')) return;
+    if (event.target.closest('[data-card-priority], .card-assignee-field')) return;
     if (state.view === 'sheet' && event.target.closest('.sheet-columns-menu > summary')) { state.sheetColumnsMenuOpen = !state.sheetColumnsMenuOpen; return; }
     const boardMove = event.target.closest('[data-board-move]');
     if (boardMove) { openBoardMove(boardMove.dataset.boardMove); return; }
@@ -2024,7 +2154,12 @@
     const target = event.target.closest('[data-open], [data-issue], [data-new], [data-quick-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
     if (target.hasAttribute('data-bulk-edit-open')) openBulkEdit();
-    else if (target.hasAttribute('data-toggle-lane')) { const id = target.dataset.toggleLane; setEpicCollapsed(id, !state.collapsedEpics[id]); render(); }
+    else if (target.hasAttribute('data-toggle-lane')) {
+      const id = target.dataset.toggleLane;
+      setEpicCollapseStates({ [id]: !state.collapsedEpics[id] });
+      render();
+      $('#view-content [data-toggle-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
+    }
     else if (target.hasAttribute('data-toggle-gantt-story')) { cancelGanttStoryClick(); const id = target.dataset.toggleGanttStory; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }
     else if (target.hasAttribute('data-toggle-sheet-parent')) { const id = target.dataset.toggleSheetParent; setSheetParentCollapsed(id, !state.collapsedSheetParents[id]); render(); }
     else if (target.hasAttribute('data-gantt-add')) {
@@ -2051,7 +2186,7 @@
       const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
       const next = target.dataset.timeline === 'today' ? C.addDays(today(), -7) : C.addDays(state.timelineStart, Number(target.dataset.timeline) * step);
       if (C.validDate(next) && next <= '2200-01-01') { state.timelineStart = next; render(); }
-    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-story-toggle, .gantt-add-button')) {
+    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-tree-toggle, .gantt-add-button')) {
       if (event.detail === 1) {
         cancelGanttStoryClick(); const id = storyLabel.dataset.open;
         ganttStoryClickTimer = { id, timer: setTimeout(() => { ganttStoryClickTimer = null; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }, 350) };
@@ -2066,7 +2201,7 @@
   $('#view-content').addEventListener('dblclick', event => {
     if (state.view !== 'gantt') return;
     const target = event.target.closest('.gantt-row-label, .gantt-bar');
-    if (!target || event.target.closest('.gantt-add-button, .swimlane-collapse')) return;
+    if (!target || event.target.closest('.gantt-add-button, .gantt-tree-toggle, .swimlane-collapse')) return;
     cancelGanttStoryClick();
     const id = target.dataset.open || target.dataset.bar; if (!id) return;
     event.preventDefault(); openIssue(id);
