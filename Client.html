@@ -50,16 +50,21 @@
   const uiStorageKey = 'sheetflow.ui.v1';
   const savedViewsStorageKey = 'sheetflow.saved-views.v1';
   const noEpicLaneKey = '__no_epic__';
-  const defaultSheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
+  const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
+  const defaultSheetColumnOrder = ['id', 'summary', 'status', 'assignee', 'priority', 'dueDate'];
+  const defaultSheetWidths = { id:220, summary:320, status:120, assignee:160, priority:100, dueDate:140 };
+  const sheetMinimumWidth = key => ({id:200,summary:180,dueDate:130,startDate:130,assignee:120}[key] || 80);
+  const clampSheetWidth = (key, value) => Math.round(Math.max(sheetMinimumWidth(key), Math.min(800, Number(value) || defaultSheetWidths[key] || 140)));
+  function normalizeSheetWidths(widths) { return Object.fromEntries(Object.entries(widths && typeof widths === 'object' ? widths : {}).filter(([key,value]) => sheetColumnDefinitions().has(key) && Number.isFinite(Number(value))).map(([key,value]) => [key,clampSheetWidth(key,value)])); }
+  const sheetWidth = key => clampSheetWidth(key, state.sheetColumnWidths[key] || defaultSheetWidths[key] || 140);
   function normalizeSheetColumnOrder(keys) {
     const available = new Set(['taskTypeId', ...C.fields.map(field => field.key)]), seen = new Set();
     const order = (Array.isArray(keys) ? keys : []).filter(key => available.has(key) && !seen.has(key) && seen.add(key));
     if (!order.length) return defaultSheetColumnOrder.slice();
-    if (order.includes('id')) order.splice(order.indexOf('id'), 1);
-    order.unshift('id');
+    if (!order.includes('id')) order.unshift('id');
     return order;
   }
-  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -82,7 +87,8 @@
     }
     state.collapsedGanttStories = ui.collapsedGanttStories || {};
     state.collapsedSheetParents = ui.collapsedSheetParents || {};
-    state.visibleColumns = normalizeSheetColumnOrder(ui.visibleColumns || defaultSheetColumnOrder);
+    state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
+    state.sheetColumnWidths = normalizeSheetWidths(ui.sheetColumnWidths);
     state.swimlanes = ui.swimlanes === true;
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
@@ -93,9 +99,9 @@
     state.visibleColumns = defaultSheetColumnOrder.slice();
   }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
-    return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
+    return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
   function renderSavedViews() {
     const select = $('#saved-view-select');
@@ -118,6 +124,7 @@
     state.assignee = String(view.assignee || ''); state.status = C.statuses.includes(view.status) ? view.status : ''; state.sprint = String(view.sprint || ''); state.epic = String(view.epic || '');
     state.sort = view.sort === 'taskTypeId' || C.fields.some(field => field.key === view.sort) ? view.sort : 'rank'; state.ascending = view.ascending !== false;
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
+    state.sheetColumnWidths = normalizeSheetWidths(view.sheetColumnWidths);
     state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
     state.previousGanttEpics = null;
@@ -179,11 +186,11 @@
   }
   function sheetColumnMenu() {
     const definitions = sheetColumnDefinitions(), selected = normalizeSheetColumnOrder(state.visibleColumns);
-    const orderedKeys = [...selected, ...defaultSheetColumnOrder.filter(key => !selected.includes(key)), ...C.fields.map(field => field.key).filter(key => !selected.includes(key) && !defaultSheetColumnOrder.includes(key))];
+    const orderedKeys = [...selected, ...defaultSheetColumnOrder.filter(key => !selected.includes(key)), ...[...definitions.keys()].filter(key => !selected.includes(key) && !defaultSheetColumnOrder.includes(key))];
     return `<details class="sheet-columns-menu" ${state.sheetColumnsMenuOpen ? 'open' : ''}><summary>Columns (${selected.length})</summary><div class="sheet-column-options" role="group" aria-label="Choose and order Sheet columns">${orderedKeys.map(key => {
       const field = definitions.get(key), index = selected.indexOf(key), checked = index >= 0, fixed = key === 'id';
-      return `<div class="sheet-column-option"><label><input type="checkbox" data-sheet-column-toggle="${escape(key)}" ${checked ? 'checked' : ''} ${fixed ? 'disabled' : ''}><span>${escape(field?.label || key)}</span></label><span><button type="button" data-sheet-column-move="up" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column left" ${fixed || !checked || index <= 1 ? 'disabled' : ''}>↑</button><button type="button" data-sheet-column-move="down" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column right" ${fixed || !checked || index < 0 || index >= selected.length - 1 ? 'disabled' : ''}>↓</button></span></div>`;
-    }).join('')}</div></details>`;
+      return `<div class="sheet-column-option"><label><input type="checkbox" data-sheet-column-toggle="${escape(key)}" ${checked ? 'checked' : ''} ${fixed ? 'disabled' : ''}><span>${escape(field?.label || key)}</span></label><input class="sheet-column-width" type="number" min="${sheetMinimumWidth(key)}" max="800" value="${sheetWidth(key)}" data-sheet-width="${escape(key)}" aria-label="${escape(field?.label || key)} column width in pixels"><span><button type="button" data-sheet-column-move="up" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column left" ${!checked || index <= 0 ? 'disabled' : ''}>↑</button><button type="button" data-sheet-column-move="down" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column right" ${!checked || index < 0 || index >= selected.length - 1 ? 'disabled' : ''}>↓</button></span></div>`;
+    }).join('')}<button type="button" class="button subtle" data-sheet-reset>Reset layout</button></div></details>`;
   }
   function toggleSheetColumn(key, checked) {
     if (key === 'id') return;
@@ -195,11 +202,65 @@
   function moveSheetColumn(key, direction) {
     state.sheetColumnsMenuOpen = Boolean($('.sheet-columns-menu')?.open);
     const order = normalizeSheetColumnOrder(state.visibleColumns), index = order.indexOf(key), next = index + (direction === 'up' ? -1 : 1);
-    if (index < 1 || next < 1 || next >= order.length) return;
+    if (index < 0 || next < 0 || next >= order.length) return;
     [order[index], order[next]] = [order[next], order[index]];
     state.visibleColumns = normalizeSheetColumnOrder(order); saveUiState(); render();
     $(`[data-sheet-column-key="${CSS.escape(key)}"][data-sheet-column-move="${direction}"]`)?.focus();
   }
+  let sheetGesture = null, sheetWidthFrame = 0, sheetViewportObserver = null;
+  function applySheetOrder() {
+    const active=document.activeElement, start=active?.selectionStart, end=active?.selectionEnd;
+    document.querySelectorAll('.issue-table colgroup,.issue-table thead tr,.sheet-issue-row').forEach(row=>{
+      const cells=new Map([...row.children].map(el=>[el.dataset.columnKey,el]));
+      state.visibleColumns.forEach(key=>{if(cells.has(key))row.append(cells.get(key));});
+    });
+    $('.issue-table')?.classList.toggle('id-pinned',state.visibleColumns[0]==='id');
+    if(active?.isConnected){active.focus({preventScroll:true});if(typeof start==='number' && active.type!=='number')try{active.setSelectionRange(start,end);}catch(ignore){}}
+    const menu=$('.sheet-columns-menu');if(menu)menu.outerHTML=sheetColumnMenu();
+  }
+  function applySheetWidth(key, value) {
+    state.sheetColumnWidths[key] = clampSheetWidth(key,value);
+    const col = document.querySelector('col[data-column-key="'+CSS.escape(key)+'"]');
+    if (col) col.style.width = sheetWidth(key)+'px';
+    const table = $('.issue-table'); if (table) table.style.width = state.visibleColumns.reduce((sum,k)=>sum+sheetWidth(k),0)+'px';
+    const handle = document.querySelector('[data-column-resize="'+CSS.escape(key)+'"]');
+    handle?.setAttribute('aria-valuenow',sheetWidth(key));
+    const input = document.querySelector('[data-sheet-width="'+CSS.escape(key)+'"]'); if(input) input.value=sheetWidth(key);
+  }
+  function finishSheetGesture(cancel=false) {
+    if(!sheetGesture) return;
+    const g=sheetGesture; sheetGesture=null; cancelAnimationFrame(sheetWidthFrame);
+    if(g.element.hasPointerCapture(g.pointer)) g.element.releasePointerCapture(g.pointer);
+    $$('th.sheet-column-target').forEach(el=>el.classList.remove('sheet-column-target'));
+    if(g.resize) { applySheetWidth(g.key,cancel ? g.width : g.nextWidth); if(cancel && !g.hadWidth) delete state.sheetColumnWidths[g.key]; }
+    else if(!cancel && g.target && g.target!==g.key && g.moved) {
+      const order=state.visibleColumns.filter(k=>k!==g.key); order.splice(order.indexOf(g.target)+(g.after?1:0),0,g.key); state.visibleColumns=order; applySheetOrder();
+    }
+    if(!cancel) saveUiState(); suppressClickUntil=Date.now()+200;
+  }
+  document.addEventListener('pointerdown', event=>{
+    const el=event.target.closest('[data-column-resize],[data-column-grip]'); if(!el || event.button!==0) return;
+    event.preventDefault(); event.stopPropagation();
+    const key=el.dataset.columnResize || el.dataset.columnGrip;
+    sheetGesture={key,element:el,pointer:event.pointerId,x:event.clientX,width:sheetWidth(key),nextWidth:sheetWidth(key),hadWidth:Object.hasOwn(state.sheetColumnWidths,key),resize:el.hasAttribute('data-column-resize')};
+    el.setPointerCapture(event.pointerId);
+  },true);
+  document.addEventListener('pointermove', event=>{
+    const g=sheetGesture; if(!g || g.pointer!==event.pointerId) return;
+    g.moved ||= Math.abs(event.clientX-g.x)>4;
+    if(g.resize) {g.nextWidth=clampSheetWidth(g.key,g.width+event.clientX-g.x);cancelAnimationFrame(sheetWidthFrame);sheetWidthFrame=requestAnimationFrame(()=>applySheetWidth(g.key,g.nextWidth));}
+    else if(g.moved) {const target=document.elementFromPoint(event.clientX,event.clientY)?.closest('th[data-column-key]');$$('th.sheet-column-target').forEach(el=>el.classList.remove('sheet-column-target'));g.target=target?.dataset.columnKey;if(target){g.after=event.clientX>target.getBoundingClientRect().left+target.offsetWidth/2;target.classList.add('sheet-column-target');target.style.setProperty('--column-marker',g.after?'100%':'0%');}}
+  },true);
+  document.addEventListener('pointerup',event=>{if(sheetGesture?.pointer===event.pointerId)finishSheetGesture();},true);
+  document.addEventListener('pointercancel',()=>finishSheetGesture(true),true);
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && sheetGesture){event.preventDefault();finishSheetGesture(true);return;}
+    const key=event.target.dataset.columnResize;
+    if(key && ['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();applySheetWidth(key,sheetWidth(key)+(event.key==='ArrowRight'?10:-10));saveUiState();}
+  },true);
+  document.addEventListener('dblclick',event=>{const key=event.target.dataset.columnResize;if(key){event.preventDefault();applySheetWidth(key,defaultSheetWidths[key]||140);saveUiState();}});
+  document.addEventListener('change',event=>{const key=event.target.dataset.sheetWidth;if(key){applySheetWidth(key,event.target.value);saveUiState();}});
+  document.addEventListener('click',event=>{if(event.target.closest('[data-sheet-reset]')){state.visibleColumns=defaultSheetColumnOrder.slice();state.sheetColumnWidths={};saveUiState();render();}});
   function cancelGanttStoryClick() {
     if (ganttStoryClickTimer) clearTimeout(ganttStoryClickTimer.timer);
     ganttStoryClickTimer = null;
@@ -994,8 +1055,12 @@
     if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; return; }
     if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; return; }
     if (state.view === 'kanban') renderBoard(issues);
+    $$('[data-sheet-manual]').forEach(el=>el.remove());
+    sheetViewportObserver?.disconnect();
+    $('#sheet-actions').replaceChildren();
     if (state.view === 'sheet') renderSheet(issues);
     if (state.view === 'gantt') renderGantt(issues);
+    arrangeWorkspaceTools();
     const nextScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
     if (restoreScroll && nextScroll) { nextScroll.scrollLeft = restoreScroll.left; nextScroll.scrollTop = restoreScroll.top; }
     if (quickEntryState) restoreBoardQuickEntries(quickEntryState);
@@ -1019,7 +1084,7 @@
     const viewport = cell.closest('.table-wrap');
     if (!viewport) return;
     const bounds = viewport.getBoundingClientRect(), target = cell.getBoundingClientRect();
-    const pinned = cell.closest('tr')?.cells[0], header = viewport.querySelector('thead th');
+    const pinned = viewport.querySelector('.id-pinned') ? cell.closest('tr')?.querySelector('td[data-column-key="id"]') : null, header = viewport.querySelector('thead th');
     const left = Math.max(bounds.left + viewport.clientLeft, pinned && !pinned.contains(cell) && getComputedStyle(pinned).position === 'sticky' ? pinned.getBoundingClientRect().right : bounds.left);
     const top = Math.max(bounds.top + viewport.clientTop, header ? header.getBoundingClientRect().bottom : bounds.top);
     const right = bounds.left + viewport.clientLeft + viewport.clientWidth;
@@ -1178,7 +1243,7 @@
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const inGantt = extraClass === 'gantt-lane-title';
     const identity = epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
-    const statusBadge = epic ? `<span class="status-badge" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
+    const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
     const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
     const heading = inGantt
       ? `<span class="gantt-lane-copy">${epic ? `<span class="gantt-lane-meta">${identity}${statusBadge}</span>` : ''}${name}</span>`
@@ -1190,7 +1255,7 @@
         <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
         ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>
       </button>
-      ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">Edit</button>` : ''}
+      ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">${inGantt ? '✎' : 'Edit'}</button>` : ''}
     </div>`;
   }
   function renderSheet(issues) {
@@ -1201,7 +1266,7 @@
     const manualOrder = state.sort === 'rank' && state.ascending;
     const renderRow = node => {
       const issue = node.issue, treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
-      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td>${field.key === 'id' ? `<div class="sheet-id-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.id)}: ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
+      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td data-column-key="${field.key}">${field.key === 'id' ? `<div class="sheet-id-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.id)}: ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
     };
     const body = state.swimlanes
       ? epicLanes(list).map(lane => {
@@ -1212,7 +1277,12 @@
     state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
     const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
-    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button><button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table"><thead><tr>${columns.map(field => `<th>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}</th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button><button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'id' ? 'id-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    const viewport=$('.table-wrap');
+    const sizeHeader=()=>viewport.style.setProperty('--sheet-content-width',viewport.clientWidth+'px');
+    sizeHeader(); sheetViewportObserver=new ResizeObserver(sizeHeader); sheetViewportObserver.observe(viewport);
+    $('#sheet-actions').append($('.sheet-tools'));
+    arrangeWorkspaceTools();
     const selectAllControl = $('[data-sheet-select-visible]'); if (selectAllControl) selectAllControl.indeterminate = selectedCount > 0 && !selectAll;
   }
   function sortSheetItems(items) {
@@ -1340,7 +1410,7 @@
   function cell(issue, field) {
     const key = field.key, value = issue[key];
     if (key === 'taskTypeId') return taskTypeBadge(value);
-    if (key === 'id') return `<span class="sheet-id-text"><button class="issue-link" data-open="${escape(issue.id)}">${typeIcon(issue.type)}${escape(value)}</button><span class="sheet-id-summary" title="${escape(issue.summary)}">${escape(issue.summary)}</span></span>`;
+    if (key === 'id') return `<span class="sheet-id-text"><button class="issue-link" data-open="${escape(issue.id)}">${typeIcon(issue.type)}${escape(value)}</button></span>`;
     if (issue.type === 'Epic' && ['startDate', 'dueDate'].includes(key)) { const dates = effectiveDates(issue); return `<span class="cell-readonly" title="Derived from scheduled child issues; edit child dates to change the Epic schedule.">${escape(dates[key] || '—')}</span>`; }
     if (['createdAt', 'updatedAt', 'completedDate', 'rank'].includes(key)) return `<span class="cell-readonly" title="${escape(value)}">${escape(field.kind === 'timestamp' ? timestamp(value) : value || '—')}</span>`;
     const attr = `class="cell-input ${key === 'summary' ? 'cell-summary' : ''}" data-field="${key}" data-id="${escape(issue.id)}" aria-label="${escape(issue.id + ' ' + field.label)}"`;
@@ -1986,6 +2056,14 @@
   }
   $$('[data-view]').forEach(el => el.addEventListener('click', () => setView(el.dataset.view)));
   const workspaceBar = $('.workspace-bar');
+  function arrangeWorkspaceTools() {
+    const narrow = matchMedia('(max-width:700px)').matches;
+    const mount = narrow ? $('#mobile-view-options') : $('#workspace-view-options');
+    const savedMenu=$('.workspace-saved-views'); if(narrow) savedMenu.removeAttribute('name'); else savedMenu.setAttribute('name','workspace-tools');
+    for (const el of $$('.view-toggle, .workspace-saved-views')) if(el.parentElement!==mount) mount.append(el);
+    const manual = $('[data-sheet-manual]'); if (manual) { const manualMount=narrow ? $('#mobile-view-options') : $('.sheet-tool-actions'); if(manual.parentElement!==manualMount) manualMount.prepend(manual); }
+  }
+  window.addEventListener('resize', arrangeWorkspaceTools);
   document.addEventListener('pointerdown', event => {
     const menu = workspaceBar.querySelector('.tool-menu[open]');
     if (menu && !menu.contains(event.target) && !event.target.closest('dialog')) menu.open = false;
@@ -2135,7 +2213,8 @@
     $('#help-dialog').showModal();
   });
   $('#close-help').addEventListener('click', () => $('#help-dialog').close());
-  $('#view-content').addEventListener('click', event => {
+  document.addEventListener('click', event => {
+    if (!event.target.closest('#view-content, #sheet-actions, #workspace-more')) return;
     if (state.busy || Date.now() < suppressClickUntil) return;
     const retryQuick = event.target.closest('[data-retry-quick]');
     if (retryQuick) {
@@ -2268,7 +2347,8 @@
     }
     else if (event.target.matches('.card') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue); }
   });
-  $('#view-content').addEventListener('change', async event => {
+  document.addEventListener('change', async event => {
+    if (!event.target.closest('#view-content, #sheet-actions, #workspace-more')) return;
     const target = event.target;
     if (target.matches('[data-sheet-column-toggle]')) { toggleSheetColumn(target.dataset.sheetColumnToggle, target.checked); return; }
     if (target.matches('[data-sheet-select]')) {
@@ -2336,7 +2416,7 @@
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
   function clearDragStyle() { $$('.drag-over, .drop-before, .dragging, .gantt-dragging, .gantt-drop-before, .gantt-drop-after, .gantt-drop-parent, .gantt-drop-invalid, .gantt-drop-unparent, .sheet-dragging, .sheet-drop-before, .sheet-drop-after, .sheet-drop-parent, .sheet-drop-invalid, .sheet-drop-unparent').forEach(el => el.classList.remove('drag-over', 'drop-before', 'dragging', 'gantt-dragging', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-dragging', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent')); }
-  $('#view-content').addEventListener('dragover', event => {
+  document.addEventListener('dragover', event => {
     if (state.view === 'gantt' && ganttHierarchyDrag && !state.busy) {
       const unparentDrop = event.target.closest('[data-gantt-unparent]'), row = event.target.closest('[data-gantt-row-id]');
       if (!unparentDrop && !row) return;
@@ -2371,7 +2451,7 @@
     if (ganttHierarchyDrag) { suppressClickUntil = Date.now() + 450; ganttHierarchyDrag = null; const unparentDrop = $('#gantt-unparent-drop'); if (unparentDrop) unparentDrop.hidden = true; }
     draggingId = null; finishSheetDrag(); clearDragStyle();
   });
-  $('#view-content').addEventListener('drop', async event => {
+  document.addEventListener('drop', async event => {
     if (state.view === 'gantt' && ganttHierarchyDrag) {
       const movingId = ganttHierarchyDrag.id, unparentDrop = event.target.closest('[data-gantt-unparent]'), row = event.target.closest('[data-gantt-row-id]');
       if (!unparentDrop && !row) return;

@@ -30,32 +30,27 @@
     <div class="workspace-bar">
       <div class="toolbar" aria-label="Search and filters">
         <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search" placeholder="Search tasks by title or ID…" aria-label="Search issues"><kbd>/</kbd></label>
-        <details class="workspace-options tool-menu" name="workspace-tools">
-          <summary title="Filter by epic or open the Sheet connection">Epics</summary>
-          <div class="workspace-panel tool-menu-panel">
-            <div class="epic-caption">Filter by epic <button id="add-epic" class="button subtle" type="button" aria-label="Create epic">+ New epic</button></div>
-            <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
-            <div class="connection-card">
-              <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
-              <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
-            </div>
-          </div>
-        </details>
-        <div class="filters primary-filters">
-          <details id="type-filter-menu" class="filter-menu tool-menu" name="workspace-tools"><summary id="type-filter-label" aria-label="Filter by one or more types">All types</summary><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></details>
-          <select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select>
-          <select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select>
-        </div>
-        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools">
-          <summary>More filters</summary>
-          <div class="filters tool-menu-panel">
-            <label>Status<select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select></label>
+        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools"><summary>Filters</summary><div class="filters tool-menu-panel">
+          <div class="filter-wide"><strong>Epic</strong><nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav></div>
+          <div class="filter-wide"><strong id="type-filter-label">All types</strong><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></div>
+          <label>Assignee<select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select></label><label>Priority<select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select></label><label>Status<select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select></label>
             <label>Tag<select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select></label>
             <label>Sprint<select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select></label>
             <label class="date-filter"><span>Start on or after</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label>
             <label class="date-filter"><span>Due on or before</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label>
-          </div>
-        </details>
+
+        </div></details>
+        <div id="workspace-view-options"></div>
+        <details id="workspace-more" class="workspace-options tool-menu" name="workspace-tools"><summary>More</summary><div class="workspace-panel tool-menu-panel">
+          <div id="mobile-view-options"></div>
+          <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
+          <button id="refresh" class="button subtle" type="button">Refresh</button>
+          <button id="export" class="button subtle" type="button">Export CSV</button>
+          <button id="add-epic" class="button subtle" type="button">New epic</button><div class="connection-card">
+              <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
+              <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
+            </div>
+        </div></details>
         <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
         <span id="issue-count" class="issue-count"></span>
       </div>
@@ -64,12 +59,12 @@
           <input id="quick-title" type="text" maxlength="250" placeholder="Add a task… Enter to save" aria-label="New task title">
           <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
         </div>
-        <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
-        <div class="workspace-tools">
+
+        <div id="sheet-actions"></div><div class="workspace-tools">
           <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox">Group by epic</label>
-          <button id="refresh" class="button subtle" type="button"><span data-icon="refresh" aria-hidden="true"></span>Refresh</button>
-          <button id="export" class="button subtle" type="button"><span data-icon="download" aria-hidden="true"></span>Export CSV</button>
-          <details class="workspace-saved-views tool-menu" name="workspace-tools">
+
+
+          <details class="workspace-saved-views tool-menu">
             <summary>Saved views</summary>
             <div class="saved-view-bar tool-menu-panel">
               <label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label>

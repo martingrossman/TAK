@@ -42,7 +42,7 @@ const inputFor = page => page.locator('[data-epic-lane="PRJ-2"] [data-quick-titl
 const requestCount = page => page.evaluate(() => window.cloudHarness.requests.length);
 
 test('global quick add inherits a selected Epic while an explicit No Epic lane stays independent', async ({ page }) => {
-  await page.locator('.workspace-options > summary').click();
+  await page.locator('#workspace-filters > summary').click();
   await page.locator('#epic-nav [data-epic="PRJ-1"]').click();
   const globalInput = page.locator('#quick-title');
   await globalInput.fill('Selected Epic task');

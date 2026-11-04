@@ -24,7 +24,7 @@
 |---|---|---|---|
 | Create | Hidden behind command palette | Large full-page create form | Visible **New**, inline `+ Add`, `N`/`C` shortcut |
 | Kanban card | Title only | Every task field | Title, ID/type, priority, assignee; conditional due date/blocker |
-| Filters | Hidden behind several menus | Every criterion always expanded | Visible search/Epics/type/assignee/priority; advanced criteria in More filters; active filter chips |
+| Filters | Hidden behind several menus | Every criterion always expanded | Visible search and one Filters panel; removable active filter chips |
 | Priority | Task detail only | Multiple colored text badges | Small icon, direct editable click/focus |
 | Dashboard | No progress visibility | Persistent row of four oversized cards | Move summary to optional Overview or compact collapsible strip |
 | Details | No access to advanced data | Full 21-field form for everything | Compact issue dialog with an expandable grouped editor |
@@ -38,7 +38,7 @@ The goal is **minimum action cost**, not minimum element count.
 
 The header contains the project identity, save status and one switcher for Sheet, Kanban and Gantt. Undo, Commands, Shortcuts and New task sit on its right.
 
-The filter strip below shows search, Epics, type, assignee and priority, with a result count and removable active filter chips. **More filters** contains status, tags, sprint and dates. The **Epics** menu retains new Epic, Epic selection and the Sheet connection. A compact second row keeps quick task entry, Paste list, Group by epic, Refresh, Export CSV and Saved views directly accessible. The current view remains available as a screen-reader heading.
+The filter strip below shows Search, Filters, Group by epic, Saved views and More. Filters contains every existing criterion; active filter chips and Clear all remain outside it. More contains Paste list, Refresh, Export CSV, New epic and connection details. Quick task entry shares its row with Sheet layout controls. On narrow screens grouping, saved views and manual order move into More; Columns remains visible. The current view remains available as a screen-reader heading.
 
 **Style reference, 2026-11-04:** adopt the simplicity of `G:\My Drive\gsheetPLannerSimple` in the main `implement_mvp` checkout. Keep its compact top navigation, blue/gray palette, white cards and softly tinted status headers without replacing the MVP's newer commands, inline editing or timeline features.
 
@@ -228,3 +228,7 @@ Build this before polishing every screen: **Kanban inline create → optimistic 
 ---
 
 **Design acceptance is evidence-based:** screenshots at desktop/mobile widths, keyboard walkthrough, data round-trip tests, failure cases and measured performance; not merely a visual before/after.
+
+### Sheet layout preferences
+
+Default columns are ID, Summary, Status, Assignee, Priority and Due Date. Every column can move; ID pins only while first. Header grips reorder, header edges resize, and Columns provides width and movement controls plus Reset layout. Widths/order belong to browser preferences and Saved Views, never to the Google Sheet schema. Legacy untouched defaults migrate once; custom layouts remain intact.
