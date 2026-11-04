@@ -15,11 +15,11 @@ if (process.platform === 'win32') {
     '  $process = Get-Process -Id $connection.OwningProcess -ErrorAction SilentlyContinue',
     '  if ($process.ProcessName -eq \'node\') {',
     '    Stop-Process -Id $connection.OwningProcess -Force',
-    '    Write-Output "Stopped SheetFlow preview (PID $($connection.OwningProcess))."',
+    '    Write-Output "Stopped TAK preview (PID $($connection.OwningProcess))."',
     '    $stopped = $true',
     '  }',
     '}',
-    'if (-not $stopped) { Write-Output "No SheetFlow preview found on port ' + port + '." }'
+    'if (-not $stopped) { Write-Output "No TAK preview found on port ' + port + '." }'
   ].join('; ');
 
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { stdio: 'inherit' });

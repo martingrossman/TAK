@@ -1,6 +1,6 @@
-# AGENTS.md — GSheetJira Codex Working Agreement
+# AGENTS.md — TAK Codex Working Agreement
 
-You are coding on **GSheetJira/SheetFlow**, a Google Sheets-backed project/task manager with a local standalone demo. The goal of this workstream is **exceptional usability, design consistency and speed**, not feature expansion for its own sake.
+You are coding on **TAK**, a Google Sheets-backed project/task manager with a local standalone demo. The goal of this workstream is **exceptional usability, design consistency and speed**, not feature expansion for its own sake.
 
 ## Required reading before modifying code
 

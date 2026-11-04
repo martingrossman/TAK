@@ -1,7 +1,7 @@
 # TAK — Unified Product Contract, Current State, and Roadmap
 
 **Consolidation date:** 2026-11-01  
-**Current code source:** `C:\Users\martin\Documents\GitHub\gsheetjira`, branch `implement_mvp`, commit `49eca0c`  
+**Current code source:** `C:\Users\martin\Documents\GitHub\TAK`, branch `implement_mvp` (renamed 2026-11-04; original review baseline `49eca0c`)
 **Historical working copy:** `C:\Users\martin\Documents\ChatGPT\gsheetjira\tak-inline-capture`, based on `28b8d1e`  
 **Purpose:** provide one decision document for TAK that separates confirmed decisions, current implementation, open questions, and later ideas.
 

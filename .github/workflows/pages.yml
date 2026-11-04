@@ -3,9 +3,7 @@ name: Deploy standalone demo to GitHub Pages
 on:
   push:
     branches:
-      - main
-      - review_against_POR
-      - implement_plan
+      - implement_mvp
   workflow_dispatch:
 
 permissions:
@@ -19,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref == 'refs/heads/implement_mvp'
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository

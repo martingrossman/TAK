@@ -49,7 +49,7 @@ function startupHealthCheck() {
   if (typeof SheetFlowAuth !== 'undefined') SheetFlowAuth.require('read');
   var book = getBook_();
   var result = SheetFlowEnvironment.health(book);
-  if (!result.ok) throw new Error('SheetFlow startup health check failed: ' + JSON.stringify(result));
+  if (!result.ok) throw new Error('TAK startup health check failed: ' + JSON.stringify(result));
   return result;
 }
 

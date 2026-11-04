@@ -1,18 +1,18 @@
-# SheetFlow
+# TAK
 
 A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban board, and an interactive Gantt timeline. Capture tasks with just a title, edit priorities and assignees directly, and plan dates in one workspace.
 
-### [▶ Open live demo](https://martingrossman.github.io/gsheetjira/)
+### [▶ Open live demo](https://martingrossman.github.io/TAK/)
 
 **No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For shared Google Sheets storage, [set up your own tracker](#deploy-the-shared-google-sheets-version).
 
-[**Kanban board**](https://martingrossman.github.io/gsheetjira/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/gsheetjira/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/gsheetjira/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
+[**Kanban board**](https://martingrossman.github.io/TAK/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/TAK/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
 
-[![SheetFlow Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/gsheetjira/#kanban)
+[![TAK Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/TAK/#kanban)
 
 | Edit work in Sheet | Plan dates in Gantt |
 | --- | --- |
-| [![SheetFlow editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/gsheetjira/#sheet) | [![SheetFlow Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/gsheetjira/#gantt) |
+| [![TAK editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/TAK/#sheet) | [![TAK Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/TAK/#gantt) |
 
 *Screenshots show the standalone app with sample data. Click a preview to open that view in the live demo.*
 
@@ -64,8 +64,8 @@ Requires Node.js 20 or newer for the development tools and an installed Microsof
 Clone the repository and enter the project directory:
 
 ```sh
-git clone https://github.com/martingrossman/gsheetjira.git
-cd gsheetjira
+git clone https://github.com/martingrossman/TAK.git
+cd TAK
 ```
 
 Run the build and test checks before making changes:
@@ -102,16 +102,16 @@ Useful commands:
 | `npm run check` | Run the build and Node test suite. |
 | `npm run test:browser` | Build and run the isolated Playwright regression suite in Microsoft Edge. |
 | `npm start` | Serve the standalone demo at `http://127.0.0.1:4180` (`PORT` overrides the default). |
-| `npm run stop` | Stop the SheetFlow preview on port `4180` (`PORT` overrides the default). |
+| `npm run stop` | Stop the TAK preview on port `4180` (`PORT` overrides the default). |
 | `clasp show-file-status` | Compare local Apps Script files with the configured script project. |
 | `clasp push` | Upload the Apps Script source files selected by `.claspignore`. |
 
 ## Publish the standalone version on GitHub Pages
 
-This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. Push to `main`, then open **Settings → Pages** and choose **GitHub Actions** as the source if GitHub asks you to configure Pages. The workflow builds `dist/index.html` and publishes it at:
+This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. Push to `implement_mvp` (the default branch), then open **Settings → Pages** and choose **GitHub Actions** as the source if GitHub asks you to configure Pages. The workflow builds `dist/index.html` and publishes it at:
 
 ```text
-https://martingrossman.github.io/gsheetjira/
+https://martingrossman.github.io/TAK/
 ```
 
 GitHub Pages is the portable browser demo: it stores changes in that browser's local storage. It cannot call `google.script.run`, so it does not share data with the Google Sheet. Use the Apps Script web-app URL below when you need shared Google Sheets storage; both versions use the same project model and views.
@@ -120,17 +120,17 @@ GitHub Pages is the portable browser demo: it stores changes in that browser's l
 
 ### Beginner setup: connect the app to your own spreadsheet
 
-These steps make a **new, private copy** of SheetFlow in the Google account you choose. You do not need Node.js, Git, or the `clasp` command line. You will copy the app's source files into Apps Script once, then deploy it as a web app. Google may show an authorization or unverified-app screen because the script belongs to your account.
+These steps make a **new, private copy** of TAK in the Google account you choose. You do not need Node.js, Git, or the `clasp` command line. You will copy the app's source files into Apps Script once, then deploy it as a web app. Google may show an authorization or unverified-app screen because the script belongs to your account.
 
 #### Before you begin
 
 - Sign in to the Google account that should own and run the tracker.
 - Create a **new blank Google Sheet** for the tracker. If you want to use an existing sheet, make a backup first. Setup checks the `Issues` headers and stops if they do not match; do not rename or delete existing tabs to force setup through.
-- Download and extract the [SheetFlow source ZIP](https://github.com/martingrossman/gsheetjira/archive/refs/heads/implement_mvp.zip). Open the extracted folder so you can copy code from the files listed below.
+- Download and extract the [TAK source ZIP](https://github.com/martingrossman/TAK/archive/refs/heads/implement_mvp.zip). Open the extracted folder so you can copy code from the files listed below.
 
 #### 1. Create a script attached to your spreadsheet
 
-In the blank spreadsheet, choose **Extensions → Apps Script**. This opens a new Apps Script project attached to that spreadsheet. Give the project a recognizable name, such as **My SheetFlow tracker**.
+In the blank spreadsheet, choose **Extensions → Apps Script**. This opens a new Apps Script project attached to that spreadsheet. Give the project a recognizable name, such as **My TAK tracker**.
 
 #### 2. Copy the app files into Apps Script
 
@@ -158,7 +158,7 @@ The project also needs the supplied `appsscript.json` manifest so the Sheets adv
 
 In the Apps Script function selector, choose **`setupTracker`** and click **Run**. Review Google's permission screen and allow the script to access this spreadsheet. The function creates the `Issues` tab, supporting tabs, formatting, and a direct-edit trigger. It does not load example tasks. Check the execution log for **“Tracker ready”**; the new spreadsheet URL is also returned there.
 
-If Google reports that the app is unverified, continue only if the script project is the one you just created under your own account: choose **Advanced → Go to My SheetFlow tracker** and continue through the permission screen. Never approve an unexpected script or a project you do not recognize.
+If Google reports that the app is unverified, continue only if the script project is the one you just created under your own account: choose **Advanced → Go to My TAK tracker** and continue through the permission screen. Never approve an unexpected script or a project you do not recognize.
 
 #### 4. Deploy the web app
 
@@ -193,13 +193,13 @@ If the tracker opens but reports **Cannot read properties of null (reading 'issu
 
 ### Schema v2 migration
 
-The repository now includes a non-destructive schema migration. Run **SheetFlow → Check schema health**, then **Preview v2 migration**. Resolve every duplicate or invalid row before choosing **Migrate legacy Issues to v2 tabs**. Migration preserves IDs, hierarchy, and each full legacy record in `Legacy JSON`; repeated runs are safe when the targets still match the source. It leaves `Issues` intact.
+The repository now includes a non-destructive schema migration. Run **TAK → Check schema health**, then **Preview v2 migration**. Resolve every duplicate or invalid row before choosing **Migrate legacy Issues to v2 tabs**. Migration preserves IDs, hierarchy, and each full legacy record in `Legacy JSON`; repeated runs are safe when the targets still match the source. It leaves `Issues` intact.
 
-Review the migration output in the test spreadsheet before choosing **SheetFlow → Activate v2 repository**. Activation compares source and target IDs, validates hierarchy, and routes app reads/writes through `Tasks` and `Projects and Epics`. The retained `Issues` tab is a migration snapshot while v2 is active. Direct v2 task/epic edits get defaults and validation notes. **Roll back to Issues repository** copies active v2 records back into `Issues`; if someone edits that legacy copy after rollback, activation stops until those changes are reconciled. This workflow has local mock coverage; run the migration and role smoke checks in a separate test workbook before using shared or production data.
+Review the migration output in the test spreadsheet before choosing **TAK → Activate v2 repository**. Activation compares source and target IDs, validates hierarchy, and routes app reads/writes through `Tasks` and `Projects and Epics`. The retained `Issues` tab is a migration snapshot while v2 is active. Direct v2 task/epic edits get defaults and validation notes. **Roll back to Issues repository** copies active v2 records back into `Issues`; if someone edits that legacy copy after rollback, activation stops until those changes are reconciled. This workflow has local mock coverage; run the migration and role smoke checks in a separate test workbook before using shared or production data.
 
 ## How it works
 
-SheetFlow has one shared issue model and two storage adapters:
+TAK has one shared issue model and two storage adapters:
 
 1. The browser demo loads sample issues into `localStorage`. It is useful for UI development and does not share data with other browsers or Google Sheets.
 2. The Apps Script version calls server functions through `google.script.run`. It starts on `Issues` for compatibility. After an administrator completes and activates migration, the server reads and writes the versioned `Tasks` and `Projects and Epics` tabs. Both paths serialize dates, validate relationships, and use a script lock plus content versions.
@@ -211,7 +211,7 @@ In the Kanban view, each epic is rendered as a horizontal swimlane containing th
 
 ## What you can do
 
-- **Quick add:** use **SheetFlow → Quick add work item** for title-and-Enter creation with Task/Story/Epic selection, configured defaults, and optional Epic parent.
+- **Quick add:** use **TAK → Quick add work item** for title-and-Enter creation with Task/Story/Epic selection, configured defaults, and optional Epic parent.
 - **Paste list:** use **Paste list** to preview one Task title per line and submit up to 100 items. A pending batch is stored locally and can be retried with the same per-item operation IDs.
 
 ### Separate development, test, and production targets
@@ -224,7 +224,7 @@ configureTrackerEnvironment('test', 'TEST_SPREADSHEET_ID')
 
 Use `configureTrackerEnvironment('production', 'PRODUCTION_SPREADSHEET_ID')` only in the production project. The spreadsheet ID is stored in an environment-specific script property, and server reads/writes use the selected environment. Existing projects continue to use the legacy `SPREADSHEET_ID` property as a fallback.
 
-After setup, run **SheetFlow → Run startup health check**. It verifies the selected spreadsheet, schema tabs, and installed edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
+After setup, run **TAK → Run startup health check**. It verifies the selected spreadsheet, schema tabs, and installed edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
 
 The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, and quick-add retries; delete and comment mutations still need the same idempotency treatment.
 
@@ -305,7 +305,7 @@ One same-session live comparison on 2026-10-28 created three Stories rapidly in 
 
 The standard server save path reuses one fresh snapshot within the script lock, then verifies the saved row instead of rereading the entire register. V2 checks its schema once per save; task-type mappings and retry receipts share one operational-data read. Project refresh defers Comments until an issue opens. No snapshot is retained across requests. The regression fixture reduced v2 spreadsheet range reads from 48 to 13; this is an operation count, not a measured live-time speedup.
 
-To diagnose remaining save latency, open **Apps Script → Executions**, select the latest `saveIssue` execution, and find the **`SheetFlow save timing`** log. It records lock wait, authorization, spreadsheet opening, reads, validation, task writes/flush, single-row verification, history/receipt writes/flush, and total handler time in milliseconds. Titles and descriptions are not logged. Browser/network transit and Apps Script startup before handler entry are outside `totalServerMs`. Live elapsed time must be measured separately; the timing log is also written for failures and retries.
+To diagnose remaining save latency, open **Apps Script → Executions**, select the latest `saveIssue` execution, and find the **`TAK save timing`** log. It records lock wait, authorization, spreadsheet opening, reads, validation, task writes/flush, single-row verification, history/receipt writes/flush, and total handler time in milliseconds. Titles and descriptions are not logged. Browser/network transit and Apps Script startup before handler entry are outside `totalServerMs`. Live elapsed time must be measured separately; the timing log is also written for failures and retries.
 
 The save journal resolves both output ranges before writing history and its retry receipt, avoiding an intervening metadata read that can flush queued writes. Authorization reads one fresh property snapshot per check, and repository selection reads only the environment name. Permission changes still apply to the next request. This follows Google's [batching guidance](https://developers.google.com/apps-script/guides/support/best-practices#use_batch_operations).
 
@@ -367,3 +367,7 @@ dist/index.html      Self-contained standalone browser demo
 ```
 
 This is a Jira-style tracker; it does not connect to Atlassian Jira. The checked-in manifest preserves the current personal web-app settings (execute as the deploying user, accessible only to that user). Publishing to GitHub or building locally does not update Apps Script; use the deployment steps above to release future changes.
+
+## Naming and compatibility
+
+TAK continues the existing tracker and its saved data. Browser keys beginning with `sheetflow.`, Apps Script properties beginning with `SHEETFLOW_`, and internal `SheetFlow` namespaces retain their existing names for compatibility. The repository, app, menus, preview and new exports use TAK.

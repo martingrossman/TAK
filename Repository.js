@@ -1,14 +1,14 @@
-/** Header-based access to versioned SheetFlow tabs. */
+/** Header-based access to versioned TAK tabs. */
 var SheetFlowRepository = (function () {
   'use strict';
   function definition(tab) {
-    if (!SheetFlowSchema.tabs[tab]) throw new Error('Unknown SheetFlow tab: ' + tab);
+    if (!SheetFlowSchema.tabs[tab]) throw new Error('Unknown TAK tab: ' + tab);
     return SheetFlowSchema.tabs[tab];
   }
   function sheet(book, tab) {
     var definition_ = definition(tab);
     var result = book.getSheetByName(definition_.name);
-    if (!result) throw new Error('Missing SheetFlow tab: ' + definition_.name);
+    if (!result) throw new Error('Missing TAK tab: ' + definition_.name);
     return result;
   }
   function records(book, tab) {

@@ -1,4 +1,4 @@
-# GSheetJira — Local Testing Guide
+# TAK — Local Testing Guide
 
 This guide describes the existing local Node.js and Playwright workflow for the `implement_mvp` branch. Run tests from a normal VS Code PowerShell terminal, not through Codex, to minimize Codex usage.
 

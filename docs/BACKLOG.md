@@ -13,7 +13,7 @@
 
 # Improvements
 
-- **IM-10** `[Open]` — Publish a blank SheetFlow Google Sheets template with the complete bound Apps Script. Users make a copy, run `setupTracker`, and create their own private web-app deployment without manually copying source files. Before publishing, verify that a copied template works and that it contains no user data, private IDs or existing deployment configuration.
+- **IM-10** `[Open]` — Publish a blank TAK Google Sheets template with the complete bound Apps Script. Users make a copy, run `setupTracker`, and create their own private web-app deployment without manually copying source files. Before publishing, verify that a copied template works and that it contains no user data, private IDs or existing deployment configuration.
 - **IM-01** `[Open]` — Consider renaming the Sheet view to List view.
 - **IM-02** `[Open]` — Allow users to edit comments, assignee and description without opening issue details.
 - **IM-03** `[Open]` — Let users copy local demo issues into a separate test Google Sheet. Preserve issue IDs, hierarchy, assignees, labels and dates; preview differences and protect existing Sheet data. This is a one-time transfer, not automatic synchronization.

@@ -1,4 +1,4 @@
-# GSheetJira — MVP Product Requirements (PRD)
+# TAK — MVP Product Requirements (PRD)
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Proposed MVP contract for review and implementation  
 **Primary audience:** Product owner, Codex implementer, reviewer/tester  

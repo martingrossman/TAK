@@ -1,4 +1,4 @@
-/** Versioned SheetFlow schema metadata. The legacy Issues tab remains readable during migration. */
+/** Versioned TAK schema metadata. The legacy Issues tab remains readable during migration. */
 var SheetFlowSchema = (function () {
   'use strict';
   var version = '2.1';

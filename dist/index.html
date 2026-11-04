@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="One project, three perspectives. Plan work in a sheet, move it on a board, and see the timeline.">
-  <title>SheetFlow — Project tracker</title>
+  <title>TAK — Project tracker</title>
   <style>
 :root{
   --ink:#172b4d;--muted:#5e6c84;
@@ -443,7 +443,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 <body data-initial-view="kanban">
   <header class="topbar">
     <div class="brand-group">
-      <a class="brand" href="#kanban" aria-label="SheetFlow home">SheetFlow</a>
+      <a class="brand" href="#kanban" aria-label="TAK home">TAK</a>
       <span id="sync-status" class="sync-status" role="status">Loading…</span>
     </div>
     <nav class="view-nav" aria-label="Project view">
@@ -3059,7 +3059,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!state.ready) return;
     const exportIssues = filtered().map(issue => issue.type === 'Epic' ? { ...issue, ...effectiveDates(issue) } : issue);
     const url = URL.createObjectURL(new Blob([C.csv(exportIssues)], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = url; a.download = `sheetflow-issues-${today()}.csv`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const a = document.createElement('a'); a.href = url; a.download = `tak-issues-${today()}.csv`; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
   $('#close-dialog').addEventListener('click', closeIssue); $('#cancel-dialog').addEventListener('click', closeIssue);
   $('#create-more-options').addEventListener('click', () => {

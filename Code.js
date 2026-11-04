@@ -1,6 +1,6 @@
 /** Google Sheets storage and web-app entry points. Run setupTracker once. */
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('SheetFlow')
+  SpreadsheetApp.getUi().createMenu('TAK')
     .addItem('Set up / repair tracker', 'setupTracker')
     .addItem('Open tracker', 'openTracker')
     .addItem('Quick add work item', 'openQuickAdd')
@@ -19,7 +19,7 @@ function setupTracker() {
     var properties = PropertiesService.getScriptProperties();
     var id = environmentSpreadsheetId_();
     var book = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
-    if (!book) book = SpreadsheetApp.create('SheetFlow — Project tracker');
+    if (!book) book = SpreadsheetApp.create('TAK — Project tracker');
     var sheet = book.getSheetByName('Issues');
     if (!sheet) sheet = book.insertSheet('Issues');
     if (sheet.getLastRow() > 0) assertHeaders_(sheet);
@@ -42,14 +42,14 @@ function doGet(e) {
   var template = HtmlService.createTemplateFromFile('Index');
   var view = e && e.parameter && e.parameter.view;
   template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(view) >= 0 ? view : 'kanban';
-  return template.evaluate().setTitle('SheetFlow — Project tracker')
+  return template.evaluate().setTitle('TAK — Project tracker')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function openTracker() {
   var url = ScriptApp.getService().getUrl();
   if (!url) { SpreadsheetApp.getUi().alert('Deploy this project as a Web app first (Deploy → New deployment).'); return; }
-  var html = HtmlService.createHtmlOutput('<p><a href="' + url + '" target="_blank" rel="noopener">Open SheetFlow</a></p>');
+  var html = HtmlService.createHtmlOutput('<p><a href="' + url + '" target="_blank" rel="noopener">Open TAK</a></p>');
   SpreadsheetApp.getUi().showModalDialog(html, 'Project tracker');
 }
 function openQuickAdd() {
@@ -92,7 +92,7 @@ function saveIssue(input, expectedVersion) {
     });
   } finally {
     timing.totalServerMs = Date.now() - started;
-    console.log('SheetFlow save timing ' + JSON.stringify(timing));
+    console.log('TAK save timing ' + JSON.stringify(timing));
   }
 }
 function createIssuesBatch(items) {
@@ -102,7 +102,7 @@ function createIssuesBatch(items) {
     if (request.config.SHEETFLOW_MODE === 'personal' && typeof Sheets !== 'undefined' && typeof createPersonalIssuesBatch_ === 'function' && getRepositoryProperty_('SHEETFLOW_ACTIVE_SCHEMA', request.config) !== '2' && items.every(function (item) { return item && item.input && !item.input.id; })) {
       var started = Date.now();
       try { return createPersonalIssuesBatch_(readPersonalSaveBook_(request.config), items, request); }
-      finally { console.log('SheetFlow batch timing ' + JSON.stringify({ count: items.length, totalServerMs: Date.now() - started, writer: 'sheets-batch' })); }
+      finally { console.log('TAK batch timing ' + JSON.stringify({ count: items.length, totalServerMs: Date.now() - started, writer: 'sheets-batch' })); }
     }
     var book = getBook_(request.config), results = [], errors = [], operationIds = new Set();
     items.forEach(function (item, index) {
@@ -703,8 +703,8 @@ function handleSheetEdit(e) {
     if (['Settings', 'Team', 'Holidays and Availability'].indexOf(eventName) >= 0) {
       var configured = false;
       try { if (typeof SheetFlowAuth !== 'undefined') { var email = e.user && e.user.getEmail ? e.user.getEmail() : ''; SheetFlowAuth.requireForEmail('configure', email); configured = true; } else configured = true; }
-      catch (configurationError) { if (e.range.setNote) e.range.setNote('SheetFlow rejected this configuration edit: ' + configurationError.message); return; }
-      if (configured && e.range.setNote) e.range.setNote('Configuration edits made directly in this tab are not yet validated by SheetFlow. Use the app settings operation and check this value.');
+      catch (configurationError) { if (e.range.setNote) e.range.setNote('TAK rejected this configuration edit: ' + configurationError.message); return; }
+      if (configured && e.range.setNote) e.range.setNote('Configuration edits made directly in this tab are not yet validated by TAK. Use the app settings operation and check this value.');
       return;
     }
     return;
@@ -727,7 +727,7 @@ function handleSheetEdit(e) {
         var lastRow = e.range.getLastRow();
         for (var deniedRow = firstRow; deniedRow <= lastRow; deniedRow++) {
           var deniedNote = sheet.getRange(deniedRow, 4);
-          if (deniedNote.setNote) deniedNote.setNote('SheetFlow could not process this edit: ' + authError.message);
+          if (deniedNote.setNote) deniedNote.setNote('TAK could not process this edit: ' + authError.message);
         }
         return;
       }
@@ -738,7 +738,7 @@ function handleSheetEdit(e) {
     var editedColumn = editedRange.getColumn();
     if (singleCell && e.oldValue !== undefined && [1, 19, 20, 21].indexOf(editedColumn) >= 0) {
       editedRange.setValue(e.oldValue);
-      if (editedRange.setNote) editedRange.setNote('This field is managed by SheetFlow and was restored.');
+      if (editedRange.setNote) editedRange.setNote('This field is managed by TAK and was restored.');
       return;
     }
     var existingRows = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, TrackerCore.fields.length).getValues() : [];
@@ -779,7 +779,7 @@ function handleSheetEdit(e) {
     sheet.getRange(start, 1, count, TrackerCore.fields.length).setValues(values);
     diagnostics.forEach(function (item) {
       var summary = sheet.getRange(item.row, 4);
-      if (summary.setNote) summary.setNote(item.message ? 'SheetFlow validation: ' + item.message : '');
+      if (summary.setNote) summary.setNote(item.message ? 'TAK validation: ' + item.message : '');
     });
     SpreadsheetApp.flush();
     validated.forEach(function (issue) {
@@ -795,20 +795,20 @@ function handleVersionedSheetEdit_(e) {
   var editorEmail = '';
   try { editorEmail = e.user && e.user.getEmail ? e.user.getEmail() : ''; } catch (ignore) {}
   try { authorizationService_().requireForEmail('write', editorEmail); }
-  catch (authError) { annotateRange_(e.range, 'SheetFlow could not process this edit: ' + authError.message); return; }
+  catch (authError) { annotateRange_(e.range, 'TAK could not process this edit: ' + authError.message); return; }
   var tab = sheetName === 'Tasks' ? 'tasks' : 'projects', headers = SheetFlowSchema.headers(tab);
   var actualHeaders = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
   if (actualHeaders.join('|') !== headers.join('|')) throw new Error(sheetName + ' headers do not match schema ' + SheetFlowSchema.version + '.');
   var singleCell = e.range.getNumRows && e.range.getNumColumns && e.range.getNumRows() === 1 && e.range.getNumColumns() === 1;
   var editedHeader = headers[e.range.getColumn() - 1];
   if (singleCell && e.oldValue !== undefined && ['ID', 'Revision', 'Created At', 'Created By', 'Updated At', 'Updated By', 'Archived At', 'Archived By', 'Claimed By', 'Claimed At', 'Last Agent Activity'].indexOf(editedHeader) >= 0) {
-    e.range.setValue(e.oldValue); annotateRange_(e.range, 'This field is managed by SheetFlow and was restored.'); return;
+    e.range.setValue(e.oldValue); annotateRange_(e.range, 'This field is managed by TAK and was restored.'); return;
   }
   var start = Math.max(2, e.range.getRow()), count = e.range.getLastRow() - start + 1;
   var values = sheet.getRange(start, 1, count, headers.length).getValues();
   var allIssues;
   try { allIssues = readVersionedIssues_(book, false); }
-  catch (loadError) { annotateRange_(e.range, 'SheetFlow could not reconcile this edit: ' + loadError.message); return; }
+  catch (loadError) { annotateRange_(e.range, 'TAK could not reconcile this edit: ' + loadError.message); return; }
   var originalRows = new Map(allIssues.map(function (issue) { return [issue.id, issue]; }));
   var idRows = new Set(allIssues.map(function (issue) { return issue.id; })), valid = [], notes = [], now = new Date();
   var projectRecords = tab === 'tasks' ? [] : SheetFlowRepository.records(book, 'projects');
@@ -852,10 +852,10 @@ function handleVersionedSheetEdit_(e) {
     try { legacyState = JSON.parse(String(record['Legacy JSON'] || '{}')); } catch (ignore) {}
     var managed = legacyState.__sheetflow || {}, managedRestore = false, managedMessage = '';
     var knownId = String(managed.id || legacyState.id || '');
-    if (knownId && String(record.ID || '') !== knownId) { record.ID = knownId; managedRestore = true; managedMessage = 'ID is managed by SheetFlow and was restored.'; }
-    if (managed.revision != null && Number(record.Revision) !== Number(managed.revision)) { record.Revision = Number(managed.revision); managedRestore = true; managedMessage = 'Revision is managed by SheetFlow and was restored.'; }
-    if (tab === 'tasks' && managed.createdAt && comparableTimestamp_(record['Created At']) !== String(managed.createdAt)) { record['Created At'] = new Date(managed.createdAt); managedRestore = true; managedMessage = 'Created At is managed by SheetFlow and was restored.'; }
-    if (tab === 'projects' && managed.active != null && Boolean(record.Active) !== Boolean(managed.active)) { record.Active = Boolean(managed.active); managedRestore = true; managedMessage = 'Active state is managed by SheetFlow and was restored.'; }
+    if (knownId && String(record.ID || '') !== knownId) { record.ID = knownId; managedRestore = true; managedMessage = 'ID is managed by TAK and was restored.'; }
+    if (managed.revision != null && Number(record.Revision) !== Number(managed.revision)) { record.Revision = Number(managed.revision); managedRestore = true; managedMessage = 'Revision is managed by TAK and was restored.'; }
+    if (tab === 'tasks' && managed.createdAt && comparableTimestamp_(record['Created At']) !== String(managed.createdAt)) { record['Created At'] = new Date(managed.createdAt); managedRestore = true; managedMessage = 'Created At is managed by TAK and was restored.'; }
+    if (tab === 'projects' && managed.active != null && Boolean(record.Active) !== Boolean(managed.active)) { record.Active = Boolean(managed.active); managedRestore = true; managedMessage = 'Active state is managed by TAK and was restored.'; }
     var issue = versionedRecordToIssue_(record, book, tab);
     var message = managedMessage, rowNumber = start + offset;
     var sameRow = allIssues.find(function (item) { return item._row === rowNumber && item._storageTab === tab; });
@@ -884,7 +884,7 @@ function handleVersionedSheetEdit_(e) {
     }
   });
   sheet.getRange(start, 1, count, headers.length).setValues(values);
-  notes.forEach(function (item) { annotateRange_(sheet.getRange(item.row, headers.indexOf('Title') + 1), item.message ? 'SheetFlow validation: ' + item.message : ''); });
+  notes.forEach(function (item) { annotateRange_(sheet.getRange(item.row, headers.indexOf('Title') + 1), item.message ? 'TAK validation: ' + item.message : ''); });
   SpreadsheetApp.flush();
   valid.forEach(function (entry) {
     var source = entry.tab === 'tasks' ? 'Tasks' : 'Projects and Epics';

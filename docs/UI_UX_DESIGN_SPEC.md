@@ -1,4 +1,4 @@
-# GSheetJira — UI/UX Design Specification
+# TAK — UI/UX Design Specification
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Target design, not current implementation  
 **North star:** **Minimal appearance + balanced visible functionality + power-user speed.**  

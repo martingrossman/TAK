@@ -1,4 +1,4 @@
-# GSheetJira — MVP Implementation Plan for Codex
+# TAK — MVP Implementation Plan for Codex
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Sequenced plan; code not modified by this document  
 **Reference baseline:** `main` commit `7a2609df91423b5ffa98bdbcb0c6fc26ae6aceb4`; verify actual working HEAD.  
@@ -7,7 +7,7 @@
 
 ## 1. Engineering objective
 
-Improve the existing GSheetJira in small, independently reviewable slices. Ship **one consistent Linear-inspired task experience** with fast capture/editing, coherent Kanban/Sheet/Gantt, strong keyboard support, verified persistence, and measured performance. Keep the current dependency-free browser frontend and Apps Script/Sheets backend unless evidence proves a focused change necessary.
+Improve the existing TAK in small, independently reviewable slices. Ship **one consistent Linear-inspired task experience** with fast capture/editing, coherent Kanban/Sheet/Gantt, strong keyboard support, verified persistence, and measured performance. Keep the current dependency-free browser frontend and Apps Script/Sheets backend unless evidence proves a focused change necessary.
 
 **Not the engineering objective:** building a multi-agent scheduler, migrating to a new SaaS stack, rewriting all source at once, or redesigning the data schema under cover of styling changes.
 

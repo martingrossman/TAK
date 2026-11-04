@@ -1,4 +1,4 @@
-# GSheetJira — Deferred Features & Future Roadmap
+# TAK — Deferred Features & Future Roadmap
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Idea inventory, **not** MVP acceptance criteria  
 **Source of historical ideas:** existing `ProductRequiremtns.md`, `IMPLEMENTATION_PLAN.md`, and design discussions.
@@ -11,7 +11,7 @@ The old requirements mixed fast personal task management with team planning, sch
 
 ## A. Agentic coding inside the product — deliberately deferred
 
-**Clarify terminology:** We *are using Codex as the development agent* for GSheetJira. We are **not building an application that automatically assigns work to Codex or other agents** in the MVP.
+**Clarify terminology:** We *are using Codex as the development agent* for TAK. We are **not building an application that automatically assigns work to Codex or other agents** in the MVP.
 
 Possible later stages:
 

@@ -223,7 +223,7 @@ test('single-cell edits cannot change generated identity and ordering fields', (
   h.rows[1][0] = 'PRJ-999';
   h.api.handleSheetEdit({ range: h.sheet.getRange(2, 1), oldValue: issue.id });
   assert.equal(h.rows[1][0], issue.id);
-  assert.match(h.notes.get('2:1'), /managed by SheetFlow/);
+  assert.match(h.notes.get('2:1'), /managed by TAK/);
 });
 test('formula-like text is stored as literal text', () => {
   const h = harness(); const issue = C.prepare({ summary: '=IMPORTXML("url", "path")' }, null, '2026-10-27', '2026-10-27T10:00:00Z');
@@ -305,7 +305,7 @@ test('ordinary legacy saves read the register once, verify one row, and report s
   assert.ok(h.reads.some(read => read.row === 14 && read.height === 1 && read.width === C.fields.length));
   const reloaded = h.api.getProject().issues.find(issue => issue.id === saved.id);
   assert.equal(saved.version, reloaded.version); assert.equal(saved.startDate,'2026-10-28');
-  const timing = JSON.parse(h.logs.findLast(line => line.startsWith('SheetFlow save timing ')).slice('SheetFlow save timing '.length));
+  const timing = JSON.parse(h.logs.findLast(line => line.startsWith('TAK save timing ')).slice('TAK save timing '.length));
   assert.equal(timing.outcome,'saved');
   for (const key of ['lockWaitMs','openBookMs','readMs','writeMs','verifyMs','journalMs','totalServerMs']) assert.ok(Number.isFinite(timing[key]), key);
 });
@@ -315,7 +315,7 @@ test('single-row verification detects structural edits and leaves failed save ti
   h.api.SpreadsheetApp.flush=()=>{h.rows[1][0]='MOVED-ID';};
   assert.throws(()=>h.api.saveIssue({summary:'Moved during save'}),/saved row moved/);
   assert.ok(h.balanced());
-  const timing=JSON.parse(h.logs.at(-1).slice('SheetFlow save timing '.length));
+  const timing=JSON.parse(h.logs.at(-1).slice('TAK save timing '.length));
   assert.equal(timing.outcome,'failed');assert.ok(Number.isFinite(timing.totalServerMs));
 });
 
