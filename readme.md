@@ -81,7 +81,7 @@ Start the local browser demo:
 npm start
 ```
 
-Open **http://127.0.0.1:4173**. On Windows PowerShell with script execution disabled, use `npm.cmd` and `clasp.cmd` in place of `npm` and `clasp`.
+Open **http://127.0.0.1:4180**. Set `PORT` to use a different port. On Windows PowerShell with script execution disabled, use `npm.cmd` and `clasp.cmd` in place of `npm` and `clasp`.
 
 You can also open `dist/index.html` directly, or upload that single file to an HTTPS static host. The standalone version starts with a clearly labeled sample project and saves changes in that browser's local storage. It does **not** sync to Google Sheets or other users. Browser storage can be cleared by the browser; export CSV to keep a portable copy. Use the Apps Script deployment below for shared storage.
 
@@ -101,7 +101,8 @@ Useful commands:
 | `npm test` | Run the Node test suite. |
 | `npm run check` | Run the build and Node test suite. |
 | `npm run test:browser` | Build and run the isolated Playwright regression suite in Microsoft Edge. |
-| `npm start` | Serve the standalone demo at `http://127.0.0.1:4173`. |
+| `npm start` | Serve the standalone demo at `http://127.0.0.1:4180` (`PORT` overrides the default). |
+| `npm run stop` | Stop the SheetFlow preview on port `4180` (`PORT` overrides the default). |
 | `clasp show-file-status` | Compare local Apps Script files with the configured script project. |
 | `clasp push` | Upload the Apps Script source files selected by `.claspignore`. |
 

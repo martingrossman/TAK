@@ -19,7 +19,7 @@ In terminal 1:
 npm.cmd start
 ```
 
-Open http://127.0.0.1:4173 in your browser. The local build uses browser storage; it does not sync with Google Sheets.
+Open http://127.0.0.1:4180 in your browser. Set `PORT` to use a different port. The local build uses browser storage; it does not sync with Google Sheets.
 
 ## Run tests
 

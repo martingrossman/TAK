@@ -24,7 +24,7 @@
 |---|---|---|---|
 | Create | Hidden behind command palette | Large full-page create form | Visible **New**, inline `+ Add`, `N`/`C` shortcut |
 | Kanban card | Title only | Every task field | Title, ID/type, priority, assignee; conditional due date/blocker |
-| Filters | Hidden behind several menus | Permanent long filter bar | Visible Filter control + active filter chips; advanced criteria in popover |
+| Filters | Hidden behind several menus | Every criterion always expanded | Visible search/Epics/type/assignee/priority; advanced criteria in More filters; active filter chips |
 | Priority | Task detail only | Multiple colored text badges | Small icon, direct editable click/focus |
 | Dashboard | No progress visibility | Persistent row of four oversized cards | Move summary to optional Overview or compact collapsible strip |
 | Details | No access to advanced data | Full 21-field form for everything | Compact issue dialog with an expandable grouped editor |
@@ -36,9 +36,11 @@ The goal is **minimum action cost**, not minimum element count.
 
 ### Desktop layout
 
-The header contains the project identity, save status and one switcher for Sheet, Kanban and Gantt. Undo, Commands, Shortcuts and New issue sit on its right.
+The header contains the project identity, save status and one switcher for Sheet, Kanban and Gantt. Undo, Commands, Shortcuts and New task sit on its right.
 
-The toolbar below shows the view name, issue count, quick task entry and search. Filters and Saved views open on demand. Group by epic is directly accessible. Open **More** for Paste list, Refresh, Export CSV, Epic selection and the Sheet connection.
+The filter strip below shows search, Epics, type, assignee and priority, with a result count and removable active filter chips. **More filters** contains status, tags, sprint and dates. The **Epics** menu retains new Epic, Epic selection and the Sheet connection. A compact second row keeps quick task entry, Paste list, Group by epic, Refresh, Export CSV and Saved views directly accessible. The current view remains available as a screen-reader heading.
+
+**Style reference, 2026-11-04:** adopt the simplicity of `G:\My Drive\gsheetPLannerSimple` in the main `implement_mvp` checkout. Keep its compact top navigation, blue/gray palette, white cards and softly tinted status headers without replacing the MVP's newer commands, inline editing or timeline features.
 
 The work view uses the full width below the toolbar. Keep each view’s filters, selection and scroll position when switching views.
 

@@ -39,8 +39,9 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await page.goto('/#kanban');
     await expect(page.locator('#sync-status')).toHaveText('Saved in this browser');
     await expect(page.locator('[data-view]')).toHaveCount(3);
-    await expect(page.locator('.page-heading, #stats')).toHaveCount(0);
-    expect((await page.locator('#view-content').boundingBox()).y).toBeLessThan(viewport.height);
+    await expect(page.locator('.sidebar, .page-heading, #stats')).toHaveCount(0);
+    for (const control of ['#search', '#priority-filter', '#assignee-filter', '#type-filter-label']) await expect(page.locator(control)).toBeVisible();
+    expect((await page.locator('#view-content').boundingBox()).y).toBeLessThan(viewport.width > 700 ? 240 : viewport.height);
     await page.locator('#search').fill('guide');
     for (const view of ['sheet', 'gantt', 'kanban']) {
       await page.locator(`[data-view="${view}"]`).click();
@@ -50,9 +51,11 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     }
     await page.locator('#search').fill('');
-    await page.locator('#workspace-filters > summary').click();
     await page.locator('#priority-filter').selectOption('High');
     await expect(page.locator('#active-filter-chips')).toContainText('High');
+    await page.locator('#workspace-filters > summary').click();
+    await expect(page.locator('#status-filter')).toBeVisible();
+    await page.locator('#status-filter').selectOption('In Progress');
     await page.locator('#workspace-filters > summary').click();
     await expect(page.locator('#active-filter-chips')).toBeVisible();
     await page.locator('[data-remove-filter="priority"]').click();
@@ -61,6 +64,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await page.locator('#save-view-open').click();
     await expect(page.locator('#saved-view-dialog')).toBeVisible();
     await page.locator('#saved-view-cancel').click();
+    await expect(page.locator('#save-view-open')).toBeFocused();
     const workspaceOptions = page.locator('.workspace-options');
     const more = workspaceOptions.locator('summary');
     await more.press('Enter');
@@ -69,12 +73,12 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await expect(page.locator('#help-button')).toBeVisible();
     await expect(page.locator('#export')).toBeInViewport({ ratio: 1 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.locator('#add-epic').press('Escape');
+    await expect(workspaceOptions).not.toHaveAttribute('open', '');
+    await expect(more).toBeFocused();
     await page.locator('#bulk-create-open').click();
     await expect(page.locator('#bulk-create-dialog')).toBeVisible();
     await page.locator('#bulk-create-cancel').click();
-    await page.locator('#export').press('Escape');
-    await expect(workspaceOptions).not.toHaveAttribute('open', '');
-    await expect(more).toBeFocused();
     await more.press('Enter');
     await page.locator('#create-issue').click();
     await expect(workspaceOptions).not.toHaveAttribute('open', '');
@@ -92,7 +96,7 @@ test('view hashes, history and existing keyboard shortcuts remain usable', async
   await page.keyboard.press('3'); await expect(page).toHaveURL(/#gantt$/);
   await page.goBack(); await expect(page.locator('#view-title')).toHaveText('Kanban');
   await page.keyboard.press('/'); await expect(page.locator('#search')).toBeFocused();
-  await page.locator('#view-title').click();
+  await page.locator('[data-view="kanban"]').click();
   await page.keyboard.press('n'); await expect(page.locator('#issue-dialog')).toBeVisible();
   await expect(page.locator('#issue-form [name="summary"]')).toHaveValue('');
   await page.keyboard.press('Escape'); await expect(page.locator('#issue-dialog')).not.toBeVisible();

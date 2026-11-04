@@ -10,63 +10,30 @@
 <body data-initial-view="<?= initialView ?>">
   <header class="topbar">
     <div class="brand-group">
-      <a class="brand" href="#kanban" aria-label="SheetFlow home"><span class="brand-mark" aria-hidden="true">s</span>SheetFlow</a>
+      <a class="brand" href="#kanban" aria-label="SheetFlow home">SheetFlow</a>
       <span id="sync-status" class="sync-status" role="status">Loading…</span>
     </div>
     <nav class="view-nav" aria-label="Project view">
-      <button type="button" data-view="sheet" aria-keyshortcuts="1" title="Sheet (1)"><span data-icon="sheet" aria-hidden="true"></span>Sheet</button>
-      <button type="button" data-view="kanban" aria-keyshortcuts="2" title="Kanban (2)"><span data-icon="board" aria-hidden="true"></span>Kanban</button>
-      <button type="button" data-view="gantt" aria-keyshortcuts="3" title="Gantt (3)"><span data-icon="timeline" aria-hidden="true"></span>Gantt</button>
+      <button type="button" data-view="sheet" aria-keyshortcuts="1" title="Sheet (1)">Sheet</button>
+      <button type="button" data-view="kanban" aria-keyshortcuts="2" title="Kanban (2)">Kanban</button>
+      <button type="button" data-view="gantt" aria-keyshortcuts="3" title="Gantt (3)">Gantt</button>
     </nav>
     <div class="header-tools">
       <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
       <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
       <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
     </div>
-    <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New issue</button>
+    <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New task</button>
   </header>
   <main>
+    <h1 id="view-title" class="visually-hidden">Kanban</h1>
     <div class="workspace-bar">
-      <div class="view-heading"><h1 id="view-title">Kanban</h1><span id="issue-count" class="issue-count"></span></div>
-      <div class="quick-entry" role="group" aria-label="Quick create task">
-        <input id="quick-title" type="text" maxlength="250" placeholder="Quick add a task…" aria-label="New task title">
-        <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
-      </div>
-      <div class="workspace-tools">
-        <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search" placeholder="Search issues…" aria-label="Search issues"><kbd>/</kbd></label>
-        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools">
-          <summary>Filters</summary>
-          <div class="filters tool-menu-panel">
-            <details id="type-filter-menu" class="filter-menu"><summary id="type-filter-label" aria-label="Filter by one or more types">All types</summary><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></details>
-            <select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select>
-            <select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select>
-            <select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select>
-            <select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select>
-            <select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select>
-            <label class="date-filter"><span>Start ≥</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label>
-            <label class="date-filter"><span>Due ≤</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label>
-            <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
-          </div>
-        </details>
-        <details class="workspace-saved-views tool-menu" name="workspace-tools">
-          <summary>Saved views</summary>
-          <div class="saved-view-bar tool-menu-panel">
-            <label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label>
-            <button type="button" id="save-view-open" class="button secondary">Save current view</button>
-            <button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view" hidden>Delete view</button>
-            <span>Personal to this browser</span>
-          </div>
-        </details>
-        <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox">Group by epic</label>
+      <div class="toolbar" aria-label="Search and filters">
+        <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search" placeholder="Search tasks by title or ID…" aria-label="Search issues"><kbd>/</kbd></label>
         <details class="workspace-options tool-menu" name="workspace-tools">
-          <summary title="Workspace actions, epics and connection">More</summary>
+          <summary title="Filter by epic or open the Sheet connection">Epics</summary>
           <div class="workspace-panel tool-menu-panel">
-            <div class="workspace-actions">
-              <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
-              <button id="refresh" class="button subtle" type="button"><span data-icon="refresh" aria-hidden="true"></span>Refresh</button>
-              <button id="export" class="button subtle" type="button"><span data-icon="download" aria-hidden="true"></span>Export CSV</button>
-            </div>
-            <div class="epic-caption">Epics <button id="add-epic" class="button subtle" type="button" aria-label="Create epic">+ New epic</button></div>
+            <div class="epic-caption">Filter by epic <button id="add-epic" class="button subtle" type="button" aria-label="Create epic">+ New epic</button></div>
             <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
             <div class="connection-card">
               <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
@@ -74,6 +41,44 @@
             </div>
           </div>
         </details>
+        <div class="filters primary-filters">
+          <details id="type-filter-menu" class="filter-menu tool-menu" name="workspace-tools"><summary id="type-filter-label" aria-label="Filter by one or more types">All types</summary><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></details>
+          <select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select>
+          <select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select>
+        </div>
+        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools">
+          <summary>More filters</summary>
+          <div class="filters tool-menu-panel">
+            <label>Status<select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select></label>
+            <label>Tag<select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select></label>
+            <label>Sprint<select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select></label>
+            <label class="date-filter"><span>Start on or after</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label>
+            <label class="date-filter"><span>Due on or before</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label>
+          </div>
+        </details>
+        <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
+        <span id="issue-count" class="issue-count"></span>
+      </div>
+      <div class="workspace-controls">
+        <div class="quick-entry" role="group" aria-label="Quick create task">
+          <input id="quick-title" type="text" maxlength="250" placeholder="Add a task… Enter to save" aria-label="New task title">
+          <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
+        </div>
+        <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
+        <div class="workspace-tools">
+          <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox">Group by epic</label>
+          <button id="refresh" class="button subtle" type="button"><span data-icon="refresh" aria-hidden="true"></span>Refresh</button>
+          <button id="export" class="button subtle" type="button"><span data-icon="download" aria-hidden="true"></span>Export CSV</button>
+          <details class="workspace-saved-views tool-menu" name="workspace-tools">
+            <summary>Saved views</summary>
+            <div class="saved-view-bar tool-menu-panel">
+              <label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label>
+              <button type="button" id="save-view-open" class="button secondary">Save current view</button>
+              <button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view" hidden>Delete view</button>
+              <span>Personal to this browser</span>
+            </div>
+          </details>
+        </div>
       </div>
     </div>
     <div id="active-filter-chips" class="active-filter-chips" hidden></div>
@@ -81,7 +86,7 @@
     <div id="error-banner" class="error-banner" role="alert" hidden></div>
     <section id="quick-entry-pending" class="quick-entry-pending" aria-label="Pending quick additions" aria-live="polite" hidden></section>
     <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
-    <section id="view-content" aria-label="Project issues"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
+    <section id="view-content" aria-labelledby="view-title"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
     <footer class="view-footer"><span id="view-hint"></span></footer>
   </main>
   <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="dialog-title" tabindex="-1">

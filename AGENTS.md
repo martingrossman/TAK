@@ -29,7 +29,8 @@ In case of conflict: **data safety > MVP functional requirements > UX details > 
 npm run build   # creates CoreScript.html and dist/index.html
 npm test        # Node test runner
 npm run check  # build and tests
-npm start      # serves at http://127.0.0.1:4173
+npm start      # serves at http://127.0.0.1:4180
+npm run stop   # stops the local preview server
 ```
 
 Node 20+ is documented. On Windows PowerShell, `npm.cmd` may be necessary. `clasp` is only for a specifically approved and verified Apps Script deployment. Current direct view hashes: `#sheet`, `#kanban`, `#gantt`.
