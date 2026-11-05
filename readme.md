@@ -4,7 +4,7 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 
 ### [▶ Open live demo](https://martingrossman.github.io/TAK/)
 
-**No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For shared Google Sheets storage, [set up your own tracker](#deploy-the-shared-google-sheets-version).
+**No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For Google Sheets storage, [set up your own tracker](#use-tak-with-google-sheets).
 
 [**Kanban board**](https://martingrossman.github.io/TAK/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/TAK/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
 
@@ -83,7 +83,7 @@ npm start
 
 Open **http://127.0.0.1:4180**. Set `PORT` to use a different port. On Windows PowerShell with script execution disabled, use `npm.cmd` and `clasp.cmd` in place of `npm` and `clasp`.
 
-You can also open `dist/index.html` directly, or upload that single file to an HTTPS static host. The standalone version starts with a clearly labeled sample project and saves changes in that browser's local storage. It does **not** sync to Google Sheets or other users. Browser storage can be cleared by the browser; export CSV to keep a portable copy. Use the Apps Script deployment below for shared storage.
+You can also open `dist/index.html` directly, or upload that single file to an HTTPS static host. The standalone version starts with a clearly labeled sample project and saves changes in that browser's local storage. It does **not** sync to Google Sheets or other users. Browser storage can be cleared by the browser; export CSV to keep a portable copy. Use the Google Sheets setup below for persistent spreadsheet storage.
 
 Saved views capture the current filters, view, sort, visible columns, swimlane setting, and collapse state. They are personal to the current browser and do not sync to other users.
 
@@ -114,13 +114,21 @@ This repository includes a GitHub Actions workflow at `.github/workflows/pages.y
 https://martingrossman.github.io/TAK/
 ```
 
-GitHub Pages is the portable browser demo: it stores changes in that browser's local storage. It cannot call `google.script.run`, so it does not share data with the Google Sheet. Use the Apps Script web-app URL below when you need shared Google Sheets storage; both versions use the same project model and views.
+GitHub Pages is the portable browser demo: it stores changes in that browser's local storage. It cannot call `google.script.run`, so it does not share data with the Google Sheet. Use the tracker inside Google Sheets, or a separately deployed Apps Script web app, when you need spreadsheet storage; both versions use the same project model and views.
 
-## Deploy the shared Google Sheets version
+## Use TAK with Google Sheets
+
+### Copy the starter template
+
+The starter template is a separate Google Sheet with three example Epics, six Stories, twelve Tasks/Bugs, and the TAK script attached. Once its copy link is published, open that link, choose **File → Make a copy**, and open your copy. Choose **TAK → Open tracker** and approve the Google authorization for the script in your own copy. The first opening creates the supporting tabs and edit trigger, then opens Sheet, Kanban, and Gantt in a large dialog. Each copy stores its own tasks in its own spreadsheet; it does not connect to the original tracker. Replace or remove the example tasks as you make the project your own.
+
+The template copy does not need a web-app deployment for desktop use inside Google Sheets. The Google Sheets mobile app may not expose custom menus or dialogs, so use the optional web-app deployment below when you need a full browser tab or phone access. Do not make a copy of an already configured tracker as your starting point: it may carry a stored spreadsheet ID. TAK blocks setup if a copy still points at another workbook.
+
+For the first release, give each person a copy of the starter template. A later shared-team release can use one spreadsheet per team, but it needs a separate check of access, identity, edit permissions, and concurrent changes before opening the tracker to multiple accounts. The browser demo remains a separate, local-only place to try TAK.
 
 ### Beginner setup: connect the app to your own spreadsheet
 
-These steps make a **new, private copy** of TAK in the Google account you choose. You do not need Node.js, Git, or the `clasp` command line. You will copy the app's source files into Apps Script once, then deploy it as a web app. Google may show an authorization or unverified-app screen because the script belongs to your account.
+Use these manual steps when you are not starting from the copyable template. They create a **new, private tracker** in the Google account you choose. You do not need Node.js, Git, or the `clasp` command line. You copy the app's source files into Apps Script once. Google may show an authorization or unverified-app screen because the script belongs to your account.
 
 #### Before you begin
 
@@ -154,20 +162,20 @@ The names shown in Apps Script should be `Index`, `Styles`, `Client`, `QuickAdd`
 
 The project also needs the supplied `appsscript.json` manifest so the Sheets advanced service is enabled. In Apps Script, open **Project Settings** and turn on **Show "appsscript.json" manifest file in editor**. Return to the editor, open `appsscript.json`, and replace its contents with the matching file from the source folder. If Apps Script asks to enable the **Google Sheets API** advanced service, click **Add service**, select **Google Sheets API**, and add it. Use the V8 runtime specified in the manifest.
 
-#### 3. Initialize the spreadsheet
+#### 3. Initialize and open the spreadsheet tracker
 
-In the Apps Script function selector, choose **`setupTracker`** and click **Run**. Review Google's permission screen and allow the script to access this spreadsheet. The function creates the `Issues` tab, supporting tabs, formatting, and a direct-edit trigger. It does not load example tasks. Check the execution log for **“Tracker ready”**; the new spreadsheet URL is also returned there.
+Reload the spreadsheet so its **TAK** menu appears, then choose **TAK → Open tracker**. Review Google's permission screen for the script you just attached and authorize it. The first opening runs setup for this spreadsheet, creates the `Issues` tab, supporting tabs, formatting, and a direct-edit trigger, then opens the three-view tracker in a large dialog. Manual setup does not load example tasks; use **TAK → Tools → Add sample project to empty tracker** if you want the starter examples. You can also run `setupTracker` in the Apps Script editor and check its execution log for **“Tracker ready.”**
 
-If Google reports that the app is unverified, continue only if the script project is the one you just created under your own account: choose **Advanced → Go to My TAK tracker** and continue through the permission screen. Never approve an unexpected script or a project you do not recognize.
+If Google reports that the app is unverified, continue only if the script project is the one attached to the spreadsheet you just created or copied under your own account. Review the displayed developer and requested access before choosing **Advanced** and continuing. Never approve an unexpected script or a project you do not recognize.
 
-#### 4. Deploy the web app
+#### 4. Optional: deploy a full-screen web app
 
-In Apps Script, click **Deploy → New deployment**. Click the gear next to **Select type**, choose **Web app**, then set:
+For a separate browser-tab link, including phone access, open Apps Script and click **Deploy → New deployment**. Click the gear next to **Select type**, choose **Web app**, then set:
 
 - **Execute as:** Me (your Google account)
 - **Who has access:** Only myself
 
-Click **Deploy**, approve any additional permission prompt, then copy the **Web app URL** ending in `/exec`. Open it in a new tab. The app should show **Connected to Google Sheets**. Create one harmless test task, reload, and check that it remains in the `Issues` tab.
+Click **Deploy**, approve any additional permission prompt, then copy the **Web app URL** ending in `/exec`. Open it in a new tab. The app should show **Connected to Google Sheets** and link back to your copy. Create one harmless test task, reload, and check that it remains in the `Issues` tab.
 
 `/exec` is your normal app link. To test a just-saved code change without updating the versioned deployment, use **Deploy → Test deployments → Web app**; its `/dev` URL is for script editors. See Google's [web app deployment guide](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app).
 
@@ -193,9 +201,9 @@ If the tracker opens but reports **Cannot read properties of null (reading 'issu
 
 ### Schema v2 migration
 
-The repository now includes a non-destructive schema migration. Run **TAK → Check schema health**, then **Preview v2 migration**. Resolve every duplicate or invalid row before choosing **Migrate legacy Issues to v2 tabs**. Migration preserves IDs, hierarchy, and each full legacy record in `Legacy JSON`; repeated runs are safe when the targets still match the source. It leaves `Issues` intact.
+The repository now includes a non-destructive schema migration. Run **TAK → Tools → Check schema health**, then **Preview v2 migration** in the same submenu. Resolve every duplicate or invalid row before choosing **Migrate legacy Issues to v2 tabs**. Migration preserves IDs, hierarchy, and each full legacy record in `Legacy JSON`; repeated runs are safe when the targets still match the source. It leaves `Issues` intact.
 
-Review the migration output in the test spreadsheet before choosing **TAK → Activate v2 repository**. Activation compares source and target IDs, validates hierarchy, and routes app reads/writes through `Tasks` and `Projects and Epics`. The retained `Issues` tab is a migration snapshot while v2 is active. Direct v2 task/epic edits get defaults and validation notes. **Roll back to Issues repository** copies active v2 records back into `Issues`; if someone edits that legacy copy after rollback, activation stops until those changes are reconciled. This workflow has local mock coverage; run the migration and role smoke checks in a separate test workbook before using shared or production data.
+Review the migration output in the test spreadsheet before choosing **TAK → Tools → Activate v2 repository**. Activation compares source and target IDs, validates hierarchy, and routes app reads/writes through `Tasks` and `Projects and Epics`. The retained `Issues` tab is a migration snapshot while v2 is active. Direct v2 task/epic edits get defaults and validation notes. **Roll back to Issues repository** in the same submenu copies active v2 records back into `Issues`; if someone edits that legacy copy after rollback, activation stops until those changes are reconciled. This workflow has local mock coverage; run the migration and role smoke checks in a separate test workbook before using shared or production data.
 
 ## How it works
 
@@ -224,7 +232,7 @@ configureTrackerEnvironment('test', 'TEST_SPREADSHEET_ID')
 
 Use `configureTrackerEnvironment('production', 'PRODUCTION_SPREADSHEET_ID')` only in the production project. The spreadsheet ID is stored in an environment-specific script property, and server reads/writes use the selected environment. Existing projects continue to use the legacy `SPREADSHEET_ID` property as a fallback.
 
-After setup, run **TAK → Run startup health check**. It verifies the selected spreadsheet, schema tabs, and installed edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
+After setup, run **TAK → Tools → Run startup health check**. It verifies the selected spreadsheet, schema tabs, and installed edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
 
 The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, and quick-add retries; delete and comment mutations still need the same idempotency treatment.
 

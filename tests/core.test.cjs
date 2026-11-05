@@ -23,6 +23,14 @@ test('task type presentation supports legacy names, JSON configuration, and safe
 test('sample project has unique IDs and valid hierarchy, dates, and dependencies', () => {
   const issues = C.sample(day); assert.equal(new Set(issues.map(i => i.id)).size, issues.length);
   issues.forEach(i => C.validate(i, issues));
+  const epics = issues.filter(issue => issue.type === 'Epic');
+  assert.equal(epics.length, 3);
+  for (const epic of epics) {
+    const stories = issues.filter(issue => issue.type === 'Story' && issue.parentId === epic.id);
+    assert.ok(stories.length >= 1 && stories.length <= 2);
+    for (const story of stories) assert.ok(issues.some(issue => ['Task', 'Bug'].includes(issue.type) && issue.parentId === story.id));
+  }
+  assert.ok(issues.every(issue => issue.description.length > 50 && !issue.description.startsWith('Sample issue')));
 });
 test('whole-project validation keeps hierarchy and dependency safety at large local sizes', () => {
   const sample = C.sample(day);

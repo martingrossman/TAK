@@ -1,16 +1,20 @@
 /** Google Sheets storage and web-app entry points. Run setupTracker once. */
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('TAK')
+  var ui = SpreadsheetApp.getUi();
+  var tools = ui.createMenu('Tools')
     .addItem('Set up / repair tracker', 'setupTracker')
-    .addItem('Open tracker', 'openTracker')
-    .addItem('Quick add work item', 'openQuickAdd')
     .addItem('Check schema health', 'schemaHealthCheck')
     .addItem('Run startup health check', 'startupHealthCheck')
+    .addItem('Add sample project to empty tracker', 'loadSampleData')
+    .addSeparator()
     .addItem('Preview v2 migration', 'migrationDryRun')
     .addItem('Migrate legacy Issues to v2 tabs', 'migrateLegacyIssues')
     .addItem('Activate v2 repository', 'activateVersionedRepository')
-    .addItem('Roll back to Issues repository', 'deactivateVersionedRepository')
-    .addItem('Add sample project to empty tracker', 'loadSampleData').addToUi();
+    .addItem('Roll back to Issues repository', 'deactivateVersionedRepository');
+  ui.createMenu('TAK')
+    .addItem('Open tracker', 'openTracker')
+    .addItem('Quick add work item', 'openQuickAdd')
+    .addSubMenu(tools).addToUi();
 }
 
 function setupTracker() {
@@ -18,7 +22,9 @@ function setupTracker() {
   return withLock_(function () {
     var properties = PropertiesService.getScriptProperties();
     var id = environmentSpreadsheetId_();
-    var book = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
+    var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+    if (activeBook && id && activeBook.getId() !== id) throw new Error('This spreadsheet copy is still linked to another tracker. Do not run setup until this copy is connected to its own data.');
+    var book = activeBook || (id ? SpreadsheetApp.openById(id) : null);
     if (!book) book = SpreadsheetApp.create('TAK — Project tracker');
     var sheet = book.getSheetByName('Issues');
     if (!sheet) sheet = book.insertSheet('Issues');
@@ -34,23 +40,34 @@ function setupTracker() {
     if (!hasEditTrigger) ScriptApp.newTrigger('handleSheetEdit').forSpreadsheet(book).onEdit().create();
     properties.setProperty('EDIT_TRIGGER_INSTALLED', 'true');
     console.log('Tracker spreadsheet: ' + book.getUrl());
-    return { spreadsheetUrl: book.getUrl(), message: 'Tracker ready. Deploy as a web app to open all three views.' };
+    return { spreadsheetUrl: book.getUrl(), message: 'Tracker ready. Choose TAK → Open tracker to open all three views.' };
   });
 }
 
-function doGet(e) {
+function trackerOutput_(view) {
   var template = HtmlService.createTemplateFromFile('Index');
-  var view = e && e.parameter && e.parameter.view;
   template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(view) >= 0 ? view : 'kanban';
   return template.evaluate().setTitle('TAK — Project tracker')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
+function doGet(e) { return trackerOutput_(e && e.parameter && e.parameter.view); }
 function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function openTracker() {
-  var url = ScriptApp.getService().getUrl();
-  if (!url) { SpreadsheetApp.getUi().alert('Deploy this project as a Web app first (Deploy → New deployment).'); return; }
-  var html = HtmlService.createHtmlOutput('<p><a href="' + url + '" target="_blank" rel="noopener">Open TAK</a></p>');
-  SpreadsheetApp.getUi().showModalDialog(html, 'Project tracker');
+  var ui = SpreadsheetApp.getUi();
+  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var id = environmentSpreadsheetId_();
+  if (activeBook && id && activeBook.getId() !== id) {
+    ui.alert('This spreadsheet copy is linked to another tracker. Open a fresh TAK starter template instead of copying a configured tracker. No data was changed.');
+    return;
+  }
+  try {
+    if (!id) setupTracker();
+    getBook_();
+  } catch (error) {
+    ui.alert('TAK could not open this spreadsheet: ' + (error && error.message ? error.message : String(error)));
+    return;
+  }
+  ui.showModalDialog(trackerOutput_('kanban').setWidth(1100).setHeight(720), 'TAK — Project tracker');
 }
 function openQuickAdd() {
   authorizationService_().require('write');

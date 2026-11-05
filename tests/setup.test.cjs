@@ -9,6 +9,13 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
   const properties = new Map(), triggers = [], formatting = {};
   let exists = data.length > 0, maxRows = 20, maxColumns = 5, filter = null;
   let createdBooks = 0, acquired = 0, released = 0;
+  let dialog = null;
+  let alert = null;
+  const menus = [];
+  function createMenu(name) {
+    const menu = { name, items: [], addItem: (label, handler) => { menu.items.push({ label, handler }); return menu; }, addSeparator: () => { menu.items.push({ separator: true }); return menu; }, addSubMenu: child => { menu.items.push({ submenu: child }); return menu; }, addToUi: () => { menus.push(menu); } };
+    return menu;
+  }
   function builder(methods) {
     const result = { build: () => ({}) };
     methods.forEach(name => { result[name] = () => result; });
@@ -42,6 +49,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
   const context = vm.createContext({ console: { log() {} }, TrackerCore: C,
     SpreadsheetApp: {
       getActiveSpreadsheet: () => standalone ? null : book,
+      getUi: () => ({ createMenu, showModalDialog: (output, title) => { dialog = { output, title }; }, alert: message => { alert = message; } }),
       openById: id => { assert.equal(id, book.getId()); return book; },
       create: () => { createdBooks++; return book; },
       newDataValidation: () => builder(['requireDate', 'setAllowInvalid', 'requireNumberGreaterThanOrEqualTo', 'requireValueInList', 'requireNumberBetween']),
@@ -52,11 +60,26 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
     ScriptApp: {
       getProjectTriggers: () => triggers,
       newTrigger: handler => ({ forSpreadsheet: target => { assert.equal(target, book); return { onEdit: () => ({ create: () => { triggers.push({ getHandlerFunction: () => handler, getTriggerSourceId: () => book.getId() }); } }) }; } })
-    }
+    },
+    HtmlService: { createTemplateFromFile: name => {
+      assert.equal(name, 'Index');
+      const output = { setTitle: () => output, addMetaTag: () => output, setWidth: width => { output.width = width; return output; }, setHeight: height => { output.height = height; return output; } };
+      const template = { initialView: '', evaluate: () => { output.initialView = template.initialView; return output; } };
+      return template;
+    } }
   });
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  return { api: context, properties, rows, triggers, formatting, createdBooks: () => createdBooks, balanced: () => acquired === released };
+  return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, alert: () => alert, balanced: () => acquired === released };
 }
+
+test('TAK menu keeps opening and quick entry prominent', () => {
+  const h = setupHarness();
+  h.api.onOpen();
+  assert.equal(h.menus.length, 1);
+  assert.deepEqual(h.menus[0].items.slice(0, 2).map(item => item.label), ['Open tracker', 'Quick add work item']);
+  assert.equal(h.menus[0].items[2].submenu.name, 'Tools');
+  assert.ok(h.menus[0].items[2].submenu.items.some(item => item.handler === 'setupTracker'));
+});
 
 for (const frozenReturn of [null, undefined]) {
   test(`setup completes when frozen pane setters return ${String(frozenReturn)}`, () => {
@@ -80,4 +103,32 @@ test('setup repairs formatting without modifying existing issue rows', () => {
   const h = setupHarness({ data: [row] });
   h.api.setupTracker();
   assert.deepEqual(h.rows[1], row); assert.equal(h.rows.length, 2); assert.ok(h.balanced());
+});
+test('setup in a copied spreadsheet refuses a stored ID for another workbook', () => {
+  const h = setupHarness();
+  h.properties.set('SPREADSHEET_ID', 'original-book');
+  assert.throws(() => h.api.setupTracker(), /still linked to another tracker/);
+  assert.equal(h.properties.get('SPREADSHEET_ID'), 'original-book');
+  assert.equal(h.rows.length, 0);
+  assert.equal(h.triggers.length, 0);
+  assert.ok(h.balanced());
+});
+test('Open tracker initializes a fresh bound copy and opens the three-view dialog', () => {
+  const h = setupHarness();
+  h.api.openTracker();
+  assert.equal(h.properties.get('SPREADSHEET_ID'), 'tracker-book');
+  assert.equal(h.triggers.length, 1);
+  assert.equal(h.dialog().title, 'TAK — Project tracker');
+  assert.equal(h.dialog().output.width, 1100);
+  assert.equal(h.dialog().output.height, 720);
+  assert.equal(h.dialog().output.initialView, 'kanban');
+  assert.ok(h.balanced());
+});
+test('Open tracker refuses to open a copied workbook linked to the original', () => {
+  const h = setupHarness();
+  h.properties.set('SPREADSHEET_ID', 'original-book');
+  h.api.openTracker();
+  assert.match(h.alert(), /linked to another tracker/);
+  assert.equal(h.dialog(), null);
+  assert.equal(h.rows.length, 0);
 });
