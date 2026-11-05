@@ -47,7 +47,7 @@ for(const viewport of [{width:1366,height:768},{width:768,height:900},{width:390
  for(const view of ['kanban','gantt','sheet']){await page.locator(`[data-view="${view}"]`).click();await expect(page.locator('#priority-filter')).toHaveValue('High');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);}
  await page.locator('[data-remove-filter="priority"]').click();
  if(viewport.width<700)await page.locator('#workspace-more>summary').click();await page.locator('#swimlanes-toggle').check();
- if(viewport.width<700)await page.locator('#workspace-more>summary').click();await expect(page.locator('.sheet-lane-row')).toHaveCount(2);
+ if(viewport.width<700)await page.locator('#workspace-more>summary').click();await expect(page.locator('.sheet-lane-row')).toHaveCount(3);
  const group=page.locator('.sheet-lane-row [data-toggle-lane]').first();
 await expect(group.locator('.swimlane-toggle')).toHaveCSS('height','24px');
 const limits=await page.locator('.table-wrap').evaluate(el=>({right:el.getBoundingClientRect().left+el.clientWidth,edit:el.querySelector('.swimlane-edit').getBoundingClientRect().right}));expect(limits.edit).toBeLessThanOrEqual(limits.right+1);
