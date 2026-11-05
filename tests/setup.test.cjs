@@ -4,7 +4,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const C = require('../Core.js');
 
-function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
+function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl = 'https://script.google.com/macros/s/test/exec' } = {}) {
   const rows = data.length ? [C.fields.map(f => f.label), ...data] : [];
   const properties = new Map(), triggers = [], formatting = {};
   let exists = data.length > 0, maxRows = 20, maxColumns = 5, filter = null;
@@ -59,12 +59,13 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
     LockService: { getScriptLock: () => ({ waitLock: () => acquired++, releaseLock: () => released++ }) },
     ScriptApp: {
       getProjectTriggers: () => triggers,
+      getService: () => ({ getUrl: () => webAppUrl }),
       newTrigger: handler => ({ forSpreadsheet: target => { assert.equal(target, book); return { onEdit: () => ({ create: () => { triggers.push({ getHandlerFunction: () => handler, getTriggerSourceId: () => book.getId() }); } }) }; } })
     },
     HtmlService: { createHtmlOutputFromFile: name => { assert.equal(name, 'Help'); return { setTitle: title => ({ title }) }; }, createTemplateFromFile: name => {
-      assert.equal(name, 'Index');
+      assert.ok(['Index', 'FullScreen'].includes(name));
       const output = { setTitle: () => output, addMetaTag: () => output, setWidth: width => { output.width = width; return output; }, setHeight: height => { output.height = height; return output; } };
-      const template = { initialView: '', evaluate: () => { output.initialView = template.initialView; return output; } };
+      const template = { initialView: '', trackerUrl: '', guidance: '', evaluate: () => { output.initialView = template.initialView; output.trackerUrl = template.trackerUrl; output.guidance = template.guidance; return output; } };
       return template;
     } }
   });
@@ -72,15 +73,37 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
   return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, sidebar: () => sidebar, alert: () => alert, balanced: () => acquired === released };
 }
 
-test('TAK menu keeps everyday actions prominent and moves setup into Help', () => {
+test('TAK menu exposes dialog and full-screen actions', () => {
   const h = setupHarness();
   h.api.onOpen();
   assert.equal(h.menus.length, 1);
   assert.equal(h.menus[0].name, '🔷 TAK');
-  assert.deepEqual(h.menus[0].items.slice(0, 2).map(item => item.label), ['Open tracker', 'Quick add work item']);
-  assert.deepEqual(h.menus[0].items.slice(2).map(item => item.label || 'separator'), ['separator', 'Help & setup']);
+  assert.deepEqual(h.menus[0].items.slice(0, 3).map(item => item.label), ['Open tracker', 'Open full-screen TAK ↗', 'Quick add work item']);
+  assert.deepEqual(h.menus[0].items.slice(3).map(item => item.label || 'separator'), ['separator', 'Help & setup']);
   h.api.openHelpSetup();
   assert.equal(h.sidebar().title, 'TAK — Help & setup');
+});
+
+test('full-screen action uses this script deployment without writing task data', () => {
+  const h = setupHarness(); h.api.setupTracker();
+  const beforeRows = JSON.stringify(h.rows), beforeProps = [...h.properties];
+  h.api.openFullScreenTracker();
+  assert.equal(h.dialog().title, 'Open full-screen TAK');
+  assert.equal(h.dialog().output.trackerUrl, 'https://script.google.com/macros/s/test/exec?view=kanban');
+  assert.equal(h.dialog().output.width, 420);
+  assert.equal(JSON.stringify(h.rows), beforeRows); assert.deepEqual([...h.properties], beforeProps);
+});
+
+test('full-screen action guides an undeployed copy and blocks a wrong workbook', () => {
+  const fresh = setupHarness(); fresh.api.openFullScreenTracker();
+  assert.equal(fresh.dialog().output.trackerUrl, '');
+  assert.match(fresh.dialog().output.guidance, /Open tracker once/);
+  const noDeployment = setupHarness({ webAppUrl: null }); noDeployment.api.setupTracker(); noDeployment.api.openFullScreenTracker();
+  assert.equal(noDeployment.dialog().output.trackerUrl, '');
+  assert.match(noDeployment.dialog().output.guidance, /does not have a web-app deployment/);
+  const wrong = setupHarness(); wrong.properties.set('SPREADSHEET_ID', 'another-book'); wrong.api.openFullScreenTracker();
+  assert.equal(wrong.dialog().output.trackerUrl, '');
+  assert.match(wrong.dialog().output.guidance, /points to another tracker/);
 });
 
 test('Help status reads a fresh copy and its completed setup without writes', () => {

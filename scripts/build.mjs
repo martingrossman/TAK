@@ -18,7 +18,7 @@ new vm.Script(await read('Settings.js'), { filename: 'Settings.js' });
 new vm.Script(await read('Ordering.js'), { filename: 'Ordering.js' });
 new vm.Script(await read('Comments.js'), { filename: 'Comments.js' });
 const claspIgnore = await read('.claspignore');
-for (const name of ['QuickAdd', 'Help']) {
+for (const name of ['QuickAdd', 'Help', 'FullScreen']) {
   const file = name + '.html';
   for (const match of (await read(file)).matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1], { filename: file });
   if (!claspIgnore.includes('!' + file)) throw new Error(file + ' must be included in the Apps Script deployment allowlist.');

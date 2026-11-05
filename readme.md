@@ -138,7 +138,7 @@ For the first release, give each person a copy of the starter template. A later 
 
 ### Optional full-screen web app
 
-The Google Sheets menu opens TAK in a desktop dialog. For a separate browser tab or phone access, open your copy's **Extensions → Apps Script** project and choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Only myself**. Deploy, review any permission prompt, and open the new URL ending in `/exec`. It should show **Synced with Sheets** and link to your own copy.
+The Google Sheets menu opens TAK in a desktop dialog. For a separate browser tab, choose **🔷 TAK → Open full-screen TAK ↗** and use the link in the small dialog. If your copy has no web-app deployment yet, open its **Extensions → Apps Script** project and choose **Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Only myself**. Deploy, review any permission prompt, and reload the spreadsheet. The full-screen link should show **Synced with Sheets** and connect to your own copy.
 
 The `/exec` URL is your normal app link. After future source changes, update the existing deployment with a **New version** to keep that URL. Google's [web-app guide](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app) explains the deployment choices. The Google Sheets mobile app may not show custom menus or dialogs, so use this web-app link on a phone.
 
@@ -298,6 +298,7 @@ Code.js              Apps Script storage, setup, triggers, and web app entry poi
 PersonalBatch.js     Atomic personal-mode creation of queued and pasted items
 QuickAdd.html        Google Sheets quick-add sidebar
 Help.html            Google Sheets help and setup sidebar
+FullScreen.html      Google Sheets full-screen link dialog
 Core.js              Shared model, validation, dates, CSV, and samples
 CoreScript.html      Generated browser copy of Core.js; do not edit directly
 Index.html           Apps Script page template

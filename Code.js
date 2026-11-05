@@ -3,6 +3,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('🔷 TAK')
     .addItem('Open tracker', 'openTracker')
+    .addItem('Open full-screen TAK ↗', 'openFullScreenTracker')
     .addItem('Quick add work item', 'openQuickAdd')
     .addSeparator()
     .addItem('Help & setup', 'openHelpSetup')
@@ -11,6 +12,24 @@ function onOpen() {
 
 function openHelpSetup() {
   SpreadsheetApp.getUi().showSidebar(HtmlService.createHtmlOutputFromFile('Help').setTitle('TAK — Help & setup'));
+}
+
+function openFullScreenTracker() {
+  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var id = environmentSpreadsheetId_();
+  var template = HtmlService.createTemplateFromFile('FullScreen');
+  template.trackerUrl = '';
+  template.guidance = '';
+  if (activeBook && id && activeBook.getId() !== id) {
+    template.guidance = 'This copy still points to another tracker. Start from the TAK starter template instead.';
+  } else if (!id) {
+    template.guidance = 'Choose 🔷 TAK → Open tracker once to set up this copy, then try again.';
+  } else {
+    var url = ScriptApp.getService().getUrl();
+    if (url) template.trackerUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + 'view=kanban';
+    else template.guidance = 'This copy does not have a web-app deployment yet.';
+  }
+  SpreadsheetApp.getUi().showModalDialog(template.evaluate().setWidth(420).setHeight(250), 'Open full-screen TAK');
 }
 
 /** Read-only status for the bound spreadsheet's Help sidebar. */

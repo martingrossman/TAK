@@ -18,10 +18,10 @@ Environment.js · Repository.js · History.js · Authorization.js
 Settings.js · Ordering.js · Comments.js
 ```
 
-**HTML files (6):**
+**HTML files (7):**
 
 ```text
-Index.html · Styles.html · Client.html · QuickAdd.html · Help.html · CoreScript.html
+Index.html · Styles.html · Client.html · QuickAdd.html · Help.html · FullScreen.html · CoreScript.html
 ```
 
 In **Project Settings**, turn on **Show “appsscript.json” manifest file in editor**. Replace its contents with the matching file from the source ZIP. The manifest enables the Advanced Sheets v4 service and V8 runtime. If Apps Script asks you to add the Google Sheets API service, choose **Add service → Google Sheets API**.
