@@ -6,6 +6,8 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 
 **No sign-in needed.** Try the sample project in your browser. Demo changes are saved in that browser only; they do not sync to Google Sheets or other people. For Google Sheets storage, [set up your own tracker](#use-tak-with-google-sheets).
 
+**Want your own Google Sheets tracker?** [Make a private copy of the TAK starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy).
+
 [**Kanban board**](https://martingrossman.github.io/TAK/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/TAK/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
 
 [![TAK Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/TAK/#kanban)
@@ -120,7 +122,7 @@ GitHub Pages is the portable browser demo: it stores changes in that browser's l
 
 ### Copy the starter template
 
-The starter template is a separate Google Sheet with three example Epics, six Stories, twelve Tasks/Bugs, and the TAK script attached. Once its copy link is published, open that link, choose **File → Make a copy**, and open your copy. Choose **TAK → Open tracker** and approve the Google authorization for the script in your own copy. The first opening creates the supporting tabs and edit trigger, then opens Sheet, Kanban, and Gantt in a large dialog. Each copy stores its own tasks in its own spreadsheet; it does not connect to the original tracker. Replace or remove the example tasks as you make the project your own.
+The [starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) is a separate Google Sheet with three example Epics, six Stories, twelve Tasks/Bugs, and the TAK script attached. Sign in to Google, open the link, choose **Make a copy**, and open your copy. Choose **TAK → Open tracker** and approve the Google authorization if prompted. The first opening creates the supporting tabs and edit trigger, then opens Sheet, Kanban, and Gantt in a large dialog. Each copy stores its own tasks in its own spreadsheet; it does not connect to the original tracker. Replace or remove the example tasks as you make the project your own.
 
 The template copy does not need a web-app deployment for desktop use inside Google Sheets. The Google Sheets mobile app may not expose custom menus or dialogs, so use the optional web-app deployment below when you need a full browser tab or phone access. Do not make a copy of an already configured tracker as your starting point: it may carry a stored spreadsheet ID. TAK blocks setup if a copy still points at another workbook.
 
