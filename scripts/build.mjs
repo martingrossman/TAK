@@ -17,9 +17,12 @@ new vm.Script(await read('Authorization.js'), { filename: 'Authorization.js' });
 new vm.Script(await read('Settings.js'), { filename: 'Settings.js' });
 new vm.Script(await read('Ordering.js'), { filename: 'Ordering.js' });
 new vm.Script(await read('Comments.js'), { filename: 'Comments.js' });
-const quickAdd = await read('QuickAdd.html');
-for (const match of quickAdd.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1], { filename: 'QuickAdd.html' });
-if (!(await read('.claspignore')).includes('!QuickAdd.html')) throw new Error('QuickAdd.html must be included in the Apps Script deployment allowlist.');
+const claspIgnore = await read('.claspignore');
+for (const name of ['QuickAdd', 'Help']) {
+  const file = name + '.html';
+  for (const match of (await read(file)).matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1], { filename: file });
+  if (!claspIgnore.includes('!' + file)) throw new Error(file + ' must be included in the Apps Script deployment allowlist.');
+}
 const browserCore = `<script>\n${core}\n</script>\n`;
 await writeFile(path.join(root, 'CoreScript.html'), browserCore);
 let html = await read('Index.html');

@@ -9,7 +9,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
   const properties = new Map(), triggers = [], formatting = {};
   let exists = data.length > 0, maxRows = 20, maxColumns = 5, filter = null;
   let createdBooks = 0, acquired = 0, released = 0;
-  let dialog = null;
+  let dialog = null, sidebar = null;
   let alert = null;
   const menus = [];
   function createMenu(name) {
@@ -49,7 +49,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
   const context = vm.createContext({ console: { log() {} }, TrackerCore: C,
     SpreadsheetApp: {
       getActiveSpreadsheet: () => standalone ? null : book,
-      getUi: () => ({ createMenu, showModalDialog: (output, title) => { dialog = { output, title }; }, alert: message => { alert = message; } }),
+      getUi: () => ({ createMenu, showModalDialog: (output, title) => { dialog = { output, title }; }, showSidebar: output => { sidebar = output; }, alert: message => { alert = message; } }),
       openById: id => { assert.equal(id, book.getId()); return book; },
       create: () => { createdBooks++; return book; },
       newDataValidation: () => builder(['requireDate', 'setAllowInvalid', 'requireNumberGreaterThanOrEqualTo', 'requireValueInList', 'requireNumberBetween']),
@@ -61,7 +61,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
       getProjectTriggers: () => triggers,
       newTrigger: handler => ({ forSpreadsheet: target => { assert.equal(target, book); return { onEdit: () => ({ create: () => { triggers.push({ getHandlerFunction: () => handler, getTriggerSourceId: () => book.getId() }); } }) }; } })
     },
-    HtmlService: { createTemplateFromFile: name => {
+    HtmlService: { createHtmlOutputFromFile: name => { assert.equal(name, 'Help'); return { setTitle: title => ({ title }) }; }, createTemplateFromFile: name => {
       assert.equal(name, 'Index');
       const output = { setTitle: () => output, addMetaTag: () => output, setWidth: width => { output.width = width; return output; }, setHeight: height => { output.height = height; return output; } };
       const template = { initialView: '', evaluate: () => { output.initialView = template.initialView; return output; } };
@@ -69,16 +69,69 @@ function setupHarness({ standalone = false, data = [], frozenReturn } = {}) {
     } }
   });
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, alert: () => alert, balanced: () => acquired === released };
+  return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, sidebar: () => sidebar, alert: () => alert, balanced: () => acquired === released };
 }
 
-test('TAK menu keeps opening and quick entry prominent', () => {
+test('TAK menu keeps everyday actions prominent and moves setup into Help', () => {
   const h = setupHarness();
   h.api.onOpen();
   assert.equal(h.menus.length, 1);
+  assert.equal(h.menus[0].name, '🔷 TAK');
   assert.deepEqual(h.menus[0].items.slice(0, 2).map(item => item.label), ['Open tracker', 'Quick add work item']);
-  assert.equal(h.menus[0].items[2].submenu.name, 'Tools');
-  assert.ok(h.menus[0].items[2].submenu.items.some(item => item.handler === 'setupTracker'));
+  assert.deepEqual(h.menus[0].items.slice(2).map(item => item.label || 'separator'), ['separator', 'Help & setup']);
+  h.api.openHelpSetup();
+  assert.equal(h.sidebar().title, 'TAK — Help & setup');
+});
+
+test('Help status reads a fresh copy and its completed setup without writes', () => {
+  const h = setupHarness();
+  assert.deepEqual(JSON.parse(JSON.stringify(h.api.getTrackerSetupStatus())), { state: 'not-set-up', message: 'This copy is ready to be set up.', canRepair: true });
+  assert.equal(h.rows.length, 0); assert.equal(h.triggers.length, 0); assert.equal(h.properties.size, 0);
+  h.api.setupTracker();
+  const beforeRows = JSON.stringify(h.rows), beforeProps = [...h.properties], beforeTriggers = h.triggers.length;
+  assert.equal(h.api.getTrackerSetupStatus().state, 'ready');
+  assert.equal(JSON.stringify(h.rows), beforeRows); assert.deepEqual([...h.properties], beforeProps); assert.equal(h.triggers.length, beforeTriggers);
+});
+
+test('Help status blocks the wrong workbook and bad headers before repair', () => {
+  const wrong = setupHarness(); wrong.properties.set('SPREADSHEET_ID', 'original-book');
+  assert.deepEqual(JSON.parse(JSON.stringify(wrong.api.getTrackerSetupStatus())), { state: 'wrong-workbook', message: 'This copy points to another tracker. Start from the TAK starter template instead.', canRepair: false });
+  assert.equal(wrong.rows.length, 0); assert.equal(wrong.triggers.length, 0);
+  const bad = setupHarness({ data: [C.fields.map(() => '')] }); bad.properties.set('SPREADSHEET_ID', 'tracker-book'); bad.rows[0][0] = 'Wrong ID';
+  assert.equal(bad.api.getTrackerSetupStatus().state, 'needs-review');
+  assert.equal(bad.api.getTrackerSetupStatus().canRepair, false);
+});
+
+test('Help status reports missing setup pieces and respects configure permission', () => {
+  const h = setupHarness(); h.properties.set('SPREADSHEET_ID', 'tracker-book');
+  assert.equal(h.api.getTrackerSetupStatus().state, 'needs-repair');
+  h.api.SheetFlowAuth = { require: capability => { if (capability === 'configure') throw new Error('viewer'); } };
+  assert.equal(h.api.getTrackerSetupStatus().canRepair, false);
+});
+
+test('Help status asks for review when a support tab has unexpected headers', () => {
+  const h = setupHarness(); h.api.setupTracker();
+  h.api.SheetFlowSchema = { report: () => ({ ready: false, tabs: { Tasks: { headersMatch: false } } }) };
+  assert.equal(h.api.getTrackerSetupStatus().state, 'needs-review');
+  assert.equal(h.api.getTrackerSetupStatus().canRepair, false);
+});
+
+test('Help sidebar checks status without repair and requires an in-panel confirmation', () => {
+  const html = fs.readFileSync(require.resolve('../Help.html'), 'utf8');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const ids = ['status', 'check', 'repair', 'confirmation', 'cancel', 'confirm-repair'];
+  const elements = Object.fromEntries(ids.map(id => [id, { hidden: false, disabled: false, textContent: '', classList: { toggle() {} }, listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; }, focus() {} }]));
+  let statusCalls = 0, repairCalls = 0;
+  const google = { script: { run: { withSuccessHandler(success) { return { withFailureHandler() { return {
+    getTrackerSetupStatus() { statusCalls++; success({ state: 'ready', message: 'Connected', canRepair: true }); },
+    setupTracker() { repairCalls++; success({ message: 'Ready' }); }
+  }; } }; } } } };
+  vm.runInNewContext(script, { document: { getElementById: id => elements[id] }, google });
+  assert.equal(statusCalls, 1); assert.equal(repairCalls, 0);
+  elements.repair.listeners.click(); assert.equal(repairCalls, 0); assert.equal(elements.confirmation.hidden, false);
+  elements.cancel.listeners.click(); assert.equal(repairCalls, 0); assert.equal(elements.confirmation.hidden, true);
+  elements.repair.listeners.click(); elements['confirm-repair'].listeners.click();
+  assert.equal(repairCalls, 1); assert.equal(statusCalls, 2);
 });
 
 for (const frozenReturn of [null, undefined]) {

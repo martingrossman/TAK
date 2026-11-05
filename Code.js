@@ -1,20 +1,44 @@
 /** Google Sheets storage and web-app entry points. Run setupTracker once. */
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
-  var tools = ui.createMenu('Tools')
-    .addItem('Set up / repair tracker', 'setupTracker')
-    .addItem('Check schema health', 'schemaHealthCheck')
-    .addItem('Run startup health check', 'startupHealthCheck')
-    .addItem('Add sample project to empty tracker', 'loadSampleData')
-    .addSeparator()
-    .addItem('Preview v2 migration', 'migrationDryRun')
-    .addItem('Migrate legacy Issues to v2 tabs', 'migrateLegacyIssues')
-    .addItem('Activate v2 repository', 'activateVersionedRepository')
-    .addItem('Roll back to Issues repository', 'deactivateVersionedRepository');
-  ui.createMenu('TAK')
+  ui.createMenu('🔷 TAK')
     .addItem('Open tracker', 'openTracker')
     .addItem('Quick add work item', 'openQuickAdd')
-    .addSubMenu(tools).addToUi();
+    .addSeparator()
+    .addItem('Help & setup', 'openHelpSetup')
+    .addToUi();
+}
+
+function openHelpSetup() {
+  SpreadsheetApp.getUi().showSidebar(HtmlService.createHtmlOutputFromFile('Help').setTitle('TAK — Help & setup'));
+}
+
+/** Read-only status for the bound spreadsheet's Help sidebar. */
+function getTrackerSetupStatus() {
+  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var id = environmentSpreadsheetId_();
+  var canRepair = false;
+  try { authorizationService_().require('read'); }
+  catch (error) { return { state: 'unavailable', message: error.message || String(error), canRepair: false }; }
+  try { authorizationService_().require('configure'); canRepair = true; } catch (ignore) {}
+  if (!activeBook) return { state: 'unavailable', message: 'Open Help & setup from a Google spreadsheet.', canRepair: false };
+  if (id && activeBook.getId() !== id) return { state: 'wrong-workbook', message: 'This copy points to another tracker. Start from the TAK starter template instead.', canRepair: false };
+  if (!id) return { state: 'not-set-up', message: 'This copy is ready to be set up.', canRepair: canRepair };
+  var issues = activeBook.getSheetByName('Issues');
+  if (!issues) return { state: 'needs-repair', message: 'The Issues tab is missing. Repair can create it.', canRepair: canRepair };
+  try { assertHeaders_(issues); }
+  catch (error) { return { state: 'needs-review', message: 'The Issues headers differ from TAK. Review them before repairing.', canRepair: false }; }
+  var schema = null;
+  try { schema = typeof SheetFlowSchema === 'undefined' ? null : SheetFlowSchema.report(activeBook); }
+  catch (error) { return { state: 'needs-review', message: 'Setup tabs need manual review before repairing.', canRepair: false }; }
+  if (schema && Object.keys(schema.tabs).some(function (name) { return schema.tabs[name] && !schema.tabs[name].headersMatch; })) {
+    return { state: 'needs-review', message: 'A setup tab has unexpected headers. Review them before repairing.', canRepair: false };
+  }
+  var editTriggerReady = ScriptApp.getProjectTriggers().some(function (trigger) {
+    return trigger.getHandlerFunction() === 'handleSheetEdit' && trigger.getTriggerSourceId() === activeBook.getId();
+  });
+  if ((schema && !schema.ready) || !editTriggerReady) return { state: 'needs-repair', message: 'Setup tabs or the edit trigger need repair.', canRepair: canRepair };
+  return { state: 'ready', message: 'TAK is connected to this spreadsheet.', canRepair: canRepair };
 }
 
 function setupTracker() {
@@ -40,7 +64,7 @@ function setupTracker() {
     if (!hasEditTrigger) ScriptApp.newTrigger('handleSheetEdit').forSpreadsheet(book).onEdit().create();
     properties.setProperty('EDIT_TRIGGER_INSTALLED', 'true');
     console.log('Tracker spreadsheet: ' + book.getUrl());
-    return { spreadsheetUrl: book.getUrl(), message: 'Tracker ready. Choose TAK → Open tracker to open all three views.' };
+    return { spreadsheetUrl: book.getUrl(), message: 'Tracker ready. Choose 🔷 TAK → Open tracker to open all three views.' };
   });
 }
 

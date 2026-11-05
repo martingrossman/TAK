@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_blank">
+  <style>
+    :root { color-scheme: light; font: 13px Arial, sans-serif; color: #172b4d; background: #fff; }
+    body { margin: 0; padding: 18px; line-height: 1.45; }
+    h1 { margin: 0 0 12px; font-size: 18px; }
+    h2 { margin: 22px 0 8px; font-size: 14px; }
+    ol { margin: 0; padding-left: 20px; }
+    li { margin: 0 0 9px; }
+    a { color: #0052cc; }
+    .panel { margin-top: 18px; padding: 14px; border: 1px solid #dfe1e6; border-radius: 8px; background: #f8fafc; }
+    .panel h2 { margin-top: 0; }
+    #status { min-height: 18px; margin: 0 0 10px; }
+    #status.error { color: #bf2600; }
+    button { min-height: 36px; padding: 7px 11px; border: 1px solid #c6cbd3; border-radius: 6px; background: white; color: #172b4d; cursor: pointer; font: inherit; font-weight: 600; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #0052cc; outline-offset: 2px; }
+    button:disabled { opacity: .55; cursor: wait; }
+    #repair, #confirm-repair { margin-left: 6px; border-color: #0052cc; background: #0052cc; color: white; }
+    #confirmation { margin-top: 12px; padding-top: 12px; border-top: 1px solid #dfe1e6; }
+    #confirmation p { margin: 0 0 10px; }
+    .hint { margin: 12px 0 0; color: #5e6c84; }
+  </style>
+</head>
+<body>
+  <h1>TAK help & setup</h1>
+  <ol>
+    <li><a href="https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy" rel="noopener">Make your own copy</a> of the starter template.</li>
+    <li>In your copy, choose <strong>🔷 TAK → Open tracker</strong>.</li>
+    <li>Review Google's access request if it appears, then use Sheet, Kanban, and Gantt.</li>
+  </ol>
+  <p class="hint">The browser demo saves only in your browser. A Google Sheets copy stores tasks in its own spreadsheet.</p>
+  <p><a href="https://github.com/martingrossman/TAK#start-with-google-sheets" rel="noopener">Read the full setup guide</a></p>
+
+  <section class="panel" aria-labelledby="connection-title">
+    <h2 id="connection-title">This spreadsheet</h2>
+    <p id="status" role="status" aria-live="polite">Checking connection…</p>
+    <button id="check" type="button">Check again</button>
+    <button id="repair" type="button" hidden>Repair setup</button>
+    <div id="confirmation" hidden>
+      <p>Repair may update setup tabs, formatting, and the edit trigger. Existing task rows stay in place.</p>
+      <button id="cancel" type="button">Cancel</button>
+      <button id="confirm-repair" type="button">Confirm repair</button>
+    </div>
+  </section>
+  <script>
+    const status = document.getElementById('status');
+    const check = document.getElementById('check');
+    const repair = document.getElementById('repair');
+    const confirmation = document.getElementById('confirmation');
+    const cancel = document.getElementById('cancel');
+    const confirmRepair = document.getElementById('confirm-repair');
+    let current = null;
+    function showMessage(message, error = false) { status.textContent = message; status.classList.toggle('error', error); }
+    function setBusy(busy) { check.disabled = repair.disabled = confirmRepair.disabled = busy; }
+    function render(result) {
+      current = result;
+      setBusy(false);
+      confirmation.hidden = true;
+      repair.hidden = !result.canRepair;
+      repair.textContent = result.state === 'not-set-up' ? 'Set up this copy' : 'Repair setup';
+      showMessage(result.message, ['wrong-workbook', 'needs-review', 'unavailable'].includes(result.state));
+    }
+    function checkStatus() {
+      setBusy(true);
+      showMessage('Checking connection…');
+      google.script.run.withSuccessHandler(render).withFailureHandler(error => {
+        current = null; setBusy(false); repair.hidden = true; confirmation.hidden = true;
+        showMessage(error.message || String(error), true);
+      }).getTrackerSetupStatus();
+    }
+    check.addEventListener('click', checkStatus);
+    repair.addEventListener('click', () => { if (!current?.canRepair) return; confirmation.hidden = false; confirmRepair.focus(); });
+    cancel.addEventListener('click', () => { confirmation.hidden = true; repair.focus(); });
+    confirmRepair.addEventListener('click', () => {
+      if (!current?.canRepair) return;
+      confirmation.hidden = true; setBusy(true); showMessage('Repairing setup…');
+      google.script.run.withSuccessHandler(() => { showMessage('Setup repaired. Checking connection…'); checkStatus(); })
+        .withFailureHandler(error => { setBusy(false); showMessage(error.message || String(error), true); })
+        .setupTracker();
+    });
+    checkStatus();
+  </script>
+</body>
+</html>
