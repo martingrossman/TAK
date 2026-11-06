@@ -26,9 +26,13 @@ var SheetFlowAuth = (function () {
     if (roles.indexOf(role) < 0) role = 'viewer';
     return { id: email || 'owner-session', email: email, role: role, authenticated: Boolean(email) };
   }
-  function actor() { return resolveActor(activeEmail(), PropertiesService.getScriptProperties().getProperties()); }
+  function actor() {
+    if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().actor;
+    return resolveActor(activeEmail(), PropertiesService.getScriptProperties().getProperties());
+  }
   function enforced() { return PropertiesService.getScriptProperties().getProperty('SHEETFLOW_AUTH_ENFORCED') === 'true'; }
   function requireCapability(capability, snapshot) {
+    if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedCapability_(capability);
     var props = snapshot || PropertiesService.getScriptProperties().getProperties();
     if (props.SHEETFLOW_MODE === 'personal' && props.SHEETFLOW_AUTH_ENFORCED !== 'true') {
       return { id: 'owner-session', email: '', role: 'administrator', authenticated: false };

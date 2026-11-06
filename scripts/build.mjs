@@ -17,6 +17,7 @@ new vm.Script(await read('Authorization.js'), { filename: 'Authorization.js' });
 new vm.Script(await read('Settings.js'), { filename: 'Settings.js' });
 new vm.Script(await read('Ordering.js'), { filename: 'Ordering.js' });
 new vm.Script(await read('Comments.js'), { filename: 'Comments.js' });
+new vm.Script(await read('SharedHost.js'), { filename: 'SharedHost.js' });
 const claspIgnore = await read('.claspignore');
 for (const name of ['QuickAdd', 'Help', 'FullScreen']) {
   const file = name + '.html';
@@ -31,6 +32,7 @@ for (const name of ['Styles', 'CoreScript', 'Client']) {
   html = html.replace(`<?!= include_('${name}'); ?>`, () => content);
 }
 html = html.replace('<?= initialView ?>', 'kanban');
+html = html.replace('<?= sharedSheetId ?>', '');
 for (const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1], { filename: 'browser-script' });
 if (html.includes('<?')) throw new Error('Unresolved Apps Script template');
 await mkdir(path.join(root, 'dist'), { recursive: true });

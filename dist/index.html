@@ -440,7 +440,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 </style>
 
 </head>
-<body data-initial-view="kanban">
+<body data-initial-view="kanban" data-shared-sheet="">
   <header class="topbar">
     <div class="brand-group">
       <a class="brand" href="#kanban" aria-label="TAK home">TAK</a>
@@ -967,15 +967,17 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     return `<span class="avatar ${name ? '' : 'unassigned'}" title="${escape(name || 'Unassigned')}" style="--avatar-bg:${colors[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length]}">${escape(name ? initials(name) : '?')}</span>`;
   }
   const isCloud = !!(window.google && google.script && google.script.run);
+  const sharedSheetId = isCloud ? document.body.dataset.sharedSheet || '' : '';
+  const trackerStorageKey = key => sharedSheetId ? key + '.sheet.' + sharedSheetId : key;
   const storageKey = 'sheetflow.project.v1';
-  const draftStorageKey = 'sheetflow.pending-drafts.v1';
-  const quickQueueStorageKey = 'sheetflow.quick-queue.v1';
-  const bulkDraftStorageKey = 'sheetflow.pending-batch.v1';
-  const duplicateDraftStorageKey = 'sheetflow.pending-duplicate.v1';
+  const draftStorageKey = trackerStorageKey('sheetflow.pending-drafts.v1');
+  const quickQueueStorageKey = trackerStorageKey('sheetflow.quick-queue.v1');
+  const bulkDraftStorageKey = trackerStorageKey('sheetflow.pending-batch.v1');
+  const duplicateDraftStorageKey = trackerStorageKey('sheetflow.pending-duplicate.v1');
   const localReceiptStorageKey = 'sheetflow.local-receipts.v1';
-  const undoStorageKey = 'sheetflow.undo.v1';
-  const uiStorageKey = 'sheetflow.ui.v1';
-  const savedViewsStorageKey = 'sheetflow.saved-views.v1';
+  const undoStorageKey = trackerStorageKey('sheetflow.undo.v1');
+  const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
+  const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
   const defaultSheetColumnOrder = ['id', 'summary', 'status', 'assignee', 'priority', 'dueDate'];
@@ -1251,8 +1253,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       };
       const timer = setTimeout(() => finish(reject, new Error('Request timed out. Its result is unconfirmed.')), 30000);
       try {
-        google.script.run.withSuccessHandler(value => finish(resolve, value))
-          .withFailureHandler(error => finish(reject, new Error(error.message || String(error))))[method](...args);
+        const runner = google.script.run.withSuccessHandler(value => finish(resolve, value))
+          .withFailureHandler(error => finish(reject, new Error(error.message || String(error))));
+        if (sharedSheetId) runner.sharedTrackerRpc(sharedSheetId, method, args);
+        else runner[method](...args);
       } catch (error) { finish(reject, error); }
     });
     if (method === 'createIssuesBatch') {

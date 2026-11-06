@@ -15,13 +15,26 @@
 </head>
 <body>
   <? if (trackerUrl) { ?>
-    <h1>Open TAK in a browser tab</h1>
-    <p>Use the full-screen Kanban for this spreadsheet. You can switch to Sheet or Gantt from its top bar.</p>
-    <a class="primary" href="<?= trackerUrl ?>" target="_blank" rel="noopener">Open full-screen Kanban ↗</a>
+    <h1>Open your tracker</h1>
+    <p id="launch-status">TAK opens in a full browser tab. Authorize with the Google account that owns this copy if prompted.</p>
+    <a id="launch-tracker" class="primary" href="<?= trackerUrl ?>" target="_blank" rel="noopener">Open tracker ↗</a>
   <? } else { ?>
     <h1>Full-screen link not ready</h1>
     <p><?= guidance ?></p>
     <p class="hint">For a private copy, open <strong>Extensions → Apps Script</strong> and choose <strong>Deploy → New deployment → Web app</strong>. Then reload this spreadsheet. <a href="https://github.com/martingrossman/TAK#optional-full-screen-web-app" target="_blank" rel="noopener">Setup guide ↗</a></p>
   <? } ?>
+  <script>
+    (() => {
+      const link = document.getElementById('launch-tracker');
+      if (!link) return;
+      try {
+        const opened = window.open(link.href, '_blank');
+        if (opened) { opened.opener = null; google.script.host.close(); }
+        else document.getElementById('launch-status').textContent = 'Your browser needs a click to open a new tab. Click Open tracker below, then authorize if prompted.';
+      } catch (error) {
+        document.getElementById('launch-status').textContent = 'Click Open tracker below to continue in a browser tab.';
+      }
+    })();
+  </script>
 </body>
 </html>

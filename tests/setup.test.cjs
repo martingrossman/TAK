@@ -70,16 +70,31 @@ function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl =
     } }
   });
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../SharedHost.js'), 'utf8'), context);
   return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, sidebar: () => sidebar, alert: () => alert, balanced: () => acquired === released };
 }
 
-test('TAK menu exposes dialog and full-screen actions', () => {
+test('TAK menu exposes only Open tracker', () => {
   const h = setupHarness();
   h.api.onOpen();
   assert.equal(h.menus.length, 1);
   assert.equal(h.menus[0].name, '🔷 TAK');
-  assert.deepEqual(h.menus[0].items.slice(0, 3).map(item => item.label), ['Open tracker', 'Open full-screen TAK ↗', 'Quick add work item']);
-  assert.deepEqual(h.menus[0].items.slice(3).map(item => item.label || 'separator'), ['separator', 'Help & setup']);
+  assert.deepEqual(h.menus[0].items.map(item => ({ ...item })), [{ label: 'Open tracker', handler: 'openTracker' }]);
+});
+
+test('shared launcher selects the active copy without initializing, editing or using its old deployment', () => {
+  const h = setupHarness({ webAppUrl: 'https://example.invalid/obsolete' });
+  h.api.TAK_SHARED_LAUNCH_URL_ = 'https://script.google.com/macros/s/shared-test/exec';
+  h.properties.set('SPREADSHEET_ID', 'obsolete-original');
+  h.api.openTracker();
+  assert.equal(h.dialog().title, 'Open tracker');
+  assert.equal(h.dialog().output.trackerUrl, 'https://script.google.com/macros/s/shared-test/exec?sheet=tracker-book&view=kanban');
+  assert.equal(h.rows.length, 0); assert.equal(h.triggers.length, 0);
+  assert.equal(h.properties.get('SPREADSHEET_ID'), 'obsolete-original');
+});
+
+test('Help sidebar remains available through its administrator entry point', () => {
+  const h = setupHarness();
   h.api.openHelpSetup();
   assert.equal(h.sidebar().title, 'TAK — Help & setup');
 });

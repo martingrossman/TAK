@@ -1,6 +1,6 @@
 # Install TAK from source
 
-Most people should [make a copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy). It already contains the script and example project. Use this guide only when you need to attach the source to a different blank spreadsheet.
+Most people should [make a copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. It opens the centrally maintained shared app in a browser tab. Use this guide only for an independent installation attached to a different blank spreadsheet. This path keeps the existing in-Sheets dialog and optional personal deployment.
 
 ## 1. Prepare your spreadsheet
 
@@ -10,18 +10,18 @@ Sign in to the Google account that should own the tracker and create a blank Goo
 
 In the spreadsheet, choose **Extensions → Apps Script** and give the attached project a name such as **My TAK tracker**. For each `.js` file below, choose **+ → Script**, enter its name without `.js`, then paste the matching file's full contents. For each `.html` file, choose **+ → HTML** and do the same. Keep `Index.html` as an HTML file, and include the generated `CoreScript.html`.
 
-**Script files (12):**
+**Script files (13):**
 
 ```text
 Code.js · PersonalBatch.js · Core.js · Schema.js · Migrations.js
 Environment.js · Repository.js · History.js · Authorization.js
-Settings.js · Ordering.js · Comments.js
+Settings.js · Ordering.js · Comments.js · SharedHost.js
 ```
 
-**HTML files (7):**
+**HTML files (8):**
 
 ```text
-Index.html · Styles.html · Client.html · QuickAdd.html · Help.html · FullScreen.html · CoreScript.html
+Index.html · Styles.html · Client.html · QuickAdd.html · Help.html · FullScreen.html · Connection.html · CoreScript.html
 ```
 
 In **Project Settings**, turn on **Show “appsscript.json” manifest file in editor**. Replace its contents with the matching file from the source ZIP. The manifest enables the Advanced Sheets v4 service and V8 runtime. If Apps Script asks you to add the Google Sheets API service, choose **Add service → Google Sheets API**.

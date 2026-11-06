@@ -55,6 +55,7 @@ function startupHealthCheck() {
 
 /** Personal mode is intended for an owner-only Google deployment. Team remains the default. */
 function trackerMode_() {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) { sharedRequest_(); return 'team'; }
   return PropertiesService.getScriptProperties().getProperty('SHEETFLOW_MODE') === 'personal' ? 'personal' : 'team';
 }
 function getTrackerMode() {

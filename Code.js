@@ -3,10 +3,6 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('🔷 TAK')
     .addItem('Open tracker', 'openTracker')
-    .addItem('Open full-screen TAK ↗', 'openFullScreenTracker')
-    .addItem('Quick add work item', 'openQuickAdd')
-    .addSeparator()
-    .addItem('Help & setup', 'openHelpSetup')
     .addToUi();
 }
 
@@ -90,14 +86,38 @@ function setupTracker() {
 function trackerOutput_(view) {
   var template = HtmlService.createTemplateFromFile('Index');
   template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(view) >= 0 ? view : 'kanban';
+  template.sharedSheetId = '';
   return template.evaluate().setTitle('TAK — Project tracker')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
-function doGet(e) { return trackerOutput_(e && e.parameter && e.parameter.view); }
+function doGet(e) {
+  var params = e && e.parameter || {};
+  if (typeof sharedHost_ === 'function' && sharedHost_()) {
+    var template = HtmlService.createTemplateFromFile('Index');
+    try { template.sharedSheetId = sharedSheetId_(params.sheet); }
+    catch (error) {
+      var connection = HtmlService.createTemplateFromFile('Connection');
+      connection.message = error.message;
+      return connection.evaluate().setTitle('Open TAK');
+    }
+    template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(params.view) >= 0 ? params.view : 'kanban';
+    return template.evaluate().setTitle('TAK — Project tracker').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+  return trackerOutput_(params.view);
+}
 function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function openTracker() {
   var ui = SpreadsheetApp.getUi();
   var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var sharedUrl = typeof sharedLauncherUrl_ === 'function' ? sharedLauncherUrl_() : '';
+  if (sharedUrl) {
+    if (!activeBook) { ui.alert('Open TAK from your copied spreadsheet.'); return; }
+    var launch = HtmlService.createTemplateFromFile('FullScreen');
+    launch.trackerUrl = sharedUrl + '?sheet=' + encodeURIComponent(activeBook.getId()) + '&view=kanban';
+    launch.guidance = '';
+    ui.showModalDialog(launch.evaluate().setWidth(400).setHeight(210), 'Open tracker');
+    return;
+  }
   var id = environmentSpreadsheetId_();
   if (activeBook && id && activeBook.getId() !== id) {
     ui.alert('This spreadsheet copy is linked to another tracker. Open a fresh TAK starter template instead of copying a configured tracker. No data was changed.');
@@ -374,6 +394,7 @@ function undoDuplicateIssues(duplicateOperationId, expectedItems, undoOperationI
   });
 }
 function saveRequestContext_() {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedOperationalContext_();
   var properties = PropertiesService.getScriptProperties();
   return { properties: properties, config: properties.getProperties() };
 }
@@ -978,6 +999,7 @@ function issueFromRow_(row, rowNumber, book, taskTypes) {
   return issue;
 }
 function getBook_(config) {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().book;
   var id = environmentSpreadsheetId_(config);
   if (!id) throw new Error('Run setupTracker in the Apps Script editor first.');
   var book = SpreadsheetApp.openById(id);
@@ -987,6 +1009,7 @@ function getBook_(config) {
   return book;
 }
 function environmentSpreadsheetId_(config) {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().book.getId();
   return typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.spreadsheetId(undefined, config) : config ? config.SPREADSHEET_ID || '' : PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 }
 /** Plain browser data: Dates become ISO strings before crossing google.script.run. */
@@ -1046,7 +1069,10 @@ function repositoryPropertyKey_(base, config) {
   var environment = typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.currentName(config) : '';
   return environment ? base + '_' + String(environment).toUpperCase() : base;
 }
-function getRepositoryProperty_(base, config) { return (config ? config[repositoryPropertyKey_(base, config)] : PropertiesService.getScriptProperties().getProperty(repositoryPropertyKey_(base))) || ''; }
+function getRepositoryProperty_(base, config) {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) { sharedRequest_(); return base === 'SHEETFLOW_ACTIVE_SCHEMA' ? 'legacy' : ''; }
+  return (config ? config[repositoryPropertyKey_(base, config)] : PropertiesService.getScriptProperties().getProperty(repositoryPropertyKey_(base))) || '';
+}
 function setRepositoryProperty_(base, value) { PropertiesService.getScriptProperties().setProperty(repositoryPropertyKey_(base), String(value)); }
 function deleteRepositoryProperty_(base) { PropertiesService.getScriptProperties().deleteProperty(repositoryPropertyKey_(base)); }
 function writeIssue_(book, issue, current, snapshot) {
@@ -1207,6 +1233,8 @@ function toRow_(issue, book) {
   });
 }
 function nextId_(issues, request) {
+  if (!request && typeof sharedHost_ === 'function' && sharedHost_()) request = sharedOperationalContext_();
+  else if (!request && typeof sharedLauncherUrl_ === 'function' && sharedLauncherUrl_()) request = workbookCounterContext_(SpreadsheetApp.getActiveSpreadsheet());
   var properties = request ? request.properties : PropertiesService.getScriptProperties();
   var highest = Math.max(Number(request ? request.config.LAST_ISSUE_NUMBER : properties.getProperty('LAST_ISSUE_NUMBER')) || 0, 0);
   issues.forEach(function (i) { var m = /^PRJ-(\d+)$/.exec(i.id); if (m) highest = Math.max(highest, Number(m[1])); });
