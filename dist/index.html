@@ -237,6 +237,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .issue-table th{padding-block:8px;background:var(--canvas);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 .issue-table.id-pinned th[data-column-key="id"],.gantt-header,.gantt-label-head{background:var(--canvas)}
 .gantt-bar{border-radius:4px}
+.gantt-bar.start-only{width:18px;min-width:18px;padding:0;border-radius:7px}.gantt-bar.start-only .bar-text{display:none}.gantt-bar.start-only .resize-handle{width:6px;background:color-mix(in srgb,var(--bar-border) 18%,transparent);border-left:1px solid var(--bar-border)}
 .sheet-tools,.sheet-tool-actions,.gantt-tools,.gantt-tools .left,.gantt-tools .right,.gantt-legend{flex-wrap:wrap}
 .sheet-tool-actions{margin-left:auto}
 .sheet-tools,.gantt-tools{margin-bottom:8px}
@@ -302,7 +303,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .quick-create .field textarea{min-height:72px;height:80px;resize:vertical}
 .quick-create .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
 .quick-create .field input,.quick-create .field select{width:100%}
-.quick-create .create-advanced,.quick-create #editor-related,.quick-create #delete-issue,.quick-create #duplicate-issue{display:none}
+.quick-create .create-advanced,.quick-create #child-issues,.quick-create #duplicate-subtasks-option,.quick-create #delete-issue,.quick-create #duplicate-issue{display:none}
 .create-dialog .dialog-footer{padding:12px 16px;gap:8px;flex-wrap:wrap}
 .create-dialog .dialog-actions{gap:8px}
 .create-dialog .issue-footer-actions .button{height:36px}
@@ -367,11 +368,11 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   background-color:var(--epic-lane-surface);
 }
 .gantt-epic-label { box-shadow:inset 4px 0 var(--epic-lane-accent) }
-/* Stack the Epic name below its metadata so the fold, Edit and Add controls fit at narrow label widths. */
+/* Keep Epic icons and title inline; truncate the title before crowding action controls. */
 .gantt-epic-label .gantt-lane-title { gap:3px }
 .gantt-epic-label .swimlane-collapse { padding-inline:2px; gap:3px }
-.gantt-lane-copy { display:flex; flex-direction:column; flex:1; min-width:0; overflow:hidden; line-height:1.25 }
-.gantt-lane-meta { display:flex; align-items:center; gap:3px; min-width:0; overflow:hidden }
+.gantt-lane-copy { display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow:hidden; line-height:1.25 }
+.gantt-lane-meta { display:flex; align-items:center; gap:3px; flex:none; min-width:0; overflow:hidden }
 .gantt-lane-meta .swimlane-epic-id { flex:none }
 .gantt-lane-meta .status-badge { display:block; min-width:0; padding:0 3px; overflow:hidden; text-overflow:ellipsis }
 .gantt-lane-copy strong { color:var(--ink); font-weight:600 }
@@ -1781,6 +1782,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function sheetColumnDefinitions() {
     const definitions = new Map(C.fields.map(field => [field.key, field]));
+    definitions.set('summary', { ...definitions.get('summary'), label: 'Title' });
     definitions.set('taskTypeId', { key: 'taskTypeId', label: 'Activity Type', kind: 'text' });
     return definitions;
   }
@@ -2840,7 +2842,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; syncSelection(); return; }
     if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; syncSelection(); return; }
     if (state.view === 'kanban') renderBoard(issues);
-    $$('[data-sheet-manual]').forEach(el=>el.remove());
     sheetViewportObserver?.disconnect();
     $('#sheet-actions').replaceChildren();
     if (state.view === 'sheet') renderSheet(issues);
@@ -3047,7 +3048,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       }).join('')
       : `<tbody>${sheetHierarchyRows(list).map(renderRow).join('')}</tbody>`;
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
-    $('#view-content').innerHTML = `<div class="sheet-tools"><div class="sheet-tool-actions"><button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}<button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'summary' ? 'summary-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'summary' ? `<div class="sheet-primary-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').innerHTML = `<div class="sheet-tools"><div class="sheet-tool-actions"><button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'summary' ? 'summary-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'summary' ? `<div class="sheet-primary-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
     $('#view-content').insertAdjacentHTML('beforeend', '<button type="button" class="ghost-add sheet-ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task · T</button>');
     const viewport=$('.table-wrap');
     const sizeHeader=()=>viewport.style.setProperty('--sheet-content-width',viewport.clientWidth+'px');
@@ -3497,12 +3498,16 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     }
     const positions = new Map(), displayIssues = [...issues, ...pendingQuickTasks(), ...composerItems()];
     const renderTrackContent = (issue, y, schedule = issue, summary = false) => {
-      const scheduled = !!schedule && C.validDate(schedule.startDate) && C.validDate(schedule.dueDate) && schedule.dueDate >= schedule.startDate;
-      const rawStart = scheduled ? C.dateNumber(schedule.startDate) - C.dateNumber(start) : 0;
-      const rawEnd = scheduled ? C.dateNumber(schedule.dueDate) - C.dateNumber(start) + 1 : 0;
-      const left = Math.max(0, rawStart) * dayWidth + 3, right = Math.min(days, rawEnd) * dayWidth - 3;
-      const visible = scheduled && right > left;
-      if (visible) positions.set(issue.id, { left, right, y });
+      const hasStart = !!schedule && C.validDate(schedule.startDate);
+      const hasDue = !!schedule && C.validDate(schedule.dueDate);
+      const scheduled = hasStart && hasDue && schedule.dueDate >= schedule.startDate;
+      const startOnly = !summary && hasStart && !schedule.dueDate;
+      const rawStart = scheduled || startOnly ? C.dateNumber(schedule.startDate) - C.dateNumber(start) : 0;
+      const rawEnd = scheduled ? C.dateNumber(schedule.dueDate) - C.dateNumber(start) + 1 : startOnly ? rawStart + 1 : 0;
+      const left = Math.max(0, rawStart) * dayWidth + 3;
+      const right = Math.min(days, rawEnd) * dayWidth - 3;
+      const visible = (scheduled || startOnly) && rawStart < days && rawEnd > 0 && (startOnly || right > left);
+      if (visible && scheduled) positions.set(issue.id, { left, right, y });
       const index = C.statuses.indexOf(issue.status), colors = {
         Epic: ['#F5F3FF', '#6D28D9', '#DDD6FE'],
         Story: ['#ECFEFF', '#0E7490', '#A5F3FC'],
@@ -3511,13 +3516,16 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       }[issue.type] || ['#EFF6FF', '#1D4ED8', '#BFDBFE'];
       if (!visible) {
         if (summary) return `<span class="schedule-note epic-schedule-note">${scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Schedule child issues to set epic duration'}</span>`;
-        return `<button class="schedule-note" data-open="${escape(issue.id)}">${scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Set start and due dates →'}</button>`;
+        const note = startOnly ? `Starts outside this window · ${shortDate(schedule.startDate)}` : scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Set a start date →';
+        return `<button class="schedule-note" data-open="${escape(issue.id)}">${note}</button>`;
       }
-      const dateRange = `${schedule.startDate} → ${schedule.dueDate}`;
-      const barStart = summary ? `<div class="gantt-bar epic-summary-bar" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" tabindex="0" role="button" aria-label="Open ${escape(issue.id)}; Epic duration from child schedules: ${escape(dateRange)}"` : `<button class="gantt-bar" data-bar="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" data-day-width="${dayWidth}" data-full-start="${rawStart}" data-full-end="${rawEnd}" aria-label="Edit schedule for ${escape(issue.id)}: ${escape(dateRange)}, ${issue.progress}% complete, ${escape(C.statuses[index])}"`;
+      const dateRange = startOnly ? `${schedule.startDate} · No due date` : `${schedule.startDate} → ${schedule.dueDate}`;
+      const barStart = summary ? `<div class="gantt-bar epic-summary-bar" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" tabindex="0" role="button" aria-label="Open ${escape(issue.id)}; Epic duration from child schedules: ${escape(dateRange)}"` : `<button class="gantt-bar${startOnly ? ' start-only' : ''}" data-bar="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" data-day-width="${dayWidth}" data-full-start="${rawStart}" data-full-end="${rawEnd}" data-start-only="${startOnly}" aria-label="${startOnly ? 'Move' : 'Edit schedule for'} ${escape(issue.id)}: ${escape(dateRange)}${startOnly ? '' : `, ${issue.progress}% complete, ${escape(C.statuses[index])}`}" title="${escape(dateRange)}"`;
       const barEnd = summary ? '</div>' : '</button>';
-      const resizeHandle = !summary && rawEnd <= days ? '<span class="resize-handle" title="Drag to change due date"></span>' : '';
-      return `${barStart} style="left:${left}px;width:${right - left}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}"><span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span><span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
+      const resizeHandle = !summary && rawEnd <= days ? `<span class="resize-handle" title="${startOnly ? 'Drag to set a due date' : 'Drag to change due date'}"></span>` : '';
+      const barWidth = startOnly ? Math.max(18, right - left) : right - left;
+      const barLeft = startOnly ? Math.max(3, Math.min(left, width - barWidth - 3)) : left;
+      return `${barStart} style="left:${barLeft}px;width:${barWidth}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}">${startOnly ? '' : `<span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span>`}<span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
     };
     const renderTrack = (issue, y, schedule = issue, summary = false) => `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px">${renderTrackContent(issue, y, schedule, summary)}</div>`;
     const epicIds = [];
@@ -3876,7 +3884,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const mount = narrow ? $('#mobile-view-options') : $('#workspace-view-options');
     const savedMenu=$('.workspace-saved-views'); if(narrow) savedMenu.removeAttribute('name'); else savedMenu.setAttribute('name','workspace-tools');
     for (const el of Array.from(document.querySelectorAll('.workspace-bar .view-toggle, .workspace-saved-views'))) if(el.parentElement!==mount) mount.append(el);
-    const manual = $('[data-sheet-manual]'); if (manual) { const manualMount=narrow ? $('#mobile-view-options') : $('.sheet-tool-actions'); if(manual.parentElement!==manualMount) manualMount.prepend(manual); }
   }
   window.addEventListener('resize', arrangeWorkspaceTools);
   document.addEventListener('pointerdown', event => {
@@ -4183,7 +4190,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (state.view === 'sheet' && sheetMove) { moveSheetWithKeyboard(sheetMove.dataset.sheetMoveId, sheetMove.dataset.sheetMove); return; }
     const storyLabel = event.target.closest('.gantt-row-label.has-story-toggle');
     if (ganttStoryClickTimer && (!storyLabel || storyLabel.dataset.open !== ganttStoryClickTimer.id || event.detail > 1)) cancelGanttStoryClick();
-    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
+    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
     if (target.hasAttribute('data-ghost-add')) {
       const parentId = target.dataset.ghostParentId;
@@ -4226,7 +4233,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (target.hasAttribute('data-new')) openIssue('', { status: target.dataset.new, parentId: state.epic });
     else if (target.hasAttribute('data-clear')) clearFilters();
     else if (target.hasAttribute('data-sort')) { state.ascending = state.sort === target.dataset.sort ? !state.ascending : true; state.sort = target.dataset.sort; render(); }
-    else if (target.hasAttribute('data-sheet-manual')) { state.sort = 'rank'; state.ascending = true; render(); }
     else if (target.hasAttribute('data-sheet-column-move')) moveSheetColumn(target.dataset.sheetColumnKey, target.dataset.sheetColumnMove);
     else if (target.hasAttribute('data-timeline')) {
       const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
@@ -4451,7 +4457,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (resizer && event.button === 0 && !state.busy) { event.preventDefault(); ganttResize = { x: event.clientX, width: state.ganttLabelWidth, pointer: event.pointerId, element: resizer }; resizer.setPointerCapture(event.pointerId); return; }
     const bar = event.target.closest('[data-bar]'); if (!bar || event.button !== 0 || state.busy) return;
     const issue = issueById(bar.dataset.bar); if (!issue) return;
-    timelineDrag = { bar, issue: { ...issue }, x: event.clientX, width: bar.offsetWidth, left: parseFloat(bar.style.left), days: 0, resize: event.target.classList.contains('resize-handle'), moved: false, pointer: event.pointerId };
+    timelineDrag = { bar, issue: { ...issue }, x: event.clientX, width: bar.offsetWidth, left: parseFloat(bar.style.left), days: 0, resize: event.target.classList.contains('resize-handle'), startOnly: bar.dataset.startOnly === 'true', moved: false, pointer: event.pointerId };
     bar.setPointerCapture(event.pointerId);
   });
   $('#view-content').addEventListener('pointermove', event => {
@@ -4459,19 +4465,22 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!timelineDrag || event.pointerId !== timelineDrag.pointer) return;
     const d = timelineDrag, dayWidth = Number(d.bar.dataset.dayWidth);
     let days = Math.round((event.clientX - d.x) / dayWidth);
-    if (d.resize) days = Math.max(days, C.dateNumber(d.issue.startDate) - C.dateNumber(d.issue.dueDate));
+    if (d.resize) days = Math.max(days, d.startOnly ? 0 : C.dateNumber(d.issue.startDate) - C.dateNumber(d.issue.dueDate));
     d.days = days; if (Math.abs(event.clientX - d.x) > 4) d.moved = true;
-    if (d.resize) d.bar.style.width = Math.max(8, d.width + days * dayWidth) + 'px';
+    if (d.resize) d.bar.style.width = d.startOnly ? Math.max(8, (days + 1) * dayWidth - 6) + 'px' : Math.max(8, d.width + days * dayWidth) + 'px';
     else d.bar.style.transform = `translateX(${days * dayWidth}px)`;
-    if (d.moved) d.bar.title = `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
+    if (d.moved) d.bar.title = d.startOnly ? d.resize ? `${d.issue.startDate} → ${C.addDays(d.issue.startDate, days)}` : `${C.addDays(d.issue.startDate, days)} · No due date` : `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
   });
   async function endTimeline(event, cancel = false) {
     if (!timelineDrag || event.pointerId !== timelineDrag.pointer) return;
     const d = timelineDrag; timelineDrag = null;
     if (d.bar.hasPointerCapture(event.pointerId)) d.bar.releasePointerCapture(event.pointerId);
     if (d.moved) suppressClickUntil = Date.now() + 400;
-    if (cancel || !d.days) { d.bar.style.transform = ''; d.bar.style.width = d.width + 'px'; return; }
-    try { await persist({ ...d.issue, startDate: d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, d.days), dueDate: C.addDays(d.issue.dueDate, d.days) }, d.issue.version, 'Schedule updated'); }
+    const changed = d.startOnly && d.resize ? d.moved : Boolean(d.days);
+    if (cancel || !changed) { d.bar.style.transform = ''; d.bar.style.width = d.width + 'px'; return; }
+    const startDate = d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, d.days);
+    const dueDate = d.startOnly ? d.resize ? C.addDays(d.issue.startDate, d.days) : '' : C.addDays(d.issue.dueDate, d.days);
+    try { await persist({ ...d.issue, startDate, dueDate }, d.issue.version, 'Schedule updated'); }
     catch (error) { render(); notify(error.message, true); }
   }
   function endGanttResize(event) {

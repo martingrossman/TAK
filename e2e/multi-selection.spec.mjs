@@ -23,7 +23,7 @@ async function seed(page, view = 'sheet', issues = items, ui = {}) {
 
 test('Shift click inside a Sheet text field selects text, not work items', async ({ page }) => {
   await seed(page);
-  const title = page.getByRole('textbox', { name: 'PRJ-1 Summary', exact: true });
+  const title = page.getByRole('textbox', { name: 'PRJ-1 Title', exact: true });
   await title.focus();
   await title.press('End');
   await title.click({ modifiers: ['Shift'], position: { x: 8, y: 12 } });

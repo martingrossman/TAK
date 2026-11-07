@@ -230,6 +230,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .issue-table th{padding-block:8px;background:var(--canvas);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
 .issue-table.id-pinned th[data-column-key="id"],.gantt-header,.gantt-label-head{background:var(--canvas)}
 .gantt-bar{border-radius:4px}
+.gantt-bar.start-only{width:18px;min-width:18px;padding:0;border-radius:7px}.gantt-bar.start-only .bar-text{display:none}.gantt-bar.start-only .resize-handle{width:6px;background:color-mix(in srgb,var(--bar-border) 18%,transparent);border-left:1px solid var(--bar-border)}
 .sheet-tools,.sheet-tool-actions,.gantt-tools,.gantt-tools .left,.gantt-tools .right,.gantt-legend{flex-wrap:wrap}
 .sheet-tool-actions{margin-left:auto}
 .sheet-tools,.gantt-tools{margin-bottom:8px}
@@ -295,7 +296,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .quick-create .field textarea{min-height:72px;height:80px;resize:vertical}
 .quick-create .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
 .quick-create .field input,.quick-create .field select{width:100%}
-.quick-create .create-advanced,.quick-create #editor-related,.quick-create #delete-issue,.quick-create #duplicate-issue{display:none}
+.quick-create .create-advanced,.quick-create #child-issues,.quick-create #duplicate-subtasks-option,.quick-create #delete-issue,.quick-create #duplicate-issue{display:none}
 .create-dialog .dialog-footer{padding:12px 16px;gap:8px;flex-wrap:wrap}
 .create-dialog .dialog-actions{gap:8px}
 .create-dialog .issue-footer-actions .button{height:36px}
@@ -360,11 +361,11 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   background-color:var(--epic-lane-surface);
 }
 .gantt-epic-label { box-shadow:inset 4px 0 var(--epic-lane-accent) }
-/* Stack the Epic name below its metadata so the fold, Edit and Add controls fit at narrow label widths. */
+/* Keep Epic icons and title inline; truncate the title before crowding action controls. */
 .gantt-epic-label .gantt-lane-title { gap:3px }
 .gantt-epic-label .swimlane-collapse { padding-inline:2px; gap:3px }
-.gantt-lane-copy { display:flex; flex-direction:column; flex:1; min-width:0; overflow:hidden; line-height:1.25 }
-.gantt-lane-meta { display:flex; align-items:center; gap:3px; min-width:0; overflow:hidden }
+.gantt-lane-copy { display:flex; align-items:center; gap:5px; flex:1; min-width:0; overflow:hidden; line-height:1.25 }
+.gantt-lane-meta { display:flex; align-items:center; gap:3px; flex:none; min-width:0; overflow:hidden }
 .gantt-lane-meta .swimlane-epic-id { flex:none }
 .gantt-lane-meta .status-badge { display:block; min-width:0; padding:0 3px; overflow:hidden; text-overflow:ellipsis }
 .gantt-lane-copy strong { color:var(--ink); font-weight:600 }

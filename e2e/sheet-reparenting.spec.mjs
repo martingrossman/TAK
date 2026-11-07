@@ -188,10 +188,10 @@ test('cross-parent edge insertion under sorting preserves filtered hidden siblin
   await page.reload();
   await page.locator('[data-sort="summary"]').click();
   await page.getByRole('searchbox', { name: 'Search issues', exact: true }).fill('task');
-  await expect(page.locator('[data-sheet-manual]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('[data-sheet-manual]')).toHaveCount(0);
   await dropOnRow(page, 'PRJ-4', 'PRJ-9', 'before');
   await expect(row(page, 'PRJ-4')).toHaveAttribute('data-sheet-parent', 'PRJ-8');
-  await expect(page.locator('[data-sheet-manual]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-sheet-manual]')).toHaveCount(0);
   const saved = await readIssues(page), moved = saved.find(issue => issue.id === 'PRJ-4');
   expect(moved.rank).toBeGreaterThan(8500); expect(moved.rank).toBeLessThan(9000);
   expect(businessValues(moved)).toEqual(businessValues(original('PRJ-4')));

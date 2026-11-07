@@ -71,6 +71,8 @@ test('Gantt repeat capture retains the next title and timeline scroll through ac
   await page.evaluate(() => window.finishGanttSave(0));
   await expect(pendingFor(page)).toHaveCount(0);
   await expect(page.locator('[data-gantt-row-id="PRJ-19"]')).toContainText('Story saving in the background');
+  await expect(page.locator('[data-gantt-row-id="PRJ-19"] [data-bar="PRJ-19"]')).toHaveClass(/start-only/);
+  await expect(page.locator('[data-gantt-row-id="PRJ-19"] [data-bar="PRJ-19"]')).toHaveAttribute('title', /No due date/);
   await expect(input).toHaveValue('Next unfinished story');
   await expect(input).toBeFocused();
   await expect(page.locator('#quick-kind')).toHaveValue('Story');

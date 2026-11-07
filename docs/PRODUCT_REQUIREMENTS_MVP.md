@@ -134,10 +134,11 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 ### FR-07 — Timeline / Gantt (P0 preserve, P1 refine)
 
 - Keep current day/week views, task bars, drag-to-shift, right-edge resizing, dates, progress, dependencies, today/weekend markers and unscheduled-task access.
+- Work with a valid start date and no due date appears as a compact start-only bar. Dragging changes only its start date; right-edge resizing establishes its due date. Never persist a synthetic due date merely to render it.
 - Align labels, controls, tooltips, focus and spacing with the refreshed interface.
 - Save schedule edits through existing validation/error handling and preserve calendar-day behavior unless intentionally changed in a separately approved task.
 
-**Accept:** Move and resize bars, reload and confirm dates; filter and navigate without broken bar geometry or lost selection. No automatic rescheduling or leave-calendar engine is required.
+**Accept:** A newly captured task with today's default start appears immediately as a compact bar. Drag it and confirm the due date remains blank; resize it and confirm a real due date is saved. Clear that due date, reload and confirm the compact bar returns. Move and resize ordinary bars, filter and navigate without broken geometry or lost selection. No automatic rescheduling or leave-calendar engine is required.
 
 ### FR-08 — Search, filters and context (P1)
 

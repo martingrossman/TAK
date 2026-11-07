@@ -127,3 +127,15 @@ Results: `npm.cmd run check` passed all 191 Node tests; the targeted keyboard/Ga
 `npm.cmd run check` passed all 194 Node tests. `npx.cmd playwright test e2e/compact-create.spec.mjs e2e/multi-selection.spec.mjs --workers=2 --retries=0 --reporter=line` passed all 49 browser cases, including Task/Epic creation without a type, reload, badge absence in all views, reassignment, bulk removal and Undo.
 
 Local Edge smoke changed an existing task to **No activity type**, reloaded Sheet/Kanban/Gantt and confirmed no activity badge while its original start date remained unchanged. Server harnesses verified the explicit `none` value survives legacy, versioned and optimized personal storage; live Apps Script was not exercised. Existing missing values still use the established default, with no schema migration.
+
+## Compact comments
+
+Comments for saved issues remain visible in compact mode, including Add, Save, loading and retry controls. Child work and duplication options remain expanded-only. Local Edge smoke added a comment without More options and confirmed it persisted after reload.
+
+`npm.cmd run check` passed all 194 Node tests. `npx.cmd playwright test e2e/compact-create.spec.mjs e2e/personal-mode.spec.mjs --workers=2 --retries=0 --reporter=line` passed all 20 browser cases, including compact comment edits/additions at desktop and 390px, draft preservation across expansion, reload persistence, lazy loading, late-response isolation and retry. Live Apps Script was not exercised.
+
+## Start-only Gantt bars
+
+New work with a start date and no due date renders as a compact Gantt bar. Dragging preserves the blank due date; resizing establishes one and restores the normal bar. Clearing the due date, reloading, and moving the timeline restore or replace the compact bar correctly. Start-only bars do not render progress or dependency endpoints and stay inside the timeline boundary.
+
+Local Edge smoke moved `2026-11-07` to `2026-11-09` while preserving an empty due date, then resized it to save `2026-11-10`. `npm.cmd run check` passed all 194 Node tests. The full Gantt Epic/quick-create run passed all 17 browser cases; the final lifecycle case separately covers drag, resize, clear, reload and outside-window presentation. Live Apps Script was not exercised.

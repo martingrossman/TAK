@@ -89,7 +89,6 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await expect(dialog).toHaveClass(/create-dialog/);
     await expect(dialog).toHaveClass(/quick-create/);
     await expect(field(page, 'estimate')).toBeHidden();
-    await expect(page.locator('#editor-related')).toBeHidden();
     await expect(page.locator('#duplicate-issue')).toBeHidden();
     await expect(page.locator('#create-more-options')).toBeVisible();
     const editBox = await dialog.boundingBox();
@@ -99,7 +98,6 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     } else { expect(editBox.width).toBe(viewport.width); expect(editBox.height).toBe(viewport.height); }
     await page.locator('#create-more-options').click();
     await expect(field(page, 'estimate')).toBeVisible();
-    await expect(page.locator('#editor-related')).toBeVisible();
     await expect(page.locator('#duplicate-issue')).toBeVisible();
     await expect(field(page, 'estimate')).toHaveValue('3');
     await expect(field(page, 'description')).toHaveValue('Keep the context');
@@ -320,5 +318,39 @@ for (const type of ['Task', 'Epic']) {
     await expect(page.locator(`.card[data-issue="${created.id}"] .task-type-badge`)).toHaveAttribute('aria-label', 'Data');
     expect((await issues(page)).find(issue => issue.id === created.id).taskTypeId).toBe('data');
     expect((await issues(page)).find(issue => issue.id === epic.id).taskTypeId).toBe('algo');
+  });
+}
+
+for (const width of [1366, 390]) {
+  test(`compact comments support reading, editing and adding without expanding at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/#kanban');
+    await page.evaluate(({ key, child }) => {
+      const project = JSON.parse(localStorage.getItem(key));
+      project.issues.push(child); project.sequence = 2;
+      project.comments = [{ id: 'COM-1', taskId: 'PRJ-1', body: 'Existing discussion', authorId: 'Reviewer', createdAt: '2026-11-01T12:00:00Z' }];
+      localStorage.setItem(key, JSON.stringify(project));
+    }, { key: storageKey, child: { ...C.blank(), id: 'PRJ-2', summary: 'Child work', parentId: epic.id } });
+    await page.reload();
+    await page.locator('.card[data-issue="PRJ-1"] .card-title').click();
+    const existing = page.locator('[data-comment-edit="COM-1"]');
+    await expect(existing).toBeVisible();
+    await expect(existing).toHaveValue('Existing discussion');
+    await expect(page.locator('#child-issues')).toBeHidden();
+    await expect(page.locator('#duplicate-subtasks-option')).toBeHidden();
+    await existing.fill('Updated discussion');
+    await page.locator('[data-comment-save="COM-1"]').click();
+    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)).comments[0].body, storageKey)).toBe('Updated discussion');
+    await page.locator('#new-comment').fill('Compact reply');
+    await page.locator('#create-more-options').click();
+    await page.locator('#create-more-options').click();
+    await expect(page.locator('#new-comment')).toHaveValue('Compact reply');
+    await page.locator('#add-comment').click();
+    await expect(page.locator('#comments-section')).toContainText('Comments (2)');
+    await page.locator('#close-dialog').click();
+    await page.reload();
+    await page.locator('.card[data-issue="PRJ-1"] .card-title').click();
+    await expect(page.locator('[data-comment-edit="COM-1"]')).toHaveValue('Updated discussion');
+    await expect(page.locator('.comment-item textarea').nth(1)).toHaveValue('Compact reply');
   });
 }

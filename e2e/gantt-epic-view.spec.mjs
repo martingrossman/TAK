@@ -128,3 +128,71 @@ for (const view of ['sheet', 'gantt']) {
     expect(await storedProject(page)).toBe(before);
   });
 }
+
+test('start-only work is a compact movable bar and resizing establishes its due date', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+  const startOnlyProject = {
+    issues: [
+      { ...C.blank(), id: 'PRJ-1', type: 'Epic', summary: 'Start-only epic', rank: 1000, version: 'v1' },
+      { ...C.blank(), id: 'PRJ-2', summary: 'Start-only task', parentId: 'PRJ-1', startDate: '2026-11-07', dueDate: '', rank: 2000, version: 'v2' }
+    ],
+    comments: [], sequence: 2
+  };
+  await page.addInitScript(project => {
+    if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify(project));
+    if (!localStorage.getItem('sheetflow.ui.v1')) localStorage.setItem('sheetflow.ui.v1', JSON.stringify({ swimlanes: false, timelineStart: '2026-11-01' }));
+  }, startOnlyProject);
+  await page.goto('/#gantt');
+  const bar = page.locator('[data-bar="PRJ-2"]');
+  await expect(bar).toHaveClass(/start-only/);
+  await expect(bar).toHaveAttribute('title', '2026-11-07 · No due date');
+  await expect(bar.locator('.bar-progress')).toHaveCount(0);
+  await expect(bar.locator('.resize-handle')).toHaveAttribute('title', 'Drag to set a due date');
+  expect((await bar.boundingBox()).width).toBeGreaterThanOrEqual(18);
+
+  let bounds = await bar.boundingBox(), dayWidth = Number(await bar.getAttribute('data-day-width'));
+  await page.mouse.move(bounds.x + 4, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + 4 + dayWidth * 2, bounds.y + bounds.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => {
+    const issue = await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues.find(item => item.id === 'PRJ-2'));
+    return { startDate: issue.startDate, dueDate: issue.dueDate };
+  }).toEqual({ startDate: '2026-11-09', dueDate: '' });
+  await expect(bar).toHaveAttribute('title', '2026-11-09 · No due date');
+  await page.reload();
+  await expect(bar).toHaveClass(/start-only/);
+
+  bounds = await bar.boundingBox(); dayWidth = Number(await bar.getAttribute('data-day-width'));
+  const handle = bar.locator('.resize-handle'), handleBounds = await handle.boundingBox();
+  await page.mouse.move(handleBounds.x + handleBounds.width / 2, handleBounds.y + handleBounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBounds.x + handleBounds.width / 2 + dayWidth, handleBounds.y + handleBounds.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(async () => {
+    const issue = await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues.find(item => item.id === 'PRJ-2'));
+    return { startDate: issue.startDate, dueDate: issue.dueDate };
+  }).toEqual({ startDate: '2026-11-09', dueDate: '2026-11-10' });
+  await expect(bar).not.toHaveClass(/start-only/);
+  await expect(bar.locator('.bar-progress')).toHaveCount(1);
+
+  const label = page.locator('.gantt-label-hit[data-open="PRJ-2"]');
+  await label.focus(); await label.press('Enter');
+  await expect(page.locator('#issue-dialog')).toBeVisible();
+  await page.locator('#issue-form [name="dueDate"]').fill('');
+  await page.locator('#save-issue').click();
+  await expect(page.locator('#issue-dialog')).toBeHidden();
+  await expect(bar).toHaveClass(/start-only/);
+  await page.reload();
+  await expect(bar).toHaveClass(/start-only/);
+  const boundaryStart = C.addDays('2026-11-09', -111);
+  await page.locator('#timeline-date').fill(boundaryStart);
+  await page.locator('#timeline-date').dispatchEvent('change');
+  await expect(bar).toBeVisible();
+  const boundaryBar = await bar.boundingBox();
+  const boundaryTrack = await page.locator('[data-gantt-row-id="PRJ-2"] .gantt-track').boundingBox();
+  expect(boundaryBar.x + boundaryBar.width).toBeLessThanOrEqual(boundaryTrack.x + boundaryTrack.width);
+  await page.locator('[data-timeline="-1"]').click();
+  await expect(page.locator('[data-gantt-row-id="PRJ-2"] .schedule-note')).toHaveText('Starts outside this window · 9 Nov');
+  await expect(page.locator('[data-bar="PRJ-2"]')).toHaveCount(0);
+});

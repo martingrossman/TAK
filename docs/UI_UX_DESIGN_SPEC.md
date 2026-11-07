@@ -38,7 +38,7 @@ The goal is **minimum action cost**, not minimum element count.
 
 The header contains the project identity, save status and one switcher for Sheet, Kanban and Gantt. Undo, Commands, Shortcuts and New task sit on its right.
 
-The filter strip below shows Search, Filters, Group by epic, Saved views and More. Filters contains every existing criterion; active filter chips and Clear all remain outside it. More contains Paste list, Refresh, Export CSV, New epic and connection details. Quick task entry shares its row with Sheet layout controls. On narrow screens grouping, saved views and manual order move into More; Columns remains visible. The current view remains available as a screen-reader heading.
+The filter strip below shows Search, Filters, Group by epic, Saved views and More. Filters contains every existing criterion; active filter chips and Clear all remain outside it. More contains Paste list, Refresh, Export CSV, New epic and connection details. Quick task entry shares its row with Sheet layout controls. On narrow screens grouping and saved views move into More; Columns remains visible. The current view remains available as a screen-reader heading.
 
 **Style reference, 2026-11-04:** adopt the simplicity of `G:\My Drive\gsheetPLannerSimple` in the main `implement_mvp` checkout. Keep its compact top navigation, blue/gray palette, white cards and softly tinted status headers without replacing the MVP's newer commands, inline editing or timeline features.
 
@@ -110,7 +110,8 @@ Assignee suggestions use existing names, support arrows and Tab/Enter, and remai
 - Primary `N` shortcut preserved; optionally add `C` as alias after collision checks.
 - Enter in one-line title submits unless IME/autocomplete is active; Ctrl/Cmd+Enter submits from long fields; Shift+Enter creates a newline in a multiline field.
 - Esc closes if empty; if edited, respect unsaved draft through a lightweight discard confirmation or safe draft retention.
-- **More options** expands the new-issue dialog in place, keeping its center and revealing planning/hierarchy/effort fields (desktop expanded width up to ~720px, max ~85vh). **Back to compact** restores the compact layout. Preserve all entered values, including advanced fields hidden after collapsing. Mobile keeps the full-screen sheet in both modes. Existing issues also open in the compact layout; More options reveals their full editor, related work, comments and secondary actions without losing edits.
+- **More options** expands the new-issue dialog in place, keeping its center and revealing planning/hierarchy/effort fields (desktop expanded width up to ~720px, max ~85vh). **Back to compact** restores the compact layout. Preserve all entered values, including advanced fields hidden after collapsing. Mobile keeps the full-screen sheet in both modes. Existing issues also open in the compact layout; More options reveals their full editor, related work and secondary actions without losing edits.
+- **Comments** remain available for saved issues in both compact and expanded layouts, including reading, adding, editing, loading and retry states. Switching layouts preserves a typed comment. Keep child navigation and duplication options in the expanded layout; unsaved new issues have no discussion yet.
 
 ### 5.3 Detailed issue editor — deep work
 
@@ -159,7 +160,7 @@ Collapse secondary sections where practical. Autosave on safe property changes; 
 - Keep the issue ID/title readily visible when horizontally scrolling; sticky header and optional pinned identity columns when technically feasible.
 - Direct cell edit on click/Enter; Tab advances logically; Escape cancels current edit without destroying another draft. Keyboard arrow navigation must not break native text selection.
 - Selects for type/status/priority open immediately; show tooltip/help for ambiguous icons and columns.
-- Make active filters/sorts unmistakable. Manual order is not silently replaced when users sort temporarily.
+- Make active filters/sorts unmistakable. Reordering a sorted Sheet automatically returns it to saved rank order; do not expose a persistent Manual order button.
 - Support new-row quick-add. Keep CSV export of filtered results.
 - Save feedback can be per-cell/row and in global status, but a failed save **must not silently revert the cell**. Focus/selection should survive unrelated updates.
 - Default Comfortable rows; Compact is a preference, never required to see sufficient tasks.
@@ -177,6 +178,8 @@ Delete opens an accessible confirmation with the selected count and a no-Undo wa
 
 - Preserve existing day/week zoom, bar drag and resize, current date, progress, dependency lines, unscheduled issues and saved dates.
 - Match the same header, font, spacing, icons, contextual menus and error states as Kanban/Sheet.
+- Keep each Epic's kind icon, optional activity badge, status dot and title on one line. At narrow label widths, ellipsize the title instead of stacking it; preserve visible fold, Edit and Add controls.
+- A valid start with no due date is a compact start-only bar, not an unscheduled-text prompt. Drag changes only the start date and keeps the due date empty; resizing the right edge establishes the due date and converts it to a normal bar. Clearing the due date restores the compact presentation. Use a clear tooltip and resize affordance; do not draw progress or dependency endpoints on start-only bars.
 - Clearly distinguish moving a bar (shift both dates) from resizing the right edge (change end date). Show a visual preview/tooltip with expected dates before commit where feasible.
 - Do not silently change from calendar-day to working-day rules. Warn when unscheduled tasks lack dates rather than inventing them.
 - Avoid a new scheduling engine, automatic propagation, holiday overlays and workload planner in MVP.
@@ -250,4 +253,4 @@ Build this before polishing every screen: **Kanban inline create → optimistic 
 
 ### Sheet layout preferences
 
-Default columns are ID, Summary, Status, Assignee, Priority and Due Date. Every column can move; ID pins only while first. Header grips reorder, header edges resize, and Columns provides width and movement controls plus Reset layout. Widths/order belong to browser preferences and Saved Views, never to the Google Sheet schema. Legacy untouched defaults migrate once; custom layouts remain intact.
+Default columns are Title, Status, Assignee, Priority and Due Date; ID is optional. Every column can move; ID pins only while first. Header grips reorder, header edges resize, and Columns provides width and movement controls plus Reset layout. Widths/order belong to browser preferences and Saved Views, never to the Google Sheet schema. Legacy untouched defaults migrate once; custom layouts remain intact. Title is a display label only: preserve the internal `summary` key and native Summary header.
