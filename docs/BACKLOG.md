@@ -13,7 +13,7 @@
 
 # Improvements
 
-- **IM-10** `[Open]` — Publish a blank TAK Google Sheets template with the complete bound Apps Script. Users make a copy, run `setupTracker`, and create their own private web-app deployment without manually copying source files. Before publishing, verify that a copied template works and that it contains no user data, private IDs or existing deployment configuration.
+- **IM-10** `[Done]` — Publish a blank TAK Google Sheets template with the complete bound Apps Script. Users make a copy, run `setupTracker`, and create their own private web-app deployment without manually copying source files. Before publishing, verify that a copied template works and that it contains no user data, private IDs or existing deployment configuration.
 - **IM-01** `[Open]` — Consider renaming the Sheet view to List view.
 - **IM-02** `[Open]` — Allow users to edit comments, assignee and description without opening issue details.
 - **IM-03** `[Open]` — Let users copy local demo issues into a separate test Google Sheet. Preserve issue IDs, hierarchy, assignees, labels and dates; preview differences and protect existing Sheet data. This is a one-time transfer, not automatic synchronization.
@@ -25,6 +25,11 @@
 - **IM-09** `[Open]` — Optionally connect people's calendars to Google Calendar; the user has a code proposal to review.
 - **IM-11** `[Open]` — Milestone type task addition , displayed as diamond on Gant view
 - **IM-12** `[Open]` — Improve mobile view and usage like trelo
-- **IM-13** `[Open]` — IMprove colors not to mimic Jira too much
-- _
+- **IM-13** `[Open]` — Improve colors not to mimic Jira too much
+- **IM-14** [Open] — create a plan and imeplent UI and shortcuts to be easier
+	- Applies to all views
+		- new task entry quickly without opening even details "t", under given epics is selected or mouse is over
+		- new task entry quickly with  opening  compact details "Shift+t", under given epics is selected or mouse is over
+		- start date is always default today
+		- Same for story s and Shift+S
 - 
