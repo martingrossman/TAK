@@ -1684,7 +1684,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     } finally { setBusy(false); queueMicrotask(drainQuickQueue); }
   }
   function persist(input, version, message = 'Issue saved', mutation = 'saveIssue', options = {}) {
-    const queueKey = saveQueueKeyFor(draftKey(input)), draftKeyNow = input.id || queueKey;
+    const queueKey = saveQueueKeyFor(draftKey(input));
+    if (!input.id && state.pendingCreateIds[queueKey]) input = { ...input, id: state.pendingCreateIds[queueKey] };
+    const draftKeyNow = input.id || queueKey;
     const savedDraft = state.drafts[draftKeyNow] || state.drafts[queueKey];
     const quickCreate = !input.id && String(input._draftKey || '').startsWith('quick-');
     const operationId = options.retry || quickCreate
@@ -1721,7 +1723,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       let resolvedId = requestInput.id || state.pendingCreateIds[queueKey];
       // Advance only through our own acknowledged queue predecessor, not a remote refresh.
       let expectedVersion = acknowledged && acknowledged.id === resolvedId ? acknowledged.version : version;
-      const effectiveDraftKey = resolvedId || queueKey;
+      let effectiveDraftKey = resolvedId || queueKey;
       state.activeSaves++;
       syncText('Saving…');
       try {
@@ -1730,6 +1732,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
           resolvedId = created.id; expectedVersion = created.version;
           state.pendingCreateIds[queueKey] = resolvedId;
         }
+        effectiveDraftKey = resolvedId || queueKey;
         const effectiveInput = resolvedId ? { ...requestInput, id: resolvedId } : requestInput;
         const submittedDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
         if (submittedDraft?.operationId === operationId) {

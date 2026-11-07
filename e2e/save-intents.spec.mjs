@@ -139,6 +139,9 @@ for (const outcome of ['ok', 'lost']) test(`new issue edits reconcile the origin
   await expect.poll(async () => { const pending = await drafts(page); return (pending['PRJ-3'] || pending.__new__)?.input.description; }).toBe('Newest description');
   expect(await count(page)).toBe(updateIndex + 1);
   await finish(page, updateIndex); await expect.poll(() => count(page)).toBe(updateIndex + 2);
+  // The recovery copy must survive until the newest request is acknowledged.
+  await expect.poll(async () => (await drafts(page))['PRJ-3']?.input.description).toBe('Newest description');
+  expect((await drafts(page)).__new__).toBeUndefined();
   await finish(page, updateIndex + 1); await expect.poll(() => drafts(page)).toEqual({});
   const items = await page.evaluate(() => intentHarness.issues.filter(i => i.summary === 'Restored legacy create'));
   expect(items).toHaveLength(1); expect(items[0].description).toBe('Newest description');

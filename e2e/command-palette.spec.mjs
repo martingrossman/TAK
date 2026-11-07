@@ -9,7 +9,7 @@ test('commands open issues, switch views, and restore focus on Escape', async ({
   }, issue);
   await page.goto('/#kanban');
   await expect(page.locator('#command-open')).toBeEnabled();
-  await page.locator('#view-title').click();
+  await page.locator('#command-open').focus();
   await page.keyboard.press('Control+k');
   await expect(page.locator('#command-dialog')).toBeVisible();
   const query = page.locator('#command-query');

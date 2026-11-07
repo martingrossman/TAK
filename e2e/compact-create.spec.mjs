@@ -152,8 +152,9 @@ for (const modifier of ['Control', 'Meta']) {
 
 test('required/trimmed titles validate in compact mode and selected Epic supplies context', async ({ page }) => {
   await page.goto('/#kanban');
-  await page.locator('.workspace-options > summary').click();
+  await page.locator('#workspace-filters > summary').click();
   await page.locator(`[data-epic="${epic.id}"]`).click();
+  await page.locator('#workspace-filters > summary').click();
   await page.locator('#create-issue').click();
   await expect(field(page, 'parentId')).toHaveValue(epic.id);
   await page.locator('#save-issue').click();

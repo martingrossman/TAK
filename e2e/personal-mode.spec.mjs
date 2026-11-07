@@ -21,6 +21,7 @@ test.beforeEach(async ({ page }) => {
 test('personal mode skips automatic polls while manual refresh and team polling work',async ({page})=>{
   await page.evaluate(()=>personalHarness.poll());
   expect(await page.evaluate(()=>personalHarness.loads)).toBe(1);
+  await page.locator('#workspace-more > summary').click();
   await page.getByRole('button',{name:'Refresh',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>personalHarness.loads)).toBe(2);
   await page.evaluate(()=>{personalHarness.mode='team';});
