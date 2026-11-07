@@ -57,25 +57,35 @@
       <div class="workspace-controls">
         <div id="quick-entry-home" hidden>
           <div class="quick-entry ghost-entry" role="group" aria-label="Contextual quick create work item" hidden>
-            <div class="quick-entry-line">
-              <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… Enter to save" aria-label="New task title" aria-describedby="quick-context">
-              <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
-              <button id="quick-details" type="button" class="entry-extra">Details</button>
-              <button id="quick-clear" type="button" class="entry-extra">Clear</button>
-            </div>
-            <div class="quick-entry-context entry-extra">
-              <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
-              <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
+            <div class="quick-entry-context">
+              <div class="quick-parent-picker">
                 <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
-                <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
+                <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" popover="manual" hidden></div>
                 <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
-              </div></div>
-              <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+              </div>
               <span id="quick-context" role="status">No parent</span>
+            </div>
+            <div class="quick-entry-line">
+              <input id="quick-title" type="text" maxlength="2000" autocomplete="off" placeholder="Add a task…" aria-label="New task title" aria-describedby="quick-context quick-entry-hint quick-smart-hint quick-smart-errors" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-assignee-options" enterkeyhint="done">
+            </div>
+            <div id="quick-assignee-options" class="quick-parent-options" role="listbox" aria-label="Matching assignees" popover="manual" hidden></div>
+            <div id="quick-smart-preview" class="quick-smart-preview" role="group" aria-label="Recognized title properties" hidden></div>
+            <div id="quick-smart-errors" class="quick-smart-errors" role="status" aria-live="polite" hidden></div>
+            <small id="quick-smart-hint" class="quick-smart-hint">@name · 5d workdays · !high</small>
+            <div class="quick-entry-actions">
+              <button id="quick-add" type="button" aria-label="Create task" title="Create (Enter)">Create ↵</button>
+              <button id="quick-details" type="button" title="Open full creation details. From focused work, Shift+T/S opens the editor directly.">Details</button>
+              <details class="quick-entry-options"><summary aria-label="More creation options">More</summary><div class="quick-entry-secondary">
+                <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+                <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+                <button id="quick-clear" type="button">Discard draft</button>
+              </div><p class="quick-smart-hint">Use @"Martin Novak" for full names. Priorities: !highest, !high, !medium, !low, !lowest. Durations count Mon–Fri inclusively; 2w = 10 workdays, with no holidays. Set an exact deadline with due:today, due:tomorrow or due:YYYY-MM-DD. Use a preview chip’s × to keep a token as title text.</p></details>
+              <span id="quick-entry-hint">Enter to add another · Esc to close</span>
             </div>
             <div id="quick-batch" class="quick-batch" hidden>
               <label for="quick-batch-input">Pasted titles</label>
-              <textarea id="quick-batch-input" rows="6" maxlength="30000" aria-describedby="quick-batch-status"></textarea>
+              <small id="quick-batch-hint" class="quick-smart-hint">One literal title per line. Smart syntax applies only to single-title capture, not pasted lists.</small>
+              <textarea id="quick-batch-input" rows="6" maxlength="30000" aria-describedby="quick-batch-status quick-batch-hint"></textarea>
               <div class="quick-batch-actions"><span id="quick-batch-status" role="status" aria-live="polite"></span><button id="quick-batch-cancel" type="button" class="button secondary">Back</button><button id="quick-batch-submit" type="button" class="button primary">Create tasks</button></div>
             </div>
           </div>
@@ -99,8 +109,9 @@
     </div>
     <div id="active-filter-chips" class="active-filter-chips" hidden></div>
     <div id="filter-context" class="filter-context" hidden></div>
+    <div id="selection-actions" class="selection-actions" role="group" aria-label="Selected issues" hidden><span id="selection-count" role="status" aria-live="polite"></span><button type="button" class="button secondary" id="selection-edit" data-bulk-edit-open>Edit selected</button><button type="button" class="button secondary" id="selection-delete">Delete selected</button><button type="button" class="button subtle" id="selection-clear">Clear</button></div>
+    <div id="delete-recovery" class="selection-actions" role="status" hidden><span>A deletion is unconfirmed. Retry checks the original selection safely.</span><button type="button" class="button secondary" id="delete-recovery-open">Review deletion</button></div>
     <div id="error-banner" class="error-banner" role="alert" hidden></div>
-    <section id="quick-entry-pending" class="quick-entry-pending" aria-label="Pending quick additions" aria-live="polite" hidden></section>
     <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
     <section id="view-content" aria-labelledby="view-title"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
     <footer class="view-footer"><span id="view-hint"></span></footer>
@@ -154,15 +165,20 @@
   </dialog>
   <dialog id="bulk-create-dialog" class="help-dialog bulk-create-dialog" aria-labelledby="bulk-create-title">
     <div class="dialog-header"><div><span class="eyebrow">QUICK ENTRY</span><h2 id="bulk-create-title">Paste task titles</h2></div><button type="button" id="bulk-create-close" class="icon-button" aria-label="Close paste list">×</button></div>
-    <div class="bulk-create-body"><p>Enter one title per line. Blank lines are ignored. New tasks use Backlog and the configured default activity type.</p><label class="field" for="bulk-create-input">Task titles<textarea id="bulk-create-input" rows="10" maxlength="30000" placeholder="Prepare the launch plan&#10;Review the first draft&#10;Share feedback" aria-label="Task titles, one per line"></textarea></label><div id="bulk-create-preview" class="bulk-create-preview" role="status" aria-live="polite">Enter one or more titles.</div><div id="bulk-create-error" class="error-banner" role="alert" hidden></div></div>
+    <div class="bulk-create-body"><p>Enter one literal title per line. Blank lines are ignored. Smart syntax applies only to single-title capture, not pasted lists. New tasks use Backlog and the configured default activity type.</p><label class="field" for="bulk-create-input">Task titles<textarea id="bulk-create-input" rows="10" maxlength="30000" placeholder="Prepare the launch plan&#10;Review the first draft&#10;Share feedback" aria-label="Task titles, one per line"></textarea></label><div id="bulk-create-preview" class="bulk-create-preview" role="status" aria-live="polite">Enter one or more titles.</div><div id="bulk-create-error" class="error-banner" role="alert" hidden></div></div>
     <div class="dialog-footer"><span id="bulk-create-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-create-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-create-submit" class="button primary" disabled>Create tasks</button></div></div>
   </dialog>
   <dialog id="bulk-edit-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-edit-title">
     <form id="bulk-edit-form">
-      <div class="dialog-header"><div><span class="eyebrow">SHEET SELECTION</span><h2 id="bulk-edit-title">Edit selected issues</h2></div><button type="button" id="bulk-edit-close" class="icon-button" aria-label="Close bulk edit">×</button></div>
+      <div class="dialog-header"><div><span class="eyebrow">ISSUE SELECTION</span><h2 id="bulk-edit-title">Edit selected issues</h2></div><button type="button" id="bulk-edit-close" class="icon-button" aria-label="Close bulk edit">×</button></div>
       <div class="bulk-edit-body"><p id="bulk-edit-selection-count">Selected issues will be validated together before any changes are saved.</p><label class="field" for="bulk-edit-field">Field to change<select id="bulk-edit-field" required><option value="">Choose a field…</option><option value="status">Status</option><option value="assignee">Assignee</option><option value="priority">Priority</option><option value="parentId">Epic</option><option value="taskTypeId">Activity type</option><option value="startDate">Start date</option><option value="dueDate">Due date</option></select></label><div id="bulk-edit-value-wrap"></div><div id="bulk-edit-preview" class="bulk-edit-preview" role="status" aria-live="polite">Choose a field to preview the change.</div><div id="bulk-edit-error" class="error-banner" role="alert" hidden></div></div>
       <div class="dialog-footer"><span id="bulk-edit-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-edit-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-edit-submit" class="button primary" disabled>Apply to selected</button></div></div>
     </form>
+  </dialog>
+  <dialog id="bulk-delete-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-delete-title" aria-describedby="bulk-delete-description">
+    <div class="dialog-header"><h2 id="bulk-delete-title">Delete selected issues?</h2><button type="button" id="bulk-delete-close" class="icon-button" aria-label="Close deletion">×</button></div>
+    <div class="bulk-edit-body"><p id="bulk-delete-description"></p><p>Only the listed selection is deleted, never additional descendants. Unselected child or dependency references block the entire deletion.</p><ul id="bulk-delete-items"></ul><div id="bulk-delete-error" class="error-banner" role="alert" hidden></div></div>
+    <div class="dialog-footer"><span id="bulk-delete-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-delete-forget" class="button subtle" hidden>Forget retry</button><button type="button" id="bulk-delete-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-delete-submit" class="button danger">Delete selected</button></div></div>
   </dialog>
   <dialog id="saved-view-dialog" class="help-dialog saved-view-dialog" aria-labelledby="saved-view-title">
     <form id="saved-view-form"><div class="dialog-header"><div><span class="eyebrow">PERSONAL VIEW</span><h2 id="saved-view-title">Save this view</h2></div><button type="button" id="saved-view-close" class="icon-button" aria-label="Close save view">×</button></div><div class="saved-view-body"><p>Save the current filters, view, sorting, visible columns and collapse state in this browser.</p><label class="field">View name<input id="saved-view-name" required maxlength="60" autocomplete="off" placeholder="e.g. Bugs to review"></label><div id="saved-view-error" class="error-banner" role="alert" hidden></div></div><div class="dialog-footer"><span></span><div><button type="button" id="saved-view-cancel" class="button secondary">Cancel</button><button type="submit" class="button primary">Save view</button></div></div></form>
@@ -178,27 +194,32 @@
   <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
     <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
     <div class="help-body">
-      <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
-      <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
       <section aria-labelledby="shortcuts-essentials"><h3 id="shortcuts-essentials">Start here</h3>
         <dl class="shortcut-list">
-          <div><dt><kbd>T</kbd> / <kbd>S</kbd></dt><dd>Quick task / story in the focused context</dd></div>
-          <div><dt><kbd>Shift</kbd> + <kbd>T</kbd> / <kbd>S</kbd></dt><dd>Create a task / story with the compact editor</dd></div>
-          <div><dt><kbd>Enter</kbd></dt><dd>In Ghost Capture: create, then focus the acknowledged item</dd></div>
-          <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
+          <div><dt><kbd>T</kbd></dt><dd>Add a task here</dd></div>
+          <div><dt><kbd>S</kbd></dt><dd>Add a story here</dd></div>
+          <div><dt><kbd>Enter</kbd></dt><dd>Create and keep typing another</dd></div>
+          <div><dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>Create and keep typing another</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Go back; keep the unfinished draft</dd></div>
+        </dl>
+      </section>
+      <details class="shortcut-group"><summary>Navigate and find</summary>
+        <dl class="shortcut-list">
           <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd></div>
-          <div><dt><kbd>E</kbd></dt><dd>Open the focused issue</dd></div>
           <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
           <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>Close the current surface; unsaved edits remain protected</dd></div>
+          <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Focus the next / previous control</dd></div>
         </dl>
-      </section>
-      <p>Use <kbd>Tab</kbd> to focus a control before using its shortcuts, or <kbd>Shift</kbd> + <kbd>Tab</kbd> to go back.</p>
-      <details class="shortcut-group"><summary>Create &amp; edit</summary>
+      </details>
+      <details class="shortcut-group"><summary>Edit focused work</summary>
         <dl class="shortcut-list">
+          <div><dt><kbd>E</kbd></dt><dd>Open the focused issue</dd></div>
+          <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
+          <div><dt><kbd>Shift</kbd> + <kbd>T</kbd> / <kbd>S</kbd></dt><dd>Create a task / story with the compact editor</dd></div>
+          <div><dt><kbd>Enter</kbd></dt><dd>In the issue title: submit the issue form</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In Ghost Capture: return to the originating item and keep unsent text. Clear discards it.</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Return from capture and keep unsent text. Use Discard draft in its options to discard it. Issue dialogs protect unsaved edits.</dd></div>
           <div><dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt><dd>On a focused issue: edit priority, assignee, status, or due date</dd></div>
           <div><dt><kbd>X</kbd></dt><dd>Toggle selection for the focused issue</dd></div>
         </dl>
@@ -234,7 +255,9 @@
           <div><dt><kbd>Esc</kbd></dt><dd>Close Commands and restore focus</dd></div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Getting started</summary>
+      <details class="shortcut-group"><summary>Full reference and preferences</summary>
+        <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Single-key navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
+        <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
         <div class="help-overview">
           <p><strong>Sheet</strong> is your editable issue register. Change cells directly, or open an issue for every detail.</p>
           <p><strong>Kanban</strong> keeps work moving. Drag a card to change status or order. Use the card's Move button for status and legal Epic moves with keyboard or touch.</p>

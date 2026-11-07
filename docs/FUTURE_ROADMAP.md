@@ -36,6 +36,8 @@ Possible later features: holiday calendars, leave and part-day availability, con
 
 **Keep now:** existing calendar-day Gantt dragging/resizing/dependency display; optional start/due dates and estimates. Do not expand into a schedule solver just to improve the UI.
 
+**Approved narrow exception:** FR-02A permits weekday-only duration tokens in quick entry, mapped to existing start/due dates. This does not promote holiday calendars, configurable workweeks, resource scheduling, automatic rescheduling or changes to calendar-day Gantt dragging.
+
 ## D. Configurability and richer hierarchy
 
 - Separate task **hierarchy kind** (epic/story/task/subtask) from **work category** (Algo/Data/Requirements/Bug).
@@ -48,6 +50,8 @@ These are viable additions, but they can require schema migration, validation up
 ## E. Additional UX polish after MVP
 
 Dark/system theme, configurable card fields, advanced keyboard command menus, locale-aware one-line smart parsing (`tomorrow`, `#label`, `!high`, `@person`), user-defined shortcuts, custom dashboards, historical analytics and exports. Prefer user-observed needs and measured interaction improvements.
+
+**Approved narrow exception:** FR-02A promotes deterministic single-title `@assignee`, `!priority`, working-day duration and explicit `due:` tokens with preview and literal opt-out. General natural-language/locale parsing, labels and smart parsing of multiline batches remain deferred.
 
 ## F. How to promote an item
 

@@ -47,19 +47,21 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.gantt-grid')).toBeVisible();
 });
 
-const popup = page => page.locator('[data-gantt-quick-form]');
-const titleInput = page => popup(page).locator('[name="summary"]');
+const composer = page => page.locator('.quick-entry');
+const titleInput = page => page.locator('#quick-title');
 const pending = page => page.locator('.gantt-row[data-pending-quick]');
 const counts = page => page.evaluate(() => ({ singles: quickBatchCloud.requests.length, batches: quickBatchCloud.batches.length }));
 
 async function queueThree(page) {
   await page.locator('[data-gantt-add="PRJ-1"]').click();
-  await titleInput(page).fill('First story'); await titleInput(page).press('Enter');
+  await titleInput(page).fill('First story'); await titleInput(page).press('Shift+Enter');
   await expect.poll(() => counts(page)).toEqual({ singles: 1, batches: 0 });
-  await popup(page).locator('[name="kind"]').selectOption('Task');
-  await titleInput(page).fill('Second task'); await titleInput(page).press('Enter');
-  await popup(page).locator('[name="kind"]').selectOption('Story');
-  await titleInput(page).fill('Third story'); await titleInput(page).press('Enter');
+  await composer(page).locator('details > summary').click();
+  await page.locator('#quick-kind').selectOption('Task');
+  await titleInput(page).fill('Second task'); await titleInput(page).press('Shift+Enter');
+  if (!await page.locator('#quick-kind').isVisible()) await composer(page).locator('details > summary').click();
+  await page.locator('#quick-kind').selectOption('Story');
+  await titleInput(page).fill('Third story'); await titleInput(page).press('Shift+Enter');
   await expect(pending(page)).toHaveCount(3);
   await expect(pending(page).filter({ hasText: 'Second task' })).toContainText('Queued');
   await expect(pending(page).filter({ hasText: 'Third story' })).toContainText('Queued');
@@ -156,4 +158,38 @@ test('a legacy queue-only snapshot reuses original operations after another tab 
   const saved = await page.evaluate(() => quickBatchCloud.backend.issues.filter(issue => issue.type !== 'Epic'));
   expect(saved.map(issue => issue.summary)).toEqual(['First story', 'Second task', 'Third story']);
   expect(new Set(saved.map(issue => issue.id)).size).toBe(3);
+});
+
+test('paste list freezes today before persistence and replays unchanged after midnight and reload', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T23:59:00'));
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#bulk-create-open').click();
+  await page.locator('#bulk-create-input').fill('First pasted task\nSecond pasted task');
+  await page.locator('#bulk-create-submit').click();
+  await expect.poll(() => counts(page)).toEqual({ singles: 0, batches: 1 });
+  const original = await page.evaluate(() => quickBatchCloud.batches[0].items);
+  expect(original.map(item => item.input.startDate)).toEqual(['2026-11-07', '2026-11-07']);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.pending-batch.v1')).items)).toEqual(original);
+  await page.evaluate(() => finishQuickBatch(0, 'lost'));
+  await expect(page.locator('#bulk-create-status')).toHaveText('Batch saved for retry');
+  await page.clock.setFixedTime(new Date('2026-11-08T00:01:00'));
+  await page.locator('#bulk-create-submit').click();
+  await expect.poll(() => counts(page)).toEqual({ singles: 0, batches: 2 });
+  expect(await page.evaluate(() => quickBatchCloud.batches[1].items)).toEqual(original);
+  await page.evaluate(() => finishQuickBatch(1, 'lost'));
+  await expect(page.locator('#bulk-create-status')).toHaveText('Batch saved for retry');
+  await page.reload();
+  await expect(page.locator('.gantt-grid')).toBeVisible();
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#bulk-create-open').click();
+  await expect(page.locator('#bulk-create-input')).toBeDisabled();
+  await page.locator('#bulk-create-submit').click();
+  await expect.poll(() => counts(page)).toEqual({ singles: 0, batches: 1 });
+  expect(await page.evaluate(() => quickBatchCloud.batches[0].items)).toEqual(original);
+  await page.evaluate(() => finishQuickBatch(0));
+  await expect(page.locator('#bulk-create-dialog')).toBeHidden();
+  const saved = await page.evaluate(() => quickBatchCloud.backend.issues.filter(issue => issue.type === 'Task'));
+  expect(saved).toHaveLength(2);
+  expect(saved.map(issue => issue.startDate)).toEqual(['2026-11-07', '2026-11-07']);
+  expect(await page.evaluate(() => localStorage.getItem('sheetflow.pending-batch.v1'))).toBeNull();
 });

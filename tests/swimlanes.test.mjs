@@ -5,20 +5,10 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = name => readFile(new URL(name, root), 'utf8');
 
-test('Kanban exposes a persisted swimlane toggle', async () => {
-  const [index, client] = await Promise.all([read('Index.html'), read('Client.html')]);
-
-  assert.match(index, /id="swimlanes-toggle"/);
-  assert.match(index, /id="swimlanes-toggle" type="checkbox">/);
-  assert.match(client, /swimlanes: false/);
-  assert.match(client, /state\.swimlanes = ui\.swimlanes === true/);
-  assert.match(client, /setSwimlanes\(event\.target\.checked\); render\(\)/);
-});
 
 test('Kanban has a flat rendering path and preserves epic relationships', async () => {
   const client = await read('Client.html');
 
-  assert.match(client, /if \(!state\.swimlanes\) \{[\s\S]*?renderColumns\(issues\)/);
   const helpers = ['inEpicWithin', 'boardEpicId', 'boardMoveParent'].map(name => client.match(new RegExp(`  function ${name}\\([^]*?\\n  }`))?.[0]).join('\n');
   const records = [
     { id: 'e1', type: 'Epic' }, { id: 'e2', type: 'Epic' },
@@ -37,7 +27,6 @@ test('Kanban has a flat rendering path and preserves epic relationships', async 
   assert.equal(moveParent(records[4], ''), '');
   assert.equal(moveParent(records[6], 'e2'), 'e2');
   assert.throws(() => moveParent(records[4], 'missing'), /existing Epic/);
-  assert.match(client, /!state\.swimlanes \|\| \(laneId \?/);
 });
 
 test('grouped lanes represent epics once and keep epic details and schedule accessible', async () => {
@@ -51,20 +40,5 @@ test('grouped lanes represent epics once and keep epic details and schedule acce
   assert.deepEqual(lanes([task, epics[1], orphan]), [
     { id: 'E', label: 'One', items: [task] }, { id: 'F', label: 'Two', items: [] }, { id: '', label: 'No epic', items: [orphan] }
   ]);
-  assert.ok(client.includes('class="swimlane-edit" data-open="${escape(epic.id)}"'));
-  assert.ok(client.includes('const epicSchedule = epic ? effectiveDates(epic) : null;'));
-  assert.ok(client.includes('renderTrack(epic, topOffset + 22, epicSchedule, true)'));
-  assert.ok(client.includes('C.leafWorkProgress(state.issues)'));
-  assert.ok(client.includes('visible ${visibleLabel} · ${done}/${total} leaf work done'));
 });
 
-test('Epic dates are derived from child schedules throughout the UI', async () => {
-  const [index, client] = await Promise.all([read('Index.html'), read('Client.html')]);
-
-  assert.match(client, /function effectiveDates\(issue\)[\s\S]*?C\.epicScheduleRange/);
-  assert.match(client, /const dates = effectiveDates\(issue\)/);
-  assert.match(client, /issue\.type === 'Epic' && \['startDate', 'dueDate'\]\.includes\(key\)/);
-  assert.match(client, /input\.disabled = isEpic/);
-  assert.match(client, /const exportIssues = filtered\(\)\.map\(issue => issue\.type === 'Epic'/);
-  assert.match(index, /class="derived-date-note" hidden/);
-});

@@ -53,14 +53,15 @@ for (const view of ['sheet', 'kanban', 'gantt']) {
         const title = `${view}-${source}-${type}`;
         await expect(page.locator('#quick-title')).toBeFocused();
         await expect(page.locator('#quick-kind')).toHaveValue(type);
-        await expect(page.locator('#quick-context')).toHaveText(parentId ? initial.find(i => i.id === parentId).type === 'Story' ? 'STORY: Sign-in experience' : 'EPIC: Website launch' : 'No parent');
+        await expect(page.locator('#quick-context')).toHaveText(parentId ? initial.find(i => i.id === parentId).type === 'Story' ? 'Website launch / Sign-in experience' : 'Website launch' : 'No parent');
         await page.locator('#quick-title').fill(title); await page.keyboard.press('Enter');
         await expect.poll(async () => (await stored(page)).find(i => i.summary === title)?.parentId).toBe(parentId);
         const created = (await stored(page)).find(i => i.summary === title);
         expect(created).toMatchObject({ type, status: initial.find(i => i.id === source).status, priority: 'Medium', assignee: '', dueDate: '' });
         expect(created.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        await expect(item(page, view, created.id)).toBeFocused();
-        await expect(page.locator('#quick-title')).toBeHidden();
+        await expect(page.locator('#quick-title')).toBeFocused();
+        await expect(page.locator('#quick-title')).toHaveValue('');
+        await page.keyboard.press('Escape');
       }
     }
   });
@@ -88,10 +89,14 @@ test('Escape retains unfinished entry; mouse hover and different shortcuts canno
   await item(page, 'kanban', 'PRJ-5').hover(); await page.keyboard.press('s');
   await expect(page.locator('#quick-kind')).toHaveValue('Task');
   await expect(page.locator('#quick-title')).toHaveValue('Unfinished');
-  await expect(page.locator('#quick-context')).toHaveText('STORY: Sign-in experience');
+  await expect(page.locator('#quick-context')).toHaveText('Website launch / Sign-in experience');
+  await page.locator('.quick-entry details > summary').click();
   await page.locator('#quick-clear').click(); await expect(page.locator('#quick-title')).toHaveValue('');
+  await expect(page.locator('#quick-title')).toBeHidden();
+  await item(page, 'kanban', 'PRJ-2').focus(); await page.keyboard.press('t');
+  await expect(page.locator('#quick-title')).toHaveValue('');
   await page.locator('#quick-parent').fill('PRJ-5'); await page.locator('#quick-parent').press('Enter');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Another epic');
+  await expect(page.locator('#quick-context')).toHaveText('Another epic');
 });
 
 test('Sheet arrows, edit Escape, grouped headings, and movable ID preserve context', async ({ page }) => {
@@ -104,7 +109,7 @@ test('Sheet arrows, edit Escape, grouped headings, and movable ID preserve conte
   const summary = page.locator('[data-id="PRJ-3"][data-field="summary"]');
   await summary.fill('Unsent edit'); await summary.press('Escape');
   await expect(summary).toHaveValue('Password reset'); await expect(item(page, 'sheet', 'PRJ-3')).toBeFocused();
-  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('STORY: Sign-in experience');
+  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('Website launch / Sign-in experience');
 });
 
 test('Sheet Epic headings switch task context without toggling lanes and bulk lane controls work', async ({ page }) => {
@@ -115,9 +120,8 @@ test('Sheet Epic headings switch task context without toggling lanes and bulk la
   await firstHeading.click();
   await expect(firstToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.sheet-lane-title.context-active')).toContainText('Website launch');
-  await expect(page.locator('.sheet-lane-title.context-active .task-context-badge')).toHaveText('Task context');
   await page.keyboard.press('t');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Website launch');
+  await expect(page.locator('#quick-context')).toHaveText('Website launch');
   await page.keyboard.press('Escape');
 
   await firstToggle.click();
@@ -132,7 +136,7 @@ test('Sheet Epic headings switch task context without toggling lanes and bulk la
   await expect(page.locator('.sheet-lane-title.context-active')).toContainText('Another epic');
   const add = page.getByRole('button', { name: 'Add task under Another epic' });
   await add.click();
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Another epic');
+  await expect(page.locator('#quick-context')).toHaveText('Another epic');
   await page.locator('#quick-title').fill('Task in second epic'); await page.keyboard.press('Enter');
   await expect.poll(async () => (await stored(page)).find(issue => issue.summary === 'Task in second epic')?.parentId).toBe('PRJ-5');
 });
@@ -145,20 +149,18 @@ test('Kanban and Gantt Epic headings expose the same independent Task context', 
   await kanbanHeading.click();
   await expect(kanbanToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(kanbanHeading).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.swimlane[data-epic-lane="PRJ-1"] .task-context-badge')).toHaveText('Task context');
-  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('EPIC: Website launch');
+  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('Website launch');
   await page.keyboard.press('Escape');
 
   await page.locator('[data-view="gantt"]').click();
-  await expect(page.locator('.gantt-swimlane[data-epic-lane="PRJ-1"] .task-context-badge')).toHaveText('Task context');
+  await expect(page.locator('.gantt-swimlane[data-epic-lane="PRJ-1"] [data-select-lane]')).toHaveAttribute('aria-pressed', 'true');
   const ganttHeading = page.locator('.gantt-swimlane[data-epic-lane="PRJ-5"] [data-select-lane="PRJ-5"]');
   const ganttToggle = page.locator('.gantt-swimlane[data-epic-lane="PRJ-5"] [data-toggle-lane="PRJ-5"]');
   await expect(ganttToggle).toHaveAttribute('aria-expanded', 'true');
   await ganttHeading.click();
   await expect(ganttToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(ganttHeading).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('.gantt-swimlane[data-epic-lane="PRJ-5"] .task-context-badge')).toHaveText('Task context');
-  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('EPIC: Another epic');
+  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('Another epic');
   await page.locator('#quick-title').fill('Task from Gantt Epic context'); await page.keyboard.press('Enter');
   await expect.poll(async () => (await stored(page)).find(issue => issue.summary === 'Task from Gantt Epic context')?.parentId).toBe('PRJ-5');
 });
@@ -171,8 +173,7 @@ test('successful dialog parent changes move and clear the active Epic context', 
   await expect(page.locator('#form-save-status')).toHaveText('Saved');
   await expect(page.locator('[data-select-lane="PRJ-5"]')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Close issue', exact: true }).click();
-  await expect(page.locator('.swimlane[data-epic-lane="PRJ-5"] .task-context-badge')).toHaveText('Task context');
-  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('EPIC: Another epic');
+  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('Another epic');
   await page.keyboard.press('Escape');
 
   await item(page, 'kanban', 'PRJ-3').click();
@@ -197,7 +198,9 @@ test('typing, composition, repeats and disabled single-key shortcuts never creat
   await item(page, 'kanban', 'PRJ-3').focus();
   for (const event of [{ key: 't', repeat: true }, { key: 's', isComposing: true }, { key: 't', keyCode: 229 }, { key: 't', altKey: true }]) await item(page, 'kanban', 'PRJ-3').dispatchEvent('keydown', event);
   await expect(page.locator('.quick-entry')).not.toHaveClass(/entry-active/);
-  await page.locator('#help-button').click(); await page.locator('#single-key-shortcuts').uncheck(); await page.keyboard.press('Escape');
+  await page.locator('#help-button').click();
+  await page.locator('#help-dialog details').filter({ has: page.locator('#single-key-shortcuts') }).locator('summary').click();
+  await page.locator('#single-key-shortcuts').uncheck(); await page.keyboard.press('Escape');
   await page.reload(); await item(page, 'kanban', 'PRJ-3').focus(); await page.keyboard.press('t');
   await expect(page.locator('.quick-entry')).not.toHaveClass(/entry-active/);
   await page.keyboard.press('Control+k'); await expect(page.locator('#command-dialog')).toBeVisible();
@@ -208,7 +211,7 @@ test('typing, composition, repeats and disabled single-key shortcuts never creat
 for (const batch of [false, true]) test(`cloud ${batch ? 'batch' : 'single'} queue freezes dates and retries lost acknowledgement`, async ({ page }) => {
   await seed(page, true, batch); await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
   await page.goto('/#kanban'); await item(page, 'kanban', 'PRJ-2').focus(); await page.keyboard.press('t');
-  for (const title of ['First', 'Second', 'Third']) { await page.locator('#quick-title').fill(title); await page.keyboard.press('Enter'); }
+  for (const title of ['First', 'Second', 'Third']) { await page.locator('#quick-title').fill(title); await page.keyboard.press('Shift+Enter'); }
   await expect.poll(() => page.evaluate(() => window.entryHarness.requests.length)).toBe(1);
   await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'));
   await page.locator('#quick-title').fill('Next unsent');
@@ -240,19 +243,21 @@ test('unavailable storage and invalid parents leave the title intact', async ({ 
 for (const width of [1366, 768, 390]) test(`entry controls fit and remain reachable at ${width}px`, async ({ page }) => {
   await seed(page); await page.addInitScript(() => { const data = JSON.parse(localStorage.getItem('sheetflow.project.v1')); data.issues[0].summary = 'Website launch with a very long epic title '.repeat(3); localStorage.setItem('sheetflow.project.v1', JSON.stringify(data)); }); await page.setViewportSize({ width, height: 844 }); await page.goto('/#sheet');
   await item(page, 'sheet', 'PRJ-2').focus(); await page.keyboard.press('t');
-  for (const selector of ['#quick-title', '#quick-add', '#quick-details', '#quick-clear', '#quick-parent', '#quick-kind', '#quick-status']) {
+  for (const selector of ['#quick-title', '#quick-add', '#quick-details', '#quick-parent']) {
+    await expect(page.locator(selector)).toBeInViewport();
     const box = await page.locator(selector).boundingBox(); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width + 1);
   }
-  const entryBox = await page.locator('.ghost-entry').boundingBox();
-  if (width >= 1000) expect(entryBox.width).toBeGreaterThanOrEqual(700);
+  await expect(page.locator('#quick-kind')).toBeHidden();
+  await expect(page.locator('#quick-status')).toBeHidden();
+  await page.locator('.quick-entry details > summary').click();
+  for (const selector of ['#quick-clear', '#quick-kind', '#quick-status']) await expect(page.locator(selector)).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: `.local-release/im14-${width}.png` });
 });
 
 test('view switching remembers context; filtering removes stale context and never clears filters on create', async ({ page }) => {
   await seed(page); await page.goto('/#kanban'); await item(page, 'kanban', 'PRJ-2').focus();
   await page.locator('[data-view="gantt"]').click(); await page.keyboard.press('t');
-  await expect(page.locator('#quick-context')).toHaveText('STORY: Sign-in experience');
+  await expect(page.locator('#quick-context')).toHaveText('Website launch / Sign-in experience');
   await page.keyboard.press('Escape');
   await page.locator('#search').fill('Another epic'); await page.locator('#help-button').focus(); await page.keyboard.press('t');
   await expect(page.locator('#quick-context')).toHaveText('No parent');
@@ -267,7 +272,7 @@ test('single checked row supplies fallback; multiple selections do not create mu
   // Empty-column focus clears navigation context while retaining checked rows.
   await page.locator('[data-view="kanban"]').click(); await page.locator('.column[data-status="In Progress"] .column-header').focus(); await page.locator('[data-view="sheet"]').click();
   await page.locator('#help-button').focus(); await page.keyboard.press('t');
-  await expect(page.locator('#quick-context')).toHaveText('STORY: Sign-in experience');
+  await expect(page.locator('#quick-context')).toHaveText('Website launch / Sign-in experience');
   await page.keyboard.press('Escape');
   await page.locator('[data-sheet-select="PRJ-4"]').check();
   await page.locator('[data-view="kanban"]').click(); await page.locator('.column[data-status="In Progress"] .column-header').focus(); await page.locator('[data-view="sheet"]').click();
@@ -283,7 +288,7 @@ test('selected Epic is the fallback when no visible item is active', async ({ pa
   await page.locator('#workspace-filters > summary').click();
   await page.locator('#epic-nav [data-epic="PRJ-5"]').click();
   await page.locator('#help-button').focus(); await page.keyboard.press('s');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Another epic');
+  await expect(page.locator('#quick-context')).toHaveText('Another epic');
 });
 
 test('Gantt grouped navigation skips collapsed Story children and preserves focus after redraw', async ({ page }) => {
@@ -296,7 +301,7 @@ test('Gantt grouped navigation skips collapsed Story children and preserves focu
   await page.keyboard.press('ArrowUp'); await expect(item(page, 'gantt', 'PRJ-2')).toBeFocused();
   await page.keyboard.press('ArrowUp'); await expect(page.locator('[data-select-lane="PRJ-1"]')).toBeFocused();
   await page.keyboard.press('Enter'); await expect(page.locator('[data-select-lane="PRJ-1"]')).toBeFocused();
-  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('EPIC: Website launch');
+  await page.keyboard.press('t'); await expect(page.locator('#quick-context')).toHaveText('Website launch');
 });
 
 test('legacy queued entries keep their original blank schedule', async ({ page }) => {
@@ -320,22 +325,25 @@ test('missing frozen parent blocks submission without retargeting or losing the 
   expect(await page.evaluate(() => window.entryHarness.requests.length)).toBe(0);
 });
 
-test('deep Epic lanes keep shared entry visible without moving the board', async ({ page }) => {
+test('deep Epic lanes keep inline capture reachable with its context and draft', async ({ page }) => {
   await seed(page); await page.setViewportSize({ width: 1366, height: 768 }); await page.goto('/#kanban');
   await page.locator('#swimlanes-toggle').check();
   await item(page, 'kanban', 'PRJ-6').scrollIntoViewIfNeeded(); await item(page, 'kanban', 'PRJ-6').focus();
-  const before = await item(page, 'kanban', 'PRJ-6').boundingBox();
-  const scroll = await page.locator('.swimlane[data-epic-lane=""] .board').evaluate(el => ({ left: el.scrollLeft, top: el.scrollTop }));
-  await page.keyboard.press('t'); await expect(page.locator('#quick-title')).toBeInViewport();
-  const after = await item(page, 'kanban', 'PRJ-6').boundingBox();
-  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
-  expect(await page.locator('.swimlane[data-epic-lane=""] .board').evaluate(el => ({ left: el.scrollLeft, top: el.scrollTop }))).toEqual(scroll);
+  await page.keyboard.press('t');
+  await expect(page.locator('#quick-title')).toBeInViewport();
+  await expect(page.locator('#quick-context')).toHaveText('No parent');
+  await expect(page.locator('.swimlane[data-epic-lane=""] .column[data-status="Backlog"] #quick-title')).toBeVisible();
+  await page.locator('#quick-title').fill('Deep lane unfinished draft');
+  await page.keyboard.press('Escape'); await page.keyboard.press('t');
+  await expect(page.locator('#quick-title')).toBeInViewport();
+  await expect(page.locator('#quick-title')).toHaveValue('Deep lane unfinished draft');
+  await expect(page.locator('#quick-context')).toHaveText('No parent');
 });
 
 test('empty grouped Kanban column retains its Epic and status context', async ({ page }) => {
   await seed(page); await page.goto('/#kanban'); await page.locator('#swimlanes-toggle').check();
   await page.locator('.swimlane[data-epic-lane="PRJ-1"] .column[data-status="In Progress"] .column-header').focus(); await page.keyboard.press('t');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Website launch');
+  await expect(page.locator('#quick-context')).toHaveText('Website launch');
   await expect(page.locator('#quick-status')).toHaveValue('In Progress');
 });
 
@@ -344,15 +352,14 @@ for (const view of ['sheet', 'kanban', 'gantt']) test(`${view}: parent dropdown 
   const targetToggle = page.locator('[data-toggle-lane="PRJ-5"]');
   await targetToggle.click(); await expect(targetToggle).toHaveAttribute('aria-expanded', 'false');
   await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
-  await expect(page.locator('#quick-parent')).toHaveValue('STORY: Sign-in experience');
+  await expect(page.locator('#quick-parent')).toHaveValue('Website launch / Sign-in experience');
   await page.locator('#quick-title').fill('Manually assigned ' + view);
   await page.locator('#quick-parent-toggle').click();
   await expect(page.getByRole('listbox', { name: 'Available parents' })).toBeVisible();
   expect(await page.locator('#quick-parent-options').innerText()).not.toMatch(/PRJ-\d+/);
-  await page.locator('#quick-parent-options').getByRole('option', { name: 'EPIC: Another epic', exact: true }).click();
-  await expect(page.locator('#quick-parent')).toHaveValue('EPIC: Another epic');
+  await page.locator('#quick-parent-options').getByRole('option', { name: 'Another epic', exact: true }).click();
+  await expect(page.locator('#quick-parent')).toHaveValue('Another epic');
   await expect(page.locator('[data-select-lane="PRJ-5"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('[data-select-lane="PRJ-5"] .task-context-badge')).toHaveText('Task context');
   await expect(targetToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#quick-title')).toHaveValue('Manually assigned ' + view);
   await page.keyboard.press('Enter');
@@ -365,13 +372,14 @@ test('parent search supports keyboard choice, No parent, and Story parent restri
 
   await expect(page.locator('#quick-parent-options').getByRole('option')).toHaveCount(1);
   await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter');
-  await expect(page.locator('#quick-parent')).toHaveValue('STORY: Sign-in experience');
+  await expect(page.locator('#quick-parent')).toHaveValue('Website launch / Sign-in experience');
   await expect(page.locator('#quick-title')).toBeFocused();
   await page.locator('#quick-parent-toggle').click(); await page.locator('#quick-parent-options').getByRole('option', { name: 'No parent', exact: true }).click();
   await expect(page.locator('#quick-parent')).toHaveValue('No parent');
+  await page.locator('.quick-entry details > summary').click();
   await page.locator('#quick-kind').selectOption('Story'); await page.locator('#quick-parent-toggle').click();
   await expect(page.locator('#quick-parent-options').getByRole('option')).toHaveCount(3);
-  expect(await page.locator('#quick-parent-options').innerText()).not.toMatch(/STORY:|TASK:|BUG:|PRJ-\d+/);
+  await expect(page.locator('#quick-parent-options').getByRole('option').filter({ hasText: /Sign-in experience|Password reset|Login error/ })).toHaveCount(0);
 });
 test('parent-driven focus reveals collapsed Epic and Story ancestors in Sheet and Gantt', async ({ page }) => {
   await seed(page);
@@ -396,7 +404,7 @@ test('parent-driven focus reveals collapsed Epic and Story ancestors in Sheet an
 
   await item(page, 'gantt', 'PRJ-2').focus(); await page.keyboard.press('t');
   await page.locator('#quick-parent-toggle').click();
-  await page.locator('#quick-parent-options').getByRole('option', { name: 'STORY: Another epic story', exact: true }).click();
+  await page.locator('#quick-parent-options').getByRole('option', { name: 'Another epic / Another epic story', exact: true }).click();
   await expect(page.locator('[data-toggle-lane="PRJ-5"]')).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('[data-toggle-gantt-story="PRJ-7"]')).toHaveAttribute('aria-expanded', 'true');
 
@@ -418,12 +426,16 @@ for (const view of ['sheet', 'kanban', 'gantt']) test(`${view}: parent-driven fo
   await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
   await expect(destination).not.toBeInViewport();
   await page.locator('#quick-parent-toggle').click();
-  await page.locator('#quick-parent-options').getByRole('option', { name: 'EPIC: Another epic', exact: true }).click();
+  await page.locator('#quick-parent-options').getByRole('option', { name: 'Another epic', exact: true }).click();
   await expect(destination).toBeInViewport();
   const destinationBox = await destination.boundingBox();
   expect(destinationBox.y).toBeGreaterThanOrEqual(0);
   expect(destinationBox.y + destinationBox.height).toBeLessThanOrEqual(500);
-  expect(destinationBox.y).toBeLessThan(300);
+  const composerBox = await page.locator('.quick-entry').boundingBox();
+  const overlaps = destinationBox.x < composerBox.x + composerBox.width && destinationBox.x + destinationBox.width > composerBox.x
+    && destinationBox.y < composerBox.y + composerBox.height && destinationBox.y + destinationBox.height > composerBox.y;
+  expect(overlaps).toBe(false);
+  await expect(page.locator('#quick-title')).toBeInViewport();
   await expect(page.locator('#quick-title')).toBeFocused();
 });
 
@@ -435,7 +447,7 @@ test('same-name parents remain distinct without showing IDs', async ({ page }) =
   await page.locator('#quick-parent').fill('Sign-in experience');
   await expect(page.locator('#quick-parent-options').getByRole('option')).toHaveCount(2);
   expect(await page.locator('#quick-parent-options').innerText()).not.toMatch(/PRJ-\d+/);
-  await page.locator('#quick-parent-options').getByRole('option', { name: 'STORY: Sign-in experience EPIC: Another epic', exact: true }).click();
+  await page.locator('#quick-parent-options').getByRole('option', { name: 'Another epic / Sign-in experience', exact: true }).click();
   await page.keyboard.press('Enter');
   await expect.poll(async () => (await stored(page)).find(i => i.summary === 'Choose the other sign-in story')?.parentId).toBe('PRJ-7');
 });
@@ -449,7 +461,8 @@ test('Escape closes Ghost Capture from every control and preserves its draft', a
 
   await page.keyboard.press('t');
   await expect(page.locator('#quick-title')).toHaveValue('Keep title');
-  await expect(page.locator('#quick-parent')).toHaveValue('STORY: Sign-in experience');
+  await expect(page.locator('#quick-parent')).toHaveValue('Website launch / Sign-in experience');
+  await page.locator('.quick-entry details > summary').click();
   await page.locator('#quick-status').focus(); await page.keyboard.press('Escape');
   await expect(page.locator('#quick-title')).toBeHidden();
   await expect(origin).toBeFocused();
@@ -463,3 +476,111 @@ for (const width of [1366, 390]) test(`parent choices fit without IDs at ${width
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `.local-release/parent-picker-${width}.png` });
 });
+
+for (const view of ['sheet', 'kanban', 'gantt']) {
+  test(`${view}: Create keeps capture open after acknowledgement until Escape`, async ({ page }) => {
+    await seed(page, true); await page.goto('/#' + view);
+    await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
+    await page.locator('#quick-title').fill('Immediate pending work');
+    await page.locator('#quick-add').click();
+    const pending = page.locator('[data-pending-quick]').filter({ hasText: 'Immediate pending work' });
+    await expect(page.locator('#quick-title')).toBeFocused();
+    await expect(page.locator('#quick-title')).toHaveValue('');
+    expect(await pending.getAttribute('draggable')).not.toBe('true');
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(1);
+    await page.evaluate(() => finishEntry(0));
+    await expect(pending).toHaveCount(0);
+    await expect(page.locator('#quick-title')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#quick-title')).toBeHidden();
+  });
+
+  test(`${view}: navigation away from pending work prevents acknowledgement focus theft`, async ({ page }) => {
+    await seed(page, true); await page.goto('/#' + view);
+    await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
+    await page.locator('#quick-title').fill('Do not steal focus'); await page.keyboard.press('Enter');
+    await page.locator('[data-pending-quick]').filter({ hasText: 'Do not steal focus' }).focus();
+    await page.keyboard.press('ArrowUp');
+    const destination = await page.evaluate(() => {
+      const node = document.activeElement;
+      return node?.getAttribute('data-sheet-drag-id') || node?.getAttribute('data-issue') || node?.getAttribute('data-open');
+    });
+    expect(destination).toBeTruthy();
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(1);
+    await page.evaluate(() => finishEntry(0));
+    await expect(item(page, view, 'PRJ-7')).toBeVisible();
+    await expect(item(page, view, destination)).toBeFocused();
+  });
+
+  test(`${view}: Enter keeps capture ready and preserves its next draft on acknowledgement and Escape`, async ({ page }) => {
+    await seed(page, true); await page.goto('/#' + view);
+    await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
+    for (const title of ['Repeat one', 'Repeat two']) {
+      await page.locator('#quick-title').fill(title); await page.keyboard.press('Enter');
+      await expect(page.locator('#quick-title')).toBeFocused();
+      await expect(page.locator('#quick-title')).toHaveValue('');
+    }
+    await page.locator('#quick-title').fill('Next unsent draft');
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(1);
+    await page.evaluate(() => finishEntry(0));
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(2);
+    await page.evaluate(() => finishEntry(1));
+    await expect(page.locator('#quick-title')).toBeFocused();
+    await expect(page.locator('#quick-title')).toHaveValue('Next unsent draft');
+    expect(await page.evaluate(() => entryHarness.issues.filter(i => i.summary.startsWith('Repeat')).map(i => i.parentId))).toEqual(['PRJ-2', 'PRJ-2']);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#quick-title')).toBeHidden();
+    await page.keyboard.press('t');
+    await expect(page.locator('#quick-title')).toHaveValue('Next unsent draft');
+    await expect(page.locator('#quick-title')).toBeFocused();
+  });
+
+  test(`${view}: failed pending work retries in its original filtered context`, async ({ page }) => {
+    await seed(page, true); await page.goto('/#' + view);
+    await page.locator('#search').fill('Sign-in');
+    await item(page, view, 'PRJ-2').focus(); await page.keyboard.press('t');
+    await page.locator('#quick-title').fill('Sign-in retry'); await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(1);
+    await page.evaluate(() => finishEntry(0, 'lost'));
+    const pending = page.locator('[data-pending-quick]').filter({ hasText: 'Sign-in retry' });
+    await pending.getByRole('button', { name: /retry/i }).click();
+    await expect.poll(() => page.evaluate(() => entryHarness.requests.length)).toBe(2);
+    expect(await page.evaluate(() => entryHarness.requests[1].input)).toEqual(await page.evaluate(() => entryHarness.requests[0].input));
+    await page.evaluate(() => finishEntry(1));
+    await expect(pending).toHaveCount(0);
+    await expect(page.locator('#search')).toHaveValue('Sign-in');
+    expect(await page.evaluate(() => entryHarness.issues.filter(i => i.summary === 'Sign-in retry').map(i => i.parentId))).toEqual(['PRJ-2']);
+  });
+}
+
+for (const view of ['sheet', 'kanban', 'gantt']) {
+  test(`${view}: double-click opens task and Epic details without changing lane expansion`, async ({ page }) => {
+    await seed(page); await page.goto('/#' + view);
+    await page.locator('#swimlanes-toggle').check();
+    const heading = page.locator('[data-select-lane="PRJ-1"]');
+    const toggle = page.locator('[data-toggle-lane="PRJ-1"]');
+    await heading.locator('strong').dblclick();
+    await expect(page.locator('#issue-dialog')).toBeVisible();
+    await expect(page.locator('#dialog-id')).toHaveText('PRJ-1');
+    await page.keyboard.press('Escape');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await heading.click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    await page.keyboard.press('t');
+    await expect(page.locator('#quick-context')).toHaveText('Website launch');
+    await page.keyboard.press('Escape');
+    const taskTitle = page.locator(view === 'sheet' ? '.cell-summary[data-id="PRJ-3"]' : view === 'kanban' ? '.card[data-issue="PRJ-3"] .card-title' : '.gantt-label-hit[data-open="PRJ-3"] .gantt-label-summary');
+    await taskTitle.dblclick();
+    await expect(page.locator('#issue-dialog')).toBeVisible();
+    await expect(page.locator('#dialog-id')).toHaveText('PRJ-3');
+    await page.keyboard.press('Escape');
+    await toggle.click();
+    await heading.locator('strong').dblclick();
+    await expect(page.locator('#dialog-id')).toHaveText('PRJ-1');
+    await expect(page.locator('#issue-dialog')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(await stored(page)).toEqual(initial);
+  });
+}

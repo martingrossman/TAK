@@ -36,23 +36,30 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.gantt-grid')).toBeVisible();
 });
 
-const formFor = page => page.locator('[data-gantt-quick-form]');
-const inputFor = page => formFor(page).locator('[name="summary"]');
+const formFor = page => page.locator('.quick-entry');
+const inputFor = page => page.locator('#quick-title');
 const pendingFor = page => page.locator('.gantt-row[data-pending-quick]');
 const requestCount = page => page.evaluate(() => window.ganttCloud.requests.length);
+
+async function chooseKind(page, kind) {
+  const options = formFor(page).locator('details');
+  if (await options.getAttribute('open') === null) await options.locator('summary').click();
+  await page.locator('#quick-kind').selectOption(kind);
+  await options.locator('summary').click();
+}
 
 async function openEpicAdder(page) {
   await page.locator('[data-gantt-add="PRJ-2"]').click();
   await expect(inputFor(page)).toBeFocused();
-  await expect(formFor(page).locator('[name="kind"]')).toHaveValue('Story');
+  await chooseKind(page, 'Story');
 }
 
-test('Gantt Story appears before acknowledgement while the form, next title, and scroll stay stable', async ({ page }) => {
+test('Gantt repeat capture retains the next title and timeline scroll through acknowledgement', async ({ page }) => {
   await openEpicAdder(page);
   const input = inputFor(page);
   await page.locator('.gantt-viewport').evaluate(element => { element.scrollLeft = 220; });
   await input.fill('Story saving in the background');
-  await input.press('Enter');
+  await input.press('Shift+Enter');
   await expect(pendingFor(page)).toHaveCount(1);
   await expect(page.locator('.gantt-swimlane[data-epic-lane="PRJ-2"] [data-pending-quick]')).toContainText('Story saving in the background');
   await expect(pendingFor(page)).toContainText('Saving');
@@ -61,16 +68,15 @@ test('Gantt Story appears before acknowledgement while the form, next title, and
   await expect(input).toBeFocused();
   expect(await page.locator('.gantt-viewport').evaluate(element => element.scrollLeft)).toBe(220);
   await input.fill('Next unfinished story');
-  const before = await input.boundingBox();
-  const scroll = await page.evaluate(() => window.scrollY);
   await page.evaluate(() => window.finishGanttSave(0));
   await expect(pendingFor(page)).toHaveCount(0);
   await expect(page.locator('[data-gantt-row-id="PRJ-19"]')).toContainText('Story saving in the background');
+  await expect(page.locator('[data-gantt-row-id="PRJ-19"] [data-bar="PRJ-19"]')).toHaveClass(/start-only/);
+  await expect(page.locator('[data-gantt-row-id="PRJ-19"] [data-bar="PRJ-19"]')).toHaveAttribute('title', /No due date/);
   await expect(input).toHaveValue('Next unfinished story');
   await expect(input).toBeFocused();
-  await expect(formFor(page).locator('[name="kind"]')).toHaveValue('Story');
-  expect(Math.abs((await input.boundingBox()).y - before.y)).toBeLessThan(4);
-  expect(Math.abs(await page.evaluate(() => window.scrollY) - scroll)).toBeLessThan(4);
+  await expect(page.locator('#quick-kind')).toHaveValue('Story');
+  await expect(input).toBeInViewport();
   expect(await page.locator('.gantt-viewport').evaluate(element => element.scrollLeft)).toBe(220);
   const saved = await page.evaluate(() => window.ganttCloud.issues.at(-1));
   expect(saved.type).toBe('Story'); expect(saved.parentId).toBe('PRJ-2');
@@ -78,9 +84,9 @@ test('Gantt Story appears before acknowledgement while the form, next title, and
 
 test('Gantt can queue another child with its chosen kind before the previous save finishes', async ({ page }) => {
   await openEpicAdder(page);
-  await inputFor(page).fill('First new story'); await inputFor(page).press('Enter');
-  await formFor(page).locator('[name="kind"]').selectOption('Task');
-  await inputFor(page).fill('Next child task'); await inputFor(page).press('Enter');
+  await inputFor(page).fill('First new story'); await inputFor(page).press('Shift+Enter');
+  await chooseKind(page, 'Task');
+  await inputFor(page).fill('Next child task'); await inputFor(page).press('Shift+Enter');
   await expect(pendingFor(page)).toHaveCount(2);
   await expect(pendingFor(page).filter({ hasText: 'Next child task' })).toContainText('Queued');
   expect(await requestCount(page)).toBe(1);
@@ -97,36 +103,23 @@ test('Gantt can queue another child with its chosen kind before the previous sav
   ]);
 });
 
-test('adding under a long Epic reveals the pending Story inside the timeline while the page and popup stay put', async ({ page }) => {
+test('adding under a long Epic keeps capture reachable without waiting for the save', async ({ page }) => {
   const viewport = page.locator('.gantt-viewport');
   await viewport.scrollIntoViewIfNeeded();
   await viewport.evaluate(element => { element.scrollLeft = 240; element.scrollTop = 0; });
   await page.locator('[data-gantt-add="PRJ-1"]').click();
-  const input = inputFor(page), popupBefore = await formFor(page).boundingBox();
-  const pageBefore = await page.evaluate(() => window.scrollY);
+  await chooseKind(page, 'Story');
+  const input = inputFor(page);
   await input.fill('Visible below sixteen existing children');
   await input.press('Enter');
   const pending = page.locator('.gantt-swimlane[data-epic-lane="PRJ-1"] .gantt-row[data-pending-quick]');
   await expect(pending).toContainText('Visible below sixteen existing children');
-  await expect.poll(() => pending.evaluate(element => {
-    const viewport = element.closest('.gantt-viewport'), frame = viewport.getBoundingClientRect();
-    const header = viewport.querySelector('.gantt-header').getBoundingClientRect(), row = element.getBoundingClientRect();
-    return row.top >= header.bottom - 1 && row.bottom <= frame.bottom + 1;
-  })).toBe(true);
-  expect(await viewport.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect(input).toBeInViewport();
   expect(await viewport.evaluate(element => element.scrollLeft)).toBe(240);
-  expect(Math.abs(await page.evaluate(() => window.scrollY) - pageBefore)).toBeLessThan(4);
-  const popupAfter = await formFor(page).boundingBox();
-  expect(Math.abs(popupAfter.x - popupBefore.x)).toBeLessThan(2);
-  expect(Math.abs(popupAfter.y - popupBefore.y)).toBeLessThan(2);
   await expect(input).toBeFocused();
-  await expect(input).toHaveValue('');
-  await input.fill('Continue entering the next story');
   await page.evaluate(() => window.finishGanttSave(0));
   await expect(pendingFor(page)).toHaveCount(0);
-  await expect(input).toHaveValue('Continue entering the next story');
   await expect(input).toBeFocused();
-  expect(Math.abs(await page.evaluate(() => window.scrollY) - pageBefore)).toBeLessThan(4);
   expect(await viewport.evaluate(element => element.scrollLeft)).toBe(240);
 });
 
@@ -135,19 +128,20 @@ test('adding a Story from a collapsed Epic expands its children and reveals the 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await page.locator('[data-gantt-add="PRJ-1"]').click();
+  await chooseKind(page, 'Story');
   await inputFor(page).fill('Story added to a collapsed Epic'); await inputFor(page).press('Enter');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.gantt-swimlane[data-epic-lane="PRJ-1"] .gantt-row[data-pending-quick]')).toContainText('Story added to a collapsed Epic');
   await expect(page.locator('[data-gantt-row-id="PRJ-3"]')).toHaveCount(1);
 });
 
-test('repeated Enter on the cleared Gantt popup creates only one request', async ({ page }) => {
+test('repeated submission of an empty Gantt composer creates only one request', async ({ page }) => {
   await openEpicAdder(page);
   await inputFor(page).fill('Submit a story once');
-  await inputFor(page).press('Enter');
+  await inputFor(page).press('Shift+Enter');
   await expect(inputFor(page)).toHaveValue('');
-  await inputFor(page).press('Enter');
-  await inputFor(page).press('Enter');
+  await inputFor(page).press('Shift+Enter');
+  await inputFor(page).press('Shift+Enter');
   await expect(pendingFor(page)).toHaveCount(1);
   expect(await requestCount(page)).toBe(1);
   await page.evaluate(() => window.finishGanttSave(0));

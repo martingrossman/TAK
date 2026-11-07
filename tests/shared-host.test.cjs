@@ -77,6 +77,44 @@ test('shared edit, move, bulk, duplicate/undo and comments preserve normal prote
   assert.equal(h.call(h.a,'getTaskComments',task.id)[0].body,'Edited comment');
   assert.equal(h.call(h.b,'getTaskComments',task.id).length,0); assert.ok(h.balanced());
 });
+test('shared bulk delete dispatches bounded versioned selections and isolates replay by workbook',()=>{
+  const h=harness();
+  const aParent=h.call(h.a,'saveIssue',{summary:'A parent',type:'Epic'});
+  const aChild=h.call(h.a,'saveIssue',{summary:'A child',parentId:aParent.id,dependencies:aParent.id});
+  const bTask=h.call(h.b,'saveIssue',{summary:'B task'});
+  const items=[aParent,aChild].map(issue=>({id:issue.id,expectedVersion:issue.version}));
+  assert.throws(()=>h.call(h.a,'deleteIssuesBatch',items.slice(0,1),'parent-only'),/parent\/dependency/);
+  const before=h.writes.length;
+  assert.throws(()=>h.call(h.a,'deleteIssuesBatch',[items[0],{...items[1],expectedVersion:'stale'}],'stale-delete'),/changed elsewhere/);
+  assert.equal(h.writes.length,before);
+  const deleted=h.call(h.a,'deleteIssuesBatch',items,'same-delete-operation');
+  assert.deepEqual(Array.from(deleted.deletedIds),items.map(item=>item.id));
+  assert.equal(h.call(h.a,'getProject').issues.length,0);
+  assert.equal(h.call(h.b,'getProject').issues[0].id,bTask.id);
+  const after=h.writes.length;
+  const replayed=h.call(h.a,'deleteIssuesBatch',items,'same-delete-operation');
+  assert.equal(replayed.replayed,true); assert.equal(h.writes.length,after);
+  const bDeleted=h.call(h.b,'deleteIssuesBatch',[{id:bTask.id,expectedVersion:bTask.version}],'same-delete-operation');
+  assert.deepEqual(Array.from(bDeleted.deletedIds),[bTask.id]);
+  assert.equal(h.call(h.b,'getProject').issues.length,0);
+  assert.equal(h.call(h.a,'saveIssue',{summary:'After batch deletion'}).id,'PRJ-3');
+  assert.equal(h.api.takSharedRequest_,null); assert.ok(h.balanced());
+});
+test('shared bulk delete cannot bypass authorization or leave request context after rejection',()=>{
+  const h=harness(),task=h.call(h.a,'saveIssue',{summary:'Protected task'});
+  const items=[{id:task.id,expectedVersion:task.version}];
+  assert.throws(()=>h.api.deleteIssuesBatch(items,'direct-delete'),/No tracker was selected/);
+  assert.throws(()=>h.call(h.a,'deleteIssuesBatch',[],'empty-delete'),/1 and 100/);
+  h.a.writable=false;
+  assert.throws(()=>h.call(h.a,'deleteIssuesBatch',items,'denied-delete'),/Google denied/);
+  assert.equal(h.call(h.a,'getProject').issues.length,1);
+  assert.equal(h.api.takSharedRequest_,null); assert.ok(h.balanced());
+  h.a.writable=true;
+  h.call(h.a,'deleteIssuesBatch',items,'denied-delete');
+  h.identity('');
+  assert.throws(()=>h.call(h.a,'deleteIssuesBatch',items,'denied-delete'),/Sign in/);
+  assert.equal(h.api.takSharedRequest_,null); assert.ok(h.balanced());
+});
 test('shared dispatcher rejects missing access, identity, malformed input and admin methods',()=>{
   const h=harness();
   h.denied.add(h.b.id); assert.throws(()=>h.call(h.b,'getProject'),/cannot access/);

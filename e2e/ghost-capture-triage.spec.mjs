@@ -50,7 +50,9 @@ test('micro-triage shortcuts do not fire while typing or when disabled', async (
   await page.locator('#search').fill('p a m d e x');
   await expect(page.locator('#triage-popover')).toBeHidden(); await expect(page.locator('#issue-dialog')).toBeHidden();
   await page.locator('#search').fill('');
-  await page.locator('#help-button').click(); await page.locator('#single-key-shortcuts').uncheck(); await page.keyboard.press('Escape');
+  await page.locator('#help-button').click();
+  await page.locator('#help-dialog details').filter({ has: page.locator('#single-key-shortcuts') }).locator('summary').click();
+  await page.locator('#single-key-shortcuts').uncheck(); await page.keyboard.press('Escape');
   await target(page, 'kanban').focus(); await page.keyboard.press('p');
   await expect(page.locator('#triage-popover')).toBeHidden();
 });

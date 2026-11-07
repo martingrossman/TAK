@@ -43,12 +43,12 @@ test('tasks reorder across statuses with the keyboard', async ({ page }) => {
   await expect(page.locator('[data-sheet-drag-id="PRJ-4"]')).toBeFocused();
 });
 
-test('move buttons work after column sorting and switch to manual order', async ({ page }) => {
+test('move buttons work after column sorting and return to saved rank order without a mode button', async ({ page }) => {
   await page.locator('[data-sort="summary"]').click();
-  await expect(page.locator('[data-sheet-manual]')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('[data-sheet-manual]')).toHaveCount(0);
   await expect(move(page, 'PRJ-4', 'up')).toBeEnabled();
   await move(page, 'PRJ-4', 'up').click();
-  await expect(page.locator('[data-sheet-manual]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-sheet-manual]')).toHaveCount(0);
   await expect.poll(() => visibleOrder(page)).toEqual(['PRJ-2', 'PRJ-4', 'PRJ-3', 'PRJ-5', 'PRJ-6']);
 });
 
@@ -58,7 +58,6 @@ test('dragging works after column sorting and across sibling statuses', async ({
   await expect(grip).toHaveAttribute('draggable', 'true');
   await grip.dragTo(page.locator('[data-sheet-row-id="PRJ-3"]'), { targetPosition: { x: 80, y: 2 } });
   await expect.poll(() => visibleOrder(page)).toEqual(['PRJ-2', 'PRJ-4', 'PRJ-3', 'PRJ-5', 'PRJ-6']);
-  await expect(page.locator('[data-sheet-manual]')).toHaveAttribute('aria-pressed', 'true');
   const task = (await readIssues(page)).find(issue => issue.id === 'PRJ-4');
   expect(task.parentId).toBe('PRJ-2'); expect(task.status).toBe('Backlog');
 });

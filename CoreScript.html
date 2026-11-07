@@ -27,6 +27,94 @@ var TrackerCore = (function () {
   function validDate(value) {
     return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(dateNumber(value)) && addDays(value, 0) === value && value >= '1900-01-01' && value <= '2200-12-31';
   }
+  // Single-title capture only. Date arithmetic is UTC and does not change Gantt's calendar days.
+  function parseQuickEntry(text, options) {
+    text = String(text == null ? '' : text);
+    options = options || {};
+    var updates = {}, tokens = [], errors = [], values = {};
+    var names = [], fullNames = new Map(), firstNames = new Map();
+    (Array.isArray(options.assignees) ? options.assignees : []).forEach(function (name) {
+      if (typeof name !== 'string' || !name.trim()) return;
+      name = name.trim();
+      var key = name.toLowerCase();
+      if (fullNames.has(key)) return;
+      names.push(name); fullNames.set(key, name);
+    });
+    names.forEach(function (name) {
+      var key = name.split(/\s+/)[0].toLowerCase();
+      firstNames.set(key, firstNames.has(key) ? null : name);
+    });
+    function accept(start, end, kind, value, label) {
+      tokens.push({ start: start, end: end, raw: text.slice(start, end), kind: kind, value: value, label: label });
+      if (Object.prototype.hasOwnProperty.call(values, kind) && values[kind] !== value) {
+        errors.push('Conflicting ' + (kind === 'dueDate' ? 'due date' : kind) + ' values. Keep one value or keep the other as title text.');
+      } else values[kind] = value;
+    }
+    var scanner = /\\?@(?:"[^"]*"|“[^”]*”|‘[^’]*’|'[^']*')(?=\s|$)|\S+/g;
+    var match, cursor = 0, summary = '', removed = false;
+    while ((match = scanner.exec(text))) {
+      var raw = match[0], start = match.index, end = scanner.lastIndex, before = tokens.length;
+      var literal = /^\\(?:[@!]|due:)/i.test(raw) || /^\\[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[dw]$/i.test(raw);
+      if (!literal) {
+        if (raw.charAt(0) === '@') {
+          var nameKey = raw.slice(1);
+          if (/^(?:"[^"]*"|“[^”]*”|‘[^’]*’|'[^']*')$/.test(nameKey)) nameKey = nameKey.slice(1, -1);
+          nameKey = nameKey.toLowerCase();
+          var name = fullNames.get(nameKey) || firstNames.get(nameKey);
+          if (name) accept(start, end, 'assignee', name, 'Assignee: ' + name);
+          else if (firstNames.has(nameKey)) errors.push('Ambiguous assignee ' + raw + '. Use a quoted full name.');
+        } else if (/^!(highest|high|medium|low|lowest)$/i.test(raw)) {
+          var priority = raw.charAt(1).toUpperCase() + raw.slice(2).toLowerCase();
+          accept(start, end, 'priority', priority, 'Priority: ' + priority);
+        } else if (/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?[dw]$/i.test(raw)) {
+          var count = Number(raw.slice(0, -1)) * (/w$/i.test(raw) ? 5 : 1);
+          if (!/^\d+[dw]$/i.test(raw) || !Number.isSafeInteger(count) || count <= 0 || count > dateNumber('2200-12-31') - dateNumber('1900-01-01') + 1) {
+            errors.push('Duration must be a positive whole number of workdays (d) or weeks (w), within 1900–2200.');
+          } else accept(start, end, 'duration', count, count + (count === 1 ? ' workday' : ' workdays'));
+        } else if (/^due:/i.test(raw)) {
+          var deadline = raw.slice(4).toLowerCase(), resolved = deadline;
+          if (deadline === 'today' || deadline === 'tomorrow') {
+            resolved = validDate(options.today) ? addDays(options.today, deadline === 'tomorrow' ? 1 : 0) : '';
+          }
+          if (deadline === 'today' || deadline === 'tomorrow' || /^\d{4}-/.test(deadline)) {
+            if (!validDate(resolved)) errors.push('Due date must be a real date between 1900-01-01 and 2200-12-31.');
+            else accept(start, end, 'dueDate', resolved, 'Due: ' + resolved);
+          }
+        }
+      }
+      if (tokens.length === before) {
+        // Only collapse whitespace spanning removed metadata; leave all other title spacing intact.
+        summary += summary && removed ? ' ' : text.slice(cursor, start);
+        summary += literal ? raw.slice(1) : raw;
+        removed = false;
+      } else removed = true;
+      cursor = end;
+    }
+    if (!removed) summary += text.slice(cursor);
+    if (values.assignee) updates.assignee = values.assignee;
+    if (values.priority) updates.priority = values.priority;
+    if (values.dueDate) updates.dueDate = values.dueDate;
+    if (values.duration) {
+      var base = validDate(options.startDate) ? options.startDate : options.today;
+      if (!validDate(base)) errors.push('A valid start date or today is required for a duration.');
+      else {
+        var startDay = dateNumber(base), weekday = new Date(startDay * dayMs).getUTCDay();
+        if (weekday === 0 || weekday === 6) startDay += weekday === 0 ? 1 : 2;
+        weekday = new Date(startDay * dayMs).getUTCDay();
+        var remaining = values.duration - 1;
+        var dueDay = startDay + Math.floor(remaining / 5) * 7 + remaining % 5;
+        if (weekday + remaining % 5 > 5) dueDay += 2;
+        if (dueDay > dateNumber('2200-12-31')) errors.push('Duration ends after 2200-12-31.');
+        else {
+          var dueDate = new Date(dueDay * dayMs).toISOString().slice(0, 10);
+          updates.startDate = new Date(startDay * dayMs).toISOString().slice(0, 10);
+          if (values.dueDate && values.dueDate !== dueDate) errors.push('Duration and explicit due date conflict. Keep one or use matching dates.');
+          else updates.dueDate = dueDate;
+        }
+      }
+    }
+    return { summary: errors.length ? text : summary.trim(), updates: updates, tokens: tokens, errors: errors };
+  }
   function split(value) { return String(value || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean); }
   function blank() {
     var issue = {}; fields.forEach(function (f) { issue[f.key] = f.kind === 'number' ? 0 : ''; });
@@ -39,6 +127,7 @@ var TrackerCore = (function () {
       if (Object.prototype.hasOwnProperty.call(input, f.key)) issue[f.key] = f.kind === 'number' ? Number(input[f.key]) : String(input[f.key] == null ? '' : input[f.key]).trim();
     });
     if (Object.prototype.hasOwnProperty.call(input, 'taskTypeId')) issue.taskTypeId = String(input.taskTypeId || 'algo').trim().toLowerCase();
+    if (!current && issue.type !== 'Epic' && !Object.prototype.hasOwnProperty.call(input, 'startDate')) issue.startDate = today;
     issue.id = current ? current.id : '';
     issue.createdAt = current ? current.createdAt : now;
     issue.updatedAt = now;
@@ -261,7 +350,7 @@ var TrackerCore = (function () {
       return Object.assign(blank(), { id: 'PRJ-' + (index + 1), type: spec.type, parentId: spec.parentId || '', summary: spec.summary, status: spec.status, priority: spec.priority, assignee: spec.assignee, reporter: 'Jordan Lee', startDate: addDays(today, spec.start), dueDate: addDays(today, spec.due), progress: spec.progress, labels: spec.labels, dependencies: spec.dependencies || '', estimate: spec.estimate, timeSpent: Math.round(spec.estimate * spec.progress / 100), description: spec.description, sprint: index < 14 ? 'Sprint 1' : 'Sprint 2', completedDate: spec.status === 'Done' ? addDays(today, spec.due) : '', createdAt: today + 'T09:00:00.000Z', updatedAt: today + 'T09:00:00.000Z', rank: (index + 1) * 1000 });
     });
   }
-  return { types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, csv: csv, sample: sample };
+  return { types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, csv: csv, sample: sample };
 })();
 if (typeof module !== 'undefined') module.exports = TrackerCore;
 

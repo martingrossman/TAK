@@ -55,13 +55,26 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 
 ### FR-02 — Inline quick task creation (P0)
 
-- The Kanban column and Sheet/new-row surface expose an easy **Add task** action.
-- Type a title and press **Enter** to create; title is the only mandatory field.
-- Stay in entry mode after successful submission so multiple tasks are easy to capture. Support Esc cancellation.
+- Kanban columns, Sheet rows and Gantt labels expose an easy **Add task** action and a quiet contextual inline composer.
+- Type a title and press **Enter** or click **Create** to submit and keep the composer open with an empty focused title, ready for the next task; title is the only mandatory field.
+- **Shift+Enter** also submits and keeps capture ready. Esc hides capture while retaining the unfinished draft.
 - Inherit valid context: Kanban column status, selected epic/parent where compatible with **existing** hierarchy rules, existing type/priority defaults. Allow editing later.
-- Provide immediate UI feedback while saving, but label unsynced data honestly. Do not clear the only copy of failed input.
+- New Task/Story/Bug start dates default to today when omitted, including editor, batch, sidebar and native Sheet creation. Preserve explicit dates/blanks and existing work; Epic schedules remain derived. Use the browser's local day for browser defaults and the spreadsheet timezone for server/native defaults. Freeze submitted defaults for retries.
+- Acknowledgement replaces pending work in place and transfers focus only while that pending item still owns focus, never after navigation. Pending items cannot be edited, dragged or used as parents. Label unsynced data honestly and retain failed input for retry.
 
-**Accept:** Create three tasks consecutively without opening/reopening the detailed editor; each is persisted exactly once, with the correct status and title, or its failed draft is recoverable. For slow/failed network conditions the interface distinguishes pending from saved.
+**Accept:** Create three tasks consecutively with Enter without reopening capture; each is persisted exactly once in the correct context or its failed draft remains recoverable. Capture remains open and focused across acknowledgements in Sheet, Kanban and Gantt until Esc; acknowledgement never steals focus after navigation. Filters and unsent drafts survive slow/failed requests.
+
+### FR-02A — Smart single-title capture (user-approved extension)
+
+- Optional standalone tokens set existing fields: `@Name` / `@"Full Name"` for an existing assignee, `!highest|high|medium|low|lowest` for priority, `5d` for five working days, `2w` for ten working days, and `due:today|tomorrow|YYYY-MM-DD` for an explicit deadline.
+- Duration uses Monday–Friday, counts the start day as day one, and advances a weekend start to Monday. Use the capture start date, defaulting to today. Calculate existing start/due fields; do not introduce a duration column or alter Gantt dragging/calendar-day arithmetic. Holidays and configurable workweeks remain excluded.
+- Display resolved metadata before submission without rewriting the user's text. Unknown tokens remain title text; recognized tokens can explicitly be kept literal. Ambiguous assignees, invalid duration/date values and conflicting metadata block creation without losing the draft.
+- Assignee autocomplete supports pointer, arrows and Tab/Enter. Enter accepts an open suggestion before creating; Escape dismisses suggestions before closing capture. Preserve IME/text editing behavior.
+- Token values override creation defaults only for specified fields. Details receives the parsed title and metadata. Resolve and freeze the payload before queue persistence; retries must not reinterpret dates or names.
+- Apply smart syntax only to single-title capture. Multiline paste remains a literal-title batch.
+
+**Accept:** In all three views, `Prepare release @Martin 5d !high` resolves a known assignee, creates a clean title and high priority, and schedules five weekdays inclusively. Friday plus five workdays ends the following Thursday; weekend starts advance to Monday. Exact deadlines remain calendar dates. Preview, literal opt-out, ambiguity/conflict handling, repeated creation, Escape, Details and lost-acknowledgement recovery preserve user intent.
+
 
 ### FR-03 — Compact Quick Create (P0)
 
@@ -106,13 +119,26 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 
 **Accept:** Edit several cells with keyboard and mouse; sorting remains correct; a failed edit is visible/retryable instead of reverting with no warning; filtered CSV export remains functional.
 
+### FR-06A — Multi-item actions (user-approved extension)
+
+- Sheet, Kanban and Gantt share selection and expose **Edit selected**, **Delete selected** and **Clear selection** only when work is selected.
+- Shift+click selects the inclusive range between the anchor and clicked item in the current visible order. Provide individual selection controls and keyboard access; pending creation placeholders are not selectable.
+- Filtered-out and collapsed items must not be silently included. Bound an operation to 100 selected items.
+- Reuse existing bulk modification fields and revision-checked validation; preserve unrelated fields and retain failed drafts.
+- Deletion requires explicit confirmation of the selected set. Never automatically include descendants. Reject the entire request when an unselected issue references a selected parent or dependency, or any selected revision is stale. Selected internal relationships may be removed together.
+- Retain the deletion operation identity for retry after an uncertain response. Remove items from the UI only after acknowledgement; deletion has no general Undo.
+
+**Accept:** Select a visible range in each view, modify it and confirm persisted values after reload; cancel deletion without writes; delete a selected set once despite a lost acknowledgement. Stale revisions and external references prevent all deletions. Hidden/pending items and unrelated work remain unchanged. Verify local storage and simulated Apps Script transport independently; live deployment requires separate approval.
+
+
 ### FR-07 — Timeline / Gantt (P0 preserve, P1 refine)
 
 - Keep current day/week views, task bars, drag-to-shift, right-edge resizing, dates, progress, dependencies, today/weekend markers and unscheduled-task access.
+- Work with a valid start date and no due date appears as a compact start-only bar. Dragging changes only its start date; right-edge resizing establishes its due date. Never persist a synthetic due date merely to render it.
 - Align labels, controls, tooltips, focus and spacing with the refreshed interface.
 - Save schedule edits through existing validation/error handling and preserve calendar-day behavior unless intentionally changed in a separately approved task.
 
-**Accept:** Move and resize bars, reload and confirm dates; filter and navigate without broken bar geometry or lost selection. No automatic rescheduling or leave-calendar engine is required.
+**Accept:** A newly captured task with today's default start appears immediately as a compact bar. Drag it and confirm the due date remains blank; resize it and confirm a real due date is saved. Clear that due date, reload and confirm the compact bar returns. Move and resize ordinary bars, filter and navigate without broken geometry or lost selection. No automatic rescheduling or leave-calendar engine is required.
 
 ### FR-08 — Search, filters and context (P1)
 

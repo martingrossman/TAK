@@ -47,6 +47,7 @@
   const quickQueueStorageKey = trackerStorageKey('sheetflow.quick-queue.v1');
   const bulkDraftStorageKey = trackerStorageKey('sheetflow.pending-batch.v1');
   const duplicateDraftStorageKey = trackerStorageKey('sheetflow.pending-duplicate.v1');
+  const deleteDraftStorageKey = trackerStorageKey('sheetflow.pending-delete.v1');
   const localReceiptStorageKey = 'sheetflow.local-receipts.v1';
   const undoStorageKey = trackerStorageKey('sheetflow.undo.v1');
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
@@ -69,28 +70,28 @@
     if (!order.includes('summary')) order.unshift('summary');
     return order;
   }
-  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
   const scrollByView = {}, renderedView = { current: '' };
   let pendingSheetFocus = null;
   let edited = null, initialForm = '', formInitialParentId = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
+  let selectionAnchorId = '', bulkDeleteDraft = null, deleteDialogItems = [], deleteSubmitting = false, deleteReturnFocus = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
   let createStarted = false, issueReturnFocus = null, newFormDraftKey = '';
   try { state.drafts = JSON.parse(localStorage.getItem(draftStorageKey) || '{}') || {}; } catch (ignore) { state.drafts = {}; }
   try { state.quickQueue = JSON.parse(localStorage.getItem(quickQueueStorageKey) || '[]') || []; } catch (ignore) { state.quickQueue = []; }
   try { state.pendingDuplicate = JSON.parse(localStorage.getItem(duplicateDraftStorageKey) || 'null'); } catch (ignore) { state.pendingDuplicate = null; }
   try { state.bulkDraft = JSON.parse(localStorage.getItem(bulkDraftStorageKey) || 'null'); } catch (ignore) { state.bulkDraft = null; }
+  try { bulkDeleteDraft = JSON.parse(localStorage.getItem(deleteDraftStorageKey) || 'null'); } catch (ignore) { bulkDeleteDraft = null; }
+  if (bulkDeleteDraft) state.selectedIssueIds = bulkDeleteDraft.items.map(item => item.id);
   try { state.undoStack = JSON.parse(localStorage.getItem(undoStorageKey) || '[]') || []; } catch (ignore) { state.undoStack = []; }
   try { const saved = JSON.parse(localStorage.getItem(savedViewsStorageKey) || '[]'); state.savedViews = Array.isArray(saved) ? saved.filter(view => view && view.id && view.name && view.state) : []; } catch (ignore) { state.savedViews = []; }
   try {
     const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}');
     state.singleKeyShortcuts = ui.singleKeyShortcuts !== false;
     state.collapsedEpics = ui.collapsedEpics || {};
-    if (ui.previousGanttEpics && typeof ui.previousGanttEpics === 'object' && !Array.isArray(ui.previousGanttEpics)) {
-      state.previousGanttEpics = ui.previousGanttEpics;
-    }
     state.collapsedGanttStories = ui.collapsedGanttStories || {};
     state.collapsedSheetParents = ui.collapsedSheetParents || {};
     state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
@@ -99,16 +100,17 @@
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
     state.collapsedEpics = {};
-    state.previousGanttEpics = null;
     state.collapsedGanttStories = {};
     state.collapsedSheetParents = {};
     state.visibleColumns = defaultSheetColumnOrder.slice();
   }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
   // Navigation context is independent of checkbox selection and never follows hover.
-  let activeIssueId = '', entrySession = null, entryOrigin = null, entryAnchor = null, entryVisible = false;
-  const navigationSelector = '.sheet-row-grip, .card[data-issue], .gantt-label-hit, .swimlane-collapse, .column-header';
+  let activeIssueId = '', entrySession = null, entryOrigin = null, entryAnchor = null, entryVisible = false, restoringEntryFocus = false;
+  const navigationSelector = '.sheet-row-grip, .card[data-issue], .gantt-label-hit, .swimlane-collapse, .column-header, [data-pending-quick]';
   function issueIdFor(element) {
+    const pending = element?.closest('[data-pending-quick]');
+    if (pending) return `pending:${pending.dataset.pendingQuick}`;
     const row = element?.closest('[data-sheet-row-id], .card[data-issue], [data-gantt-row-id]');
     if (row) return row.dataset.sheetRowId || row.dataset.issue || row.dataset.ganttRowId || '';
     if (element?.matches('.column-header')) return element.closest('[data-epic-lane]')?.dataset.epicLane || '';
@@ -119,13 +121,17 @@
     return Array.from(document.querySelectorAll('#view-content ' + navigationSelector.split(', ').join(', #view-content '))).filter(el => el.getClientRects().length && !el.disabled);
   }
   function navigationSnapshot(element = document.activeElement) {
-    if (!element?.matches(navigationSelector)) return null;
-    return { id: issueIdFor(element), lane: element.closest('[data-epic-lane]')?.dataset.epicLane ?? '', status: element.closest('.column')?.dataset.status || '', heading: element.matches('.swimlane-collapse'), column: element.matches('.column-header') };
+    const pending = element?.closest('[data-pending-quick]');
+    const control = ['[data-card-assignee]', '[data-card-priority]', '[data-board-move]', '.gantt-bar'].find(selector => element?.matches(selector));
+    if (!pending && !control && !element?.matches(navigationSelector)) return null;
+    return { id: issueIdFor(element), control, value: control && 'value' in element ? element.value : null, start: control && typeof element.selectionStart === 'number' ? element.selectionStart : null, end: control && typeof element.selectionEnd === 'number' ? element.selectionEnd : null, retry: Boolean(element?.closest('[data-retry-quick]')), lane: element.closest('[data-epic-lane]')?.dataset.epicLane ?? '', status: element.closest('.column')?.dataset.status || '', heading: element.matches('.swimlane-collapse'), column: element.matches('.column-header') };
   }
   function findNavigationTarget(snapshot) {
     if (!snapshot) return null;
     const targets = navigationTargets();
-    return targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.selectLane === '__no_epic__');
+    const target = targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.selectLane === '__no_epic__');
+    if (snapshot.control) return (target?.closest('.card[data-issue], [data-gantt-row-id]') || target)?.querySelector(snapshot.control) || target;
+    return snapshot.retry && target?.querySelector('[data-retry-quick]') || target;
   }
   function findParentContextTarget(parentId) {
     const epicId = containingEpic(parentId);
@@ -137,23 +143,10 @@
     }
     return epicTarget;
   }
-  function addParentScrollRoom(element) {
-    $('.parent-context-scroll-room')?.remove();
-    let host = null;
-    for (let viewport = element?.parentElement; viewport && viewport !== $('#view-content'); viewport = viewport.parentElement) {
-      const style = getComputedStyle(viewport);
-      if (/(auto|scroll)/.test(style.overflow + style.overflowY) && viewport.scrollHeight > viewport.clientHeight) { host = viewport; break; }
-    }
-    host ||= $('#view-content');
-    const spacer = document.createElement('div');
-    spacer.className = 'parent-context-scroll-room';
-    spacer.style.cssText = `height:${Math.min(240, Math.max(120, $('.quick-entry').getBoundingClientRect().height + 24))}px;pointer-events:none`;
-    spacer.setAttribute('aria-hidden', 'true');
-    host.append(spacer);
-  }
   function revealNavigation(element, includePage = false, alignContext = false) {
     if (!element) return;
-    const cell = element.closest('td');
+    if (element.matches('.gantt-pending-row')) element = element.querySelector('.gantt-row-label');
+    const cell = element.closest('td') || (element.matches('.sheet-pending-row') ? element.querySelector('.sheet-pending-copy') : null);
     if (cell) {
       revealSheetCell(cell);
       if (alignContext) {
@@ -218,9 +211,8 @@
     const left = siblings.reduce((max, issue) => Math.max(max, Number(issue.rank) || 0), 0);
     return { rank: left + 1000, rankStep: 1000 };
   }
-  function creationDefaults(type = 'Task') {
+  function creationDefaults(type = 'Task', focusedElement = document.activeElement) {
     const visible = new Set(navigationTargets().map(issueIdFor).filter(Boolean));
-    const focusedElement = document.activeElement;
     const focused = issueById(issueIdFor(focusedElement));
     const selected = state.selectedIssueIds.length === 1 && visible.has(state.selectedIssueIds[0]) ? issueById(state.selectedIssueIds[0]) : null;
     const context = focused || (visible.has(activeIssueId) ? issueById(activeIssueId) : null) || selected;
@@ -228,15 +220,100 @@
     const explicitParentId = focusedElement?.closest('[data-ghost-parent-id]')?.dataset.ghostParentId || '';
     let parentId = issueById(explicitParentId)?.type === 'Epic' ? explicitParentId : issueById(state.epic)?.type === 'Epic' ? state.epic : issueById(laneId)?.type === 'Epic' ? laneId : '';
     if (context) parentId = type === 'Story' ? containingEpic(context.id) : ['Epic', 'Story'].includes(context.type) ? context.id : context.parentId || '';
+    if (explicitParentId && issueById(explicitParentId)?.type === 'Epic') parentId = explicitParentId;
+    else if (!focused && focusedElement?.closest('.column') && state.swimlanes) parentId = laneId;
     if (type === 'Epic') parentId = '';
     const status = focusedElement?.closest('.column')?.dataset.status || context?.status || 'Backlog';
     return { type, parentId, status, priority: 'Medium', assignee: '', dueDate: '', startDate: type === 'Epic' ? '' : today(), taskTypeId: defaultTaskTypeId(), ...creationRank(context, parentId, status), createdCount: 0 };
   }
   let parentPickerOpen = false, parentPickerQuery = '', parentPickerIndex = -1;
+  let assigneePickerToken = null, assigneePickerMatches = [], assigneePickerIndex = 0;
+  let quickTitleComposing = false, dismissedAssigneeToken = '';
+  function quickAssignees() {
+    // getProject exposes issue assignees, not a Team directory.
+    return [...new Set(state.issues.map(issue => issue.assignee).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  }
+  function parseQuickTitle() {
+    return C.parseQuickEntry($('#quick-title').value, { today: today(), startDate: entrySession?.startDate, assignees: quickAssignees() });
+  }
+  function renderQuickSmartPreview(parsed = parseQuickTitle()) {
+    const preview = $('#quick-smart-preview'), errors = $('#quick-smart-errors'), input = $('#quick-title');
+    if (!parsed.errors.length && parsed.summary.length > 250) parsed.errors.push('Summary must be between 1 and 250 characters.');
+    const markup = parsed.tokens.map(token => {
+      const schedule = token.kind === 'duration' && !parsed.errors.length ? ` · ${parsed.updates.startDate} → ${parsed.updates.dueDate}` : '';
+      return `<span class="quick-smart-chip" data-smart-kind="${token.kind}"><span>${escape(token.label + schedule)}</span><button type="button" data-quick-literal="${token.start}" aria-label="Keep ${escape(token.raw)} as title text" title="Keep as title text">×</button></span>`;
+    }).join('');
+    if (preview.innerHTML !== markup) preview.innerHTML = markup;
+    preview.hidden = !parsed.tokens.length;
+    errors.textContent = parsed.errors.join(' ');
+    errors.hidden = !parsed.errors.length;
+    input.setCustomValidity(errors.textContent);
+    input.setAttribute('aria-invalid', String(Boolean(parsed.errors.length)));
+    return parsed;
+  }
+  function validatedQuickTitle() {
+    const parsed = renderQuickSmartPreview();
+    if (parsed.errors.length) {
+      closeQuickAssignees();
+      $('#quick-title').focus({ preventScroll: true }); $('#quick-title').reportValidity();
+      return null;
+    }
+    return parsed;
+  }
+  function activeQuickAssignee() {
+    const input = $('#quick-title'), caret = input.selectionStart;
+    if (caret !== input.selectionEnd) return null;
+    const pattern = /(?:^|\s)(@(?:"[^"]*(?:"|$)|“[^”]*(?:”|$)|'[^']*(?:'|$)|‘[^’]*(?:’|$)|[^\s]+|(?=$)))/g;
+    for (const match of input.value.matchAll(pattern)) {
+      const start = match.index + match[0].length - match[1].length, end = start + match[1].length;
+      if (caret > start && caret <= end) {
+        return { start, end, raw: match[1], query: input.value.slice(start + 1, caret).replace(/^["“'‘]|["”'’]$/g, '') };
+      }
+    }
+    return null;
+  }
+  function closeQuickAssignees(dismiss = false) {
+    if (dismiss && assigneePickerToken) dismissedAssigneeToken = `${assigneePickerToken.start}:${assigneePickerToken.raw}`;
+    assigneePickerToken = null; assigneePickerMatches = []; assigneePickerIndex = 0;
+    const list = $('#quick-assignee-options'), input = $('#quick-title');
+    if (list.matches(':popover-open')) list.hidePopover();
+    list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant');
+  }
+  function renderQuickAssignees() {
+    const list = $('#quick-assignee-options'), input = $('#quick-title');
+    list.hidden = false; input.setAttribute('aria-expanded', 'true');
+    list.innerHTML = assigneePickerMatches.map((name, index) => `<button type="button" role="option" tabindex="-1" id="quick-assignee-option-${index}" data-quick-assignee="${index}" aria-selected="${index === assigneePickerIndex}" class="quick-parent-option${index === assigneePickerIndex ? ' active' : ''}">${escape(name)}</button>`).join('');
+    input.setAttribute('aria-activedescendant', `quick-assignee-option-${assigneePickerIndex}`);
+    positionQuickAssignees();
+  }
+  function updateQuickAssignees() {
+    if (quickTitleComposing || !entryVisible || document.activeElement !== $('#quick-title')) return;
+    const token = activeQuickAssignee(), names = quickAssignees();
+    if (!token || dismissedAssigneeToken === `${token.start}:${token.raw}` || names.some(name => name.toLocaleLowerCase() === token.query.toLocaleLowerCase())) { closeQuickAssignees(); return; }
+    const matches = names.filter(name => name.toLocaleLowerCase().includes(token.query.toLocaleLowerCase()));
+    if (!matches.length) { closeQuickAssignees(); return; }
+    assigneePickerToken = token; assigneePickerMatches = matches; assigneePickerIndex = 0;
+    renderQuickAssignees();
+  }
+  function positionQuickAssignees() {
+    if (assigneePickerToken && entryVisible) positionQuickOptions($('#quick-assignee-options'), $('#quick-title'));
+  }
+  function chooseQuickAssignee(index) {
+    const name = assigneePickerMatches[index], token = assigneePickerToken, input = $('#quick-title');
+    if (!name || !token) return;
+    const replacement = /\s/.test(name) ? `@"${name}"` : `@${name}`;
+    const suffix = input.value.slice(token.end), spacer = suffix ? '' : ' ';
+    input.value = input.value.slice(0, token.start) + replacement + spacer + suffix;
+    closeQuickAssignees();
+    input.focus({ preventScroll: true });
+    const caret = token.start + replacement.length + (spacer || /^\s/.test(suffix) ? 1 : 0);
+    input.setSelectionRange(caret, caret);
+    renderQuickSmartPreview(); positionGhostEntry();
+  }
   function quickParentLabel(id) {
     if (!id) return 'No parent';
-    const parent = issueById(id);
-    return parent ? `${parent.type.toUpperCase()}: ${parent.summary}` : 'Parent unavailable';
+    const parent = issueById(id), epic = issueById(containingEpic(id));
+    return parent ? `${epic && epic.id !== parent.id ? epic.summary + ' / ' : ''}${parent.summary}` : 'Parent unavailable';
   }
   function quickParentCandidates() {
     if (!entrySession) return [];
@@ -253,7 +330,10 @@
     const input = $('#quick-parent'), list = $('#quick-parent-options'), matches = filteredQuickParents();
     list.hidden = !parentPickerOpen; input.setAttribute('aria-expanded', String(parentPickerOpen));
     $('#quick-parent-toggle').setAttribute('aria-expanded', String(parentPickerOpen));
-    if (!parentPickerOpen) { input.removeAttribute('aria-activedescendant'); return; }
+    if (!parentPickerOpen) {
+      if (list.matches(':popover-open')) list.hidePopover();
+      input.removeAttribute('aria-activedescendant'); return;
+    }
     parentPickerIndex = Math.min(parentPickerIndex, matches.length - 1);
     const labelCounts = new Map();
     for (const item of quickParentCandidates()) labelCounts.set(item.label, (labelCounts.get(item.label) || 0) + 1);
@@ -265,6 +345,28 @@
     if (parentPickerIndex >= 0) input.setAttribute('aria-activedescendant', `quick-parent-option-${parentPickerIndex}`);
     else input.removeAttribute('aria-activedescendant');
     $('#quick-parent-match-count').textContent = `${matches.length} ${matches.length === 1 ? 'parent' : 'parents'} available`;
+    positionQuickParentOptions();
+  }
+  function positionQuickParentOptions() {
+    if (!parentPickerOpen || !entryVisible) return;
+    positionQuickOptions($('#quick-parent-options'), $('.quick-parent-control'));
+  }
+  function positionQuickOptions(list, control) {
+    if (!control.getClientRects().length) return;
+    const rect = control.getBoundingClientRect(), viewport = window.visualViewport;
+    const leftEdge = (viewport?.offsetLeft || 0) + 8, topEdge = (viewport?.offsetTop || 0) + 8;
+    const rightEdge = leftEdge + (viewport?.width || window.innerWidth) - 16;
+    const bottomEdge = topEdge + (viewport?.height || window.innerHeight) - 16;
+    const below = Math.max(0, bottomEdge - rect.bottom - 4), above = Math.max(0, rect.top - topEdge - 4);
+    const preferredHeight = matchMedia('(max-width:700px)').matches ? 160 : 220;
+    const openAbove = below < preferredHeight && above > below;
+    const width = Math.min(Math.max(rect.width, 240), rightEdge - leftEdge);
+    list.style.width = `${width}px`;
+    list.style.left = `${Math.max(leftEdge, Math.min(rect.left, rightEdge - width))}px`;
+    list.style.maxHeight = `${Math.min(preferredHeight, openAbove ? above : below)}px`;
+    if (!list.matches(':popover-open')) list.showPopover();
+    const height = list.getBoundingClientRect().height;
+    list.style.top = `${Math.max(topEdge, Math.min(openAbove ? rect.top - height - 4 : rect.bottom + 4, bottomEdge - height))}px`;
   }
   function openQuickParentPicker() {
     parentPickerOpen = true; parentPickerQuery = ''; parentPickerIndex = -1;
@@ -281,12 +383,7 @@
     activeIssueId = revealParentContext(id);
     $('#quick-parent').setCustomValidity('');
     closeQuickParentPicker(); renderQuickEntryContext(); render();
-    if (activeIssueId) {
-      entryAnchor = findParentContextTarget(id) || entryAnchor;
-      addParentScrollRoom(entryAnchor);
-      revealNavigation(entryAnchor, true, true);
-      positionGhostEntry();
-    }
+    positionGhostEntry(true);
     return true;
   }
   function renderQuickEntryContext() {
@@ -297,66 +394,83 @@
     $('#quick-parent').value = label; $('#quick-parent').title = label;
     $('#quick-parent').setCustomValidity(session.parentId && !issueById(session.parentId) ? 'This parent is no longer available. Choose a parent or No parent.' : '');
     $('#quick-context').textContent = label;
-    $('#quick-title').placeholder = `Add a ${session.type.toLowerCase()}… Enter to save`;
+    $('#quick-title').placeholder = `Add a ${session.type.toLowerCase()}…`;
     $('#quick-title').setAttribute('aria-label', `New ${session.type.toLowerCase()} title`);
-    $('#quick-add').setAttribute('aria-label', `Add ${session.type.toLowerCase()}`);
+    $('#quick-add').setAttribute('aria-label', `Create ${session.type.toLowerCase()}`);
     renderQuickParentResults();
+    if (!quickTitleComposing) renderQuickSmartPreview();
   }
 
-  function positionGhostEntry() {
-    if (!entrySession || !entryVisible) return;
-    const entry = $('.quick-entry');
-    entry.hidden = false;
-    entry.classList.add('entry-active');
-    if (entry.parentElement !== document.body) document.body.append(entry);
-    const anchor = entryAnchor?.isConnected ? entryAnchor : findNavigationTarget(entryOrigin);
-    const rect = anchor?.getBoundingClientRect();
-    const width = Math.min(760, Math.max(360, window.innerWidth * 0.64), window.innerWidth - 24);
-    entry.style.width = `${width}px`;
-    const measured = entry.getBoundingClientRect();
-    const left = Math.max(12, Math.min(window.innerWidth - width - 12, rect?.left ?? 12));
-    const below = (rect?.bottom ?? 72) + 6;
-    const preferredTop = below + measured.height <= window.innerHeight - 8 ? below : (rect?.top ?? 72) - measured.height - 6;
-    const top = Math.max(8, Math.min(Math.max(8, window.innerHeight - measured.height - 8), preferredTop));
-    entry.style.left = `${left}px`; entry.style.top = `${top}px`;
+  let composerHeight = 150;
+  function composerItems() {
+    return entryVisible && entrySession ? [{ ...entrySession, id: '__composer__', composer: true, summary: '', rank: entrySession.rank + entrySession.rankStep * entrySession.createdCount }] : [];
   }
+  function positionGhostEntry(reveal = false) {
+    if (!entrySession || !entryVisible) return;
+    const entry = $('.quick-entry'), slot = $('[data-composer-slot]');
+    if (!slot) return;
+    entry.hidden = false; entry.classList.add('entry-active');
+    if (entry.parentElement !== slot) slot.append(entry);
+    const viewport = window.visualViewport;
+    entry.style.setProperty('--composer-viewport-height', `${viewport?.height || window.innerHeight}px`);
+    if (reveal) {
+      entry.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const input = document.activeElement;
+      if (entry.contains(input)) {
+        const rect = input.getBoundingClientRect(), top = viewport?.offsetTop || 0, bottom = top + (viewport?.height || window.innerHeight);
+        if (rect.bottom > bottom - 12) window.scrollBy(0, rect.bottom - bottom + 12);
+        else if (rect.top < top + 12) window.scrollBy(0, rect.top - top - 12);
+      }
+    }
+    positionQuickParentOptions();
+    positionQuickAssignees();
+  }
+  new ResizeObserver(entries => {
+    if (!entryVisible || state.view !== 'gantt') return;
+    const height = Math.ceil(entries[0].target.getBoundingClientRect().height);
+    if (height > 0 && height !== composerHeight) { composerHeight = height; render(); }
+  }).observe($('.quick-entry'));
+  window.visualViewport?.addEventListener('resize', () => positionGhostEntry(true));
+  window.visualViewport?.addEventListener('scroll', () => { positionQuickParentOptions(); positionQuickAssignees(); });
   function beginQuickEntry(type = 'Task', compact = false, anchor = document.activeElement) {
     if (!state.ready || state.busy) return;
-    if (!entrySession || !$('#quick-title').value.trim()) {
+    if (!entrySession || (!$('#quick-title').value.trim() && $('#quick-batch').hidden)) {
       entryOrigin = navigationSnapshot(anchor) || findOriginForActiveItem();
       entryAnchor = anchor;
-      entrySession = creationDefaults(type);
+      entrySession = creationDefaults(type, anchor);
     }
     entryVisible = true;
-    renderQuickEntryContext();
-    positionGhostEntry();
+    revealParentContext(entrySession.parentId);
+    renderQuickEntryContext(); render();
     if (compact) { openQuickEntryDetails(); return; }
-    $('#quick-title').focus({ preventScroll: true });
+    $('#quick-title').focus({ preventScroll: true }); positionGhostEntry(true);
   }
   function findOriginForActiveItem() {
     return navigationSnapshot(navigationTargets().find(el => issueIdFor(el) === activeIssueId));
   }
   function hideQuickEntrySurface() {
-    entryVisible = false; closeQuickParentPicker();
+    entryVisible = false; closeQuickParentPicker(); closeQuickAssignees();
     const entry = $('.quick-entry'), home = $('#quick-entry-home');
     entry.classList.remove('entry-active'); entry.hidden = true; entry.removeAttribute('style'); home.append(entry);
-    $('.parent-context-scroll-room')?.remove();
+    $('.quick-entry-options').open = false;
+  }
+  function closeEmptyQuickEntry() {
+    if (!entryVisible || $('#quick-title').value.trim() || $('#quick-batch-input').value.trim()) return;
+    hideQuickEntrySurface();
+    closeQuickBatch(true);
+    $('#quick-title').value = '';
+    entrySession = null; entryOrigin = null; entryAnchor = null;
   }
   function leaveQuickEntry() {
     hideQuickEntrySurface();
-    const destination = findNavigationTarget(entryOrigin) || entryAnchor?.isConnected && entryAnchor || navigationTargets()[0] || $('#create-issue');
+    const origin = entryOrigin, anchor = entryAnchor;
     if (!$('#quick-title').value.trim() && $('#quick-batch').hidden) { entrySession = null; entryAnchor = null; }
-    focusNavigation(destination, true);
-  }
-  function focusCreatedQuickIssue(id) {
-    if (!entryVisible || $('#quick-title').value.trim() || !$('#quick-batch').hidden || !filtered().some(issue => issue.id === id)) return false;
-    activeIssueId = id;
-    revealParentContext(id);
-    hideQuickEntrySurface();
-    entrySession = null; entryOrigin = null; entryAnchor = null;
     render();
-    queueMicrotask(() => focusNavigation(navigationTargets().find(element => issueIdFor(element) === id), true));
-    return true;
+    focusNavigation(findNavigationTarget(origin) || (anchor?.isConnected ? anchor : null) || navigationTargets()[0] || $('#create-issue'), true);
+  }
+  function acknowledgeQuickFocus(key, id) {
+    const snapshot = navigationSnapshot();
+    return snapshot?.id === `pending:${key}` ? { ...snapshot, id, retry: false } : null;
   }
   function applyQuickParent() {
     if (!entrySession) return false;
@@ -372,10 +486,12 @@
   function openQuickEntryDetails() {
     if (!entrySession || !applyQuickParent()) return;
     if (state.drafts.__new__) { notify('Recover or discard the existing new-issue draft first.', true); return; }
+    const parsed = validatedQuickTitle();
+    if (!parsed) return;
     const { rankStep, createdCount, ...defaults } = entrySession;
     issueReturnFocus = findNavigationTarget(entryOrigin) || entryAnchor || $('#create-issue');
-    openIssue('', { ...defaults, rank: entrySession.rank + entrySession.rankStep * entrySession.createdCount, summary: $('#quick-title').value });
-    if (dialog.open) { $('#quick-title').value = ''; entrySession = null; entryAnchor = null; leaveQuickEntry(); }
+    openIssue('', { ...defaults, ...parsed.updates, rank: entrySession.rank + entrySession.rankStep * entrySession.createdCount, summary: parsed.summary });
+    if (dialog.open) { $('#quick-title').value = ''; renderQuickSmartPreview(); entrySession = null; entryAnchor = null; leaveQuickEntry(); }
   }
   function quickBatchTitles() {
     return $('#quick-batch-input').value.split(/\r?\n/).map(title => title.trim()).filter(Boolean);
@@ -388,6 +504,7 @@
     positionGhostEntry();
   }
   function openQuickBatch(text) {
+    closeQuickAssignees();
     $('#quick-batch-input').value = text;
     $('#quick-batch').hidden = false;
     $('.quick-entry').classList.add('batch-active');
@@ -407,6 +524,7 @@
       const { rankStep, createdCount, ...base } = entrySession;
       const queued = titles.map((title, index) => {
         const draftKey = 'quick-' + newOperationId(), input = { ...base, rank: entrySession.rank + entrySession.rankStep * (entrySession.createdCount + index), summary: title };
+        if (bulkDeleteDraft?.items.some(item => item.id === input.parentId)) throw new Error('Resolve the pending deletion before adding work under this parent.');
         C.validate(C.prepare(input, null, today(), new Date().toISOString()), state.issues);
         return { title, status: input.status, kind: input.type, parentId: input.parentId, draftKey, operationId: draftKey, input };
       });
@@ -432,13 +550,13 @@
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing || event.keyCode === 229 || !event.key.startsWith('Arrow') || !event.target.matches(navigationSelector)) return;
     const source = event.target, targets = navigationTargets(); let destination;
     if (state.view === 'kanban' && source.closest('.column')) {
-      const column = source.closest('.column'), cards = [...column.querySelectorAll('.card[data-issue]')], index = cards.indexOf(source);
+      const column = source.closest('.column'), cards = [...column.querySelectorAll('.card[data-issue], [data-pending-quick]')], index = cards.indexOf(source);
       if (['ArrowUp', 'ArrowDown'].includes(event.key)) {
         const local = [column.querySelector('.column-header'), ...cards], position = local.indexOf(source);
         destination = local[position + (event.key === 'ArrowUp' ? -1 : 1)];
       } else {
         const columns = [...column.parentElement.querySelectorAll(':scope > .column')], next = columns[columns.indexOf(column) + (event.key === 'ArrowLeft' ? -1 : 1)];
-        if (next) { const items = [...next.querySelectorAll('.card[data-issue]')]; destination = index < 0 || !items.length ? next.querySelector('.column-header') : items[Math.min(index, items.length - 1)]; }
+        if (next) { const items = [...next.querySelectorAll('.card[data-issue], [data-pending-quick]')]; destination = index < 0 || !items.length ? next.querySelector('.column-header') : items[Math.min(index, items.length - 1)]; }
       }
     } else if (['ArrowUp', 'ArrowDown'].includes(event.key)) {
       const index = targets.indexOf(source); destination = targets[index + (event.key === 'ArrowUp' ? -1 : 1)];
@@ -446,7 +564,7 @@
     event.preventDefault(); if (destination) focusNavigation(destination, true);
   }
 
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
     return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
@@ -474,7 +592,6 @@
     state.sheetColumnWidths = normalizeSheetWidths(view.sheetColumnWidths);
     state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
-    state.previousGanttEpics = null;
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
     state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks', 'twoWeeks', 'months'].includes(view.zoom) ? view.zoom : 'weeks';
@@ -528,6 +645,7 @@
   }
   function sheetColumnDefinitions() {
     const definitions = new Map(C.fields.map(field => [field.key, field]));
+    definitions.set('summary', { ...definitions.get('summary'), label: 'Title' });
     definitions.set('taskTypeId', { key: 'taskTypeId', label: 'Activity Type', kind: 'text' });
     return definitions;
   }
@@ -642,9 +760,9 @@
   // Operation identity belongs to an immutable submission, never to a displayed issue.
   function issueValues(input) { const { operationId, _draftKey, ...values } = input; return values; }
   function activityTypes() {
-    return C.taskTypeDefinitions(state.settings).map(type => ({ value: type.id, label: type.name }));
+    return [{ value: 'none', label: 'No activity type' }, ...C.taskTypeDefinitions(state.settings).filter(type => type.id !== 'none').map(type => ({ value: type.id, label: type.name }))];
   }
-  function taskTypeBadge(id) { const type = C.taskTypePresentation(id, state.settings); return `<span class="task-type-badge" style="--task-type-color:${type.color}" title="${escape(type.name)}" aria-label="${escape(type.name)}">${escape(type.badge)}</span>`; }
+  function taskTypeBadge(id) { if (id === 'none') return ''; const type = C.taskTypePresentation(id, state.settings); return `<span class="task-type-badge" style="--task-type-color:${type.color}" title="${escape(type.name)}" aria-label="${escape(type.name)}">${escape(type.badge)}</span>`; }
   function defaultTaskTypeId() { const configured = state.settings.find(setting => setting.category === 'workflow' && setting.key === 'defaultTaskType' && setting.active !== false)?.value; return activityTypes().some(type => type.value === String(configured || '').toLowerCase()) ? String(configured).toLowerCase() : 'algo'; }
   function getLocal() {
     const raw = localStorage.getItem(storageKey);
@@ -735,6 +853,36 @@
       localStorage.setItem(storageKey, JSON.stringify(db));
       return result;
     }
+    if (method === 'deleteIssuesBatch') {
+      const db = getLocal(), [items, operationId] = args;
+      if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Select between 1 and 100 issues to delete.');
+      if (typeof operationId !== 'string' || !operationId.trim()) throw new Error('A deletion operation ID is required.');
+      const selected = new Set();
+      items.forEach(item => {
+        if (!item || typeof item.id !== 'string' || !item.id || selected.has(item.id) || typeof item.expectedVersion !== 'string' || !item.expectedVersion) throw new Error('Each selected issue needs a unique ID and expected version.');
+        selected.add(item.id);
+      });
+      const fingerprint = JSON.stringify(items.map(item => [item.id, item.expectedVersion]).sort((a, b) => a[0].localeCompare(b[0])));
+      const previous = Object.hasOwn(db.deleteReceipts || {}, operationId) ? db.deleteReceipts[operationId] : null;
+      if (previous) {
+        if (previous.fingerprint !== fingerprint) throw new Error('This deletion operation ID belongs to a different selection.');
+        return { deletedIds: previous.deletedIds, replayed: true };
+      }
+      const byId = new Map(db.issues.map(issue => [issue.id, issue]));
+      items.forEach(item => {
+        const current = byId.get(item.id);
+        if (!current || current.version !== item.expectedVersion) throw new Error(`${item.id} changed elsewhere or no longer exists. Refresh before deleting.`);
+      });
+      const referenced = db.issues.find(issue => !selected.has(issue.id) && (selected.has(issue.parentId) || C.split(issue.dependencies).some(id => selected.has(id))));
+      if (referenced) throw new Error(`${referenced.id} is an unselected issue that references this selection. Include it explicitly or remove its parent/dependency reference.`);
+      const deletedIds = items.map(item => item.id);
+      db.issues = db.issues.filter(issue => !selected.has(issue.id));
+      db.comments = db.comments.filter(comment => !selected.has(comment.taskId));
+      db.deleteReceipts = { ...db.deleteReceipts, [operationId]: { fingerprint, deletedIds } };
+      // One write commits both deletion and receipt; failed storage leaves both unchanged.
+      localStorage.setItem(storageKey, JSON.stringify(db));
+      return { deletedIds };
+    }
     if (method === 'updateIssuesBatch') {
       const db = getLocal(), items = args[0] || [], receipts = JSON.parse(localStorage.getItem(localReceiptStorageKey) || '{}');
       if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Select between 1 and 100 issues for a bulk edit.');
@@ -810,7 +958,7 @@
     if (!error && ['Synced with Sheets', 'Saved in this browser'].includes(text)) {
       if (hasPendingSaves()) text = 'Saving…';
       else if (state.quickQueue.length) text = 'Work item queued…';
-      else if (Object.keys(state.drafts).length || state.bulkDraft || state.bulkEditDraft || state.pendingDuplicate) {
+      else if (Object.keys(state.drafts).length || state.bulkDraft || state.bulkEditDraft || state.pendingDuplicate || bulkDeleteDraft) {
         text = Object.values(state.drafts).some(draft => draft.status === 'conflict') ? 'Conflict · draft kept' : Object.values(state.drafts).some(draft => draft.error) ? 'Failed · draft kept' : 'Save unconfirmed'; error = true;
       }
     }
@@ -818,6 +966,7 @@
     status.textContent = text;
     status.classList.toggle('error', error);
     status.classList.toggle('ready', !error && ['Synced with Sheets', 'Saved in this browser'].includes(text));
+    syncSelectionControls();
   }
   function setBusy(value) {
     state.busy = value; document.body.classList.toggle('busy', value);
@@ -830,22 +979,25 @@
         if (value) button.setAttribute('aria-disabled', 'true'); else button.removeAttribute('aria-disabled');
       } else button.disabled = value || button.dataset.sheetBoundary === 'true';
     });
+    $$('[data-issue-select]').forEach(control => control.disabled = value || deleteSubmitting);
+    syncSelectionControls();
   }
   function hasPendingSaves() { return state.activeSaves > 0 || Object.keys(state.saveQueues).length > 0; }
   function drainQuickQueue() {
-    if (state.busy || hasPendingSaves() || !state.quickQueue.length) return;
+    if (state.busy || hasPendingSaves() || bulkDeleteDraft || !state.quickQueue.length) return;
     if (isCloud && state.quickBatchCreate && state.quickQueue.length > 1) { drainQuickBatch().catch(showError); return; }
-    const next = state.quickQueue[0], input = { ...quickEntryPayload(next), _draftKey: next.draftKey, _focusOnCreate: next.focusOnCreate === true, operationId: next.operationId || next.draftKey };
+    const next = state.quickQueue[0], input = { ...quickEntryPayload(next), _draftKey: next.draftKey, operationId: next.operationId || next.draftKey };
     try {
       // Persist the retry draft before removing the durable queue entry.
       const saving = persist(input, undefined, next.kind + ' added');
       const remaining = state.quickQueue.slice(1);
       localStorage.setItem(quickQueueStorageKey, JSON.stringify(remaining)); state.quickQueue = remaining;
       render(); saving.catch(() => {});
-    } catch (error) { showError(error); }
+    } catch (error) { render(); showError(error); }
   }
   async function drainQuickBatch() {
     const queued = state.quickQueue.slice(0, 20);
+    let acknowledgedFocus = null;
     const entries = queued.map(item => {
       const previous = state.drafts[item.draftKey];
       const operationId = previous?.operationId || item.operationId || item.draftKey;
@@ -865,6 +1017,7 @@
       entries.forEach((entry, index) => {
         const issue = accepted.get(index);
         if (issue?.id && issue.version) {
+          acknowledgedFocus ||= acknowledgeQuickFocus(entry.key, issue.id);
           state.issues = state.issues.some(old => old.id === issue.id) ? state.issues.map(old => old.id === issue.id ? issue : old) : [...state.issues, issue];
           clearDraft(entry.key);
         } else if (state.drafts[entry.key]) state.drafts[entry.key].error = errors.get(index) || 'Save is unconfirmed. Retry to check safely.';
@@ -878,7 +1031,7 @@
     } finally {
       entries.forEach(entry => quickSavesInFlight.delete(entry.key));
       state.activeSaves = Math.max(0, state.activeSaves - 1);
-      render(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); queueMicrotask(drainQuickQueue);
+      render(acknowledgedFocus); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); queueMicrotask(drainQuickQueue);
     }
   }
   function bulkTitles() { return $('#bulk-create-input').value.split(/\r?\n/).map(title => title.trim()).filter(Boolean); }
@@ -901,8 +1054,8 @@
     if (!state.bulkDraft) {
       const titles = bulkTitles();
       if (!titles.length || titles.length > 100 || titles.some(title => title.length > 250)) { renderBulkPreview(); return; }
-      const batchId = `bulk-${newOperationId()}`;
-      state.bulkDraft = { batchId, items: titles.map((summary, index) => ({ operationId: `${batchId}:${index + 1}`, input: { summary, type: 'Task', taskTypeId: defaultTaskTypeId(), status: 'Backlog', priority: 'Medium', parentId: '' } })) };
+      const batchId = `bulk-${newOperationId()}`, startDate = today();
+      state.bulkDraft = { batchId, items: titles.map((summary, index) => ({ operationId: `${batchId}:${index + 1}`, input: { summary, type: 'Task', taskTypeId: defaultTaskTypeId(), status: 'Backlog', priority: 'Medium', parentId: '', startDate } })) };
       localStorage.setItem(bulkDraftStorageKey, JSON.stringify(state.bulkDraft));
       $('#bulk-create-input').disabled = true; $('#bulk-create-submit').textContent = 'Retry pending batch'; $('#bulk-create-open').textContent = 'Resume batch';
     }
@@ -928,8 +1081,134 @@
       $('#bulk-create-status').textContent = 'Batch saved for retry'; $('#bulk-create-open').textContent = 'Resume batch';
     } finally { state.activeSaves = Math.max(0, state.activeSaves - 1); button.disabled = false; renderBulkPreview(); queueMicrotask(drainQuickQueue); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); }
   }
-  function bulkEditTargets() { return state.selectedIssueIds.map(issueById).filter(Boolean); }
+  function syncSelectionControls() {
+    $('#selection-edit').disabled = state.busy || hasPendingSaves() || !!bulkDeleteDraft;
+    $('#selection-delete').disabled = state.busy || hasPendingSaves();
+    $('#selection-clear').disabled = state.busy || deleteSubmitting;
+    $('#delete-recovery-open').disabled = state.busy || hasPendingSaves();
+  }
+  function selectionRows() {
+    const matching = new Set(filtered().map(issue => issue.id)), seen = new Set();
+    return $$('#view-content .sheet-issue-row, #view-content .card[data-issue], #view-content [data-gantt-row-id], #view-content .swimlane-header').filter(row => {
+      const id = row.dataset.sheetRowId || row.dataset.issue || row.dataset.ganttRowId || row.querySelector('[data-select-lane]')?.dataset.selectLane;
+      if (!id || !matching.has(id) || seen.has(id)) return false;
+      seen.add(id); row.dataset.selectionId = id; return true;
+    });
+  }
+  function syncSelection() {
+    const rows = selectionRows(), visible = new Set(rows.map(row => row.dataset.selectionId));
+    state.selectedIssueIds = state.selectedIssueIds.filter(id => visible.has(id));
+    if (!visible.has(selectionAnchorId)) selectionAnchorId = '';
+    const selected = new Set(state.selectedIssueIds);
+    rows.forEach(row => {
+      const id = row.dataset.selectionId, issue = issueById(id);
+      let checkbox = row.querySelector('[data-issue-select], [data-sheet-select]');
+      if (!checkbox) {
+        checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'issue-select';
+        const slot = row.matches('.card') ? row.querySelector('.card-top') : row.querySelector('.swimlane-header, .gantt-row-label') || row;
+        slot.prepend(checkbox);
+      }
+      checkbox.dataset.issueSelect = id; checkbox.setAttribute('aria-label', `Select ${issue.summary}`);
+      checkbox.checked = selected.has(id); checkbox.disabled = state.busy || deleteSubmitting;
+      row.classList.toggle('selected', selected.has(id));
+    });
+    const count = selected.size;
+    $('#selection-actions').hidden = !count;
+    $('#selection-count').textContent = `${count} selected`;
+    syncSelectionControls();
+    $('#delete-recovery').hidden = !bulkDeleteDraft;
+    const all = $('[data-sheet-select-visible]');
+    if (all) {
+      const sheetIds = rows.filter(row => row.matches('.sheet-issue-row')).map(row => row.dataset.selectionId);
+      all.checked = !!sheetIds.length && sheetIds.every(id => selected.has(id));
+      all.indeterminate = !all.checked && sheetIds.some(id => selected.has(id));
+      all.disabled = state.busy || deleteSubmitting || sheetIds.length > 100;
+    }
+  }
+  function selectIssue(id, { range = false, additive = false, checked } = {}) {
+    if (state.busy || deleteSubmitting || !issueById(id)) return;
+    const ordered = selectionRows().map(row => row.dataset.selectionId), end = ordered.indexOf(id);
+    if (end < 0) return;
+    const start = ordered.indexOf(selectionAnchorId), selected = new Set(state.selectedIssueIds);
+    if (range && start >= 0) {
+      if (!additive) selected.clear();
+      ordered.slice(Math.min(start, end), Math.max(start, end) + 1).forEach(key => selected.add(key));
+    } else {
+      if (checked === undefined ? !selected.has(id) : checked) selected.add(id); else selected.delete(id);
+    }
+    if (selected.size > 100) { notify('Select up to 100 visible issues.', true); syncSelection(); return; }
+    if (!range || start < 0) selectionAnchorId = id;
+    state.selectedIssueIds = [...selected]; syncSelection();
+  }
+  function deletionDraftBlocked(items) {
+    const ids = new Set(items.map(item => item.id));
+    const referencesSelection = input => input && (ids.has(input.id) || ids.has(input.parentId) || C.split(input.dependencies).some(id => ids.has(id)));
+    return items.some(item => state.saveQueues[saveQueueKeyFor(item.id)] || state.drafts[draftStorageKeyFor(item.id)])
+      || Object.values(state.drafts).some(draft => referencesSelection(draft.input))
+      || state.quickQueue.some(item => referencesSelection(quickEntryPayload(item)))
+      || state.bulkEditDraft?.items.some(item => ids.has(item.id) || ids.has(item.updates?.parentId))
+      || state.bulkDraft?.items.some(item => referencesSelection(item.input))
+      || (entrySession && ids.has(entrySession.parentId) && ($('#quick-title').value.trim() || !$('#quick-batch').hidden));
+  }
+  function openBulkDelete() {
+    if (state.busy || state.activeSaves) return;
+    syncSelection();
+    deleteDialogItems = bulkDeleteDraft?.items || bulkEditTargets().map(issue => ({ id: issue.id, expectedVersion: issue.version }));
+    if (!bulkDeleteDraft && deletionDraftBlocked(deleteDialogItems)) { notify('Finish or discard pending edits and queued work linked to this selection first.', true); return; }
+    if (!deleteDialogItems.length || deleteDialogItems.length > 100) return;
+    deleteReturnFocus = document.activeElement;
+    const count = deleteDialogItems.length;
+    $('#bulk-delete-description').textContent = `Permanently delete ${count} selected ${count === 1 ? 'issue' : 'issues'}? This cannot be undone. There is no undo for deletion.${bulkDeleteDraft ? ' Retry uses the original confirmed selection and versions, even if your current view has changed.' : ''}`;
+    $('#bulk-delete-items').replaceChildren(...deleteDialogItems.map(item => {
+      const li = document.createElement('li'); li.textContent = `${item.id} · ${issueById(item.id)?.summary || 'Previously selected issue'}`; return li;
+    }));
+    $('#bulk-delete-error').textContent = bulkDeleteDraft?.error || '';
+    $('#bulk-delete-error').hidden = !bulkDeleteDraft?.error;
+    $('#bulk-delete-status').textContent = bulkDeleteDraft ? 'Result unconfirmed · retry safely' : '';
+    $('#bulk-delete-submit').textContent = bulkDeleteDraft ? 'Retry deletion' : `Delete ${count} ${count === 1 ? 'issue' : 'issues'}`;
+    $('#bulk-delete-forget').hidden = !bulkDeleteDraft;
+    $('#bulk-delete-forget').textContent = 'Forget retry';
+    $('#bulk-delete-dialog').showModal(); $('#bulk-delete-cancel').focus();
+  }
+  async function submitBulkDelete() {
+    if (deleteSubmitting || state.activeSaves || !deleteDialogItems.length) return;
+    if (!bulkDeleteDraft && deletionDraftBlocked(deleteDialogItems)) { $('#bulk-delete-error').textContent = 'Finish or discard pending edits and queued work linked to this selection first.'; $('#bulk-delete-error').hidden = false; return; }
+    const draft = bulkDeleteDraft || { operationId: newOperationId(), items: deleteDialogItems };
+    try {
+      // Persist immutable versions and identity before sending anything.
+      localStorage.setItem(deleteDraftStorageKey, JSON.stringify(draft)); bulkDeleteDraft = draft;
+    } catch (error) {
+      $('#bulk-delete-error').textContent = 'Browser storage is unavailable. Nothing was sent; restore storage before retrying.'; $('#bulk-delete-error').hidden = false; return;
+    }
+    deleteSubmitting = true; state.activeSaves++;
+    $$('#bulk-delete-dialog button').forEach(button => button.disabled = true);
+    $('#bulk-delete-error').hidden = true; $('#bulk-delete-status').textContent = 'Deleting…'; syncSelection(); syncText('Deleting selected issues…');
+    try {
+      const response = await rpc('deleteIssuesBatch', draft.items, draft.operationId);
+      const removed = new Set(response?.deletedIds || []);
+      if (removed.size !== draft.items.length || draft.items.some(item => !removed.has(item.id))) throw new Error('Deletion acknowledgement was incomplete.');
+      localStorage.removeItem(deleteDraftStorageKey); bulkDeleteDraft = null;
+      state.issues = state.issues.filter(issue => !removed.has(issue.id));
+      removed.forEach(id => { delete state.comments[id]; });
+      state.selectedIssueIds = state.selectedIssueIds.filter(id => !removed.has(id));
+      selectionAnchorId = ''; $('#bulk-delete-dialog').close(); render();
+      notify(`${removed.size} ${removed.size === 1 ? 'issue' : 'issues'} deleted`);
+    } catch (error) {
+      draft.error = `${error.message || String(error)} Selection is retained. Retry safely checks the same operation.`;
+      try { localStorage.setItem(deleteDraftStorageKey, JSON.stringify(draft)); } catch (ignore) { /* Original immutable request is already durable. */ }
+      $('#bulk-delete-error').textContent = draft.error; $('#bulk-delete-error').hidden = false;
+      $('#bulk-delete-status').textContent = 'Deletion not confirmed'; $('#bulk-delete-submit').textContent = 'Retry deletion'; $('#bulk-delete-forget').hidden = false;
+    } finally {
+      deleteSubmitting = false; state.activeSaves--;
+      $$('#bulk-delete-dialog button').forEach(button => button.disabled = false);
+      syncSelection(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser');
+      if (!bulkDeleteDraft) queueMicrotask(drainQuickQueue);
+    }
+  }
+  function bulkEditTargets() { const visible = new Set(selectionRows().map(row => row.dataset.selectionId)); return state.selectedIssueIds.filter(id => visible.has(id)).map(issueById).filter(Boolean); }
   function openBulkEdit() {
+    if (state.busy || state.activeSaves || bulkDeleteDraft) return;
+    if (state.selectedIssueIds.some(id => state.drafts[id] || state.saveQueues[id])) { notify('Finish or discard selected issues’ pending edits first.', true); return; }
     const selected = bulkEditTargets();
     if (!selected.length || selected.length > 100) { notify('Bulk edits support between 1 and 100 visible issues.', true); return; }
     state.bulkEditDraft = null;
@@ -991,6 +1270,7 @@
     }
     const button = $('#bulk-edit-submit'), draft = state.bulkEditDraft;
     button.disabled = true; $('#bulk-edit-error').hidden = true; $('#bulk-edit-status').textContent = 'Applying…';
+    $$('#bulk-edit-dialog input, #bulk-edit-dialog select, #bulk-edit-dialog button').forEach(control => control.disabled = true);
     state.activeSaves++; syncText('Applying bulk edit…');
     try {
       const response = await rpc('updateIssuesBatch', draft.items);
@@ -1011,7 +1291,7 @@
       $('#bulk-edit-dialog').close(); render(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); notify(`${saved.length} issues updated`);
     } catch (error) {
       $('#bulk-edit-error').textContent = `${error.message || String(error)} Retry to safely check the same operation.`; $('#bulk-edit-error').hidden = false; $('#bulk-edit-status').textContent = 'Save status unknown';
-    } finally { state.activeSaves = Math.max(0, state.activeSaves - 1); button.disabled = false; renderBulkEditPreview(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); }
+    } finally { state.activeSaves = Math.max(0, state.activeSaves - 1); $$('#bulk-edit-dialog input, #bulk-edit-dialog select, #bulk-edit-dialog button').forEach(control => control.disabled = false); renderBulkEditPreview(); syncSelection(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); }
   }
   function draftStatus(key, draft) {
     if (state.saveQueues[saveQueueKeyFor(key)]) return 'Saving…';
@@ -1182,8 +1462,10 @@
         if (options.recordUndo !== false) recordUndo(undoBefore, result, operationId);
         $('#error-banner').hidden = true;
         syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser');
-        if (!(quickCreate && requestInput._focusOnCreate && focusCreatedQuickIssue(result.id))) renderSavedPriority();
-        notify(input._draftKey?.startsWith('quick-') ? createdFeedback(result, message) : message);
+        if (quickCreate) render(acknowledgeQuickFocus(queueKey, result.id));
+        else renderSavedPriority();
+        if (!quickCreate) notify(message);
+        else if (!filtered().some(issue => issue.id === result.id)) notify(createdFeedback(result, message));
         return result;
       } catch (error) {
         const failedDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
@@ -1192,7 +1474,7 @@
           failedDraft.status = /changed elsewhere|conflict|stale|revision/i.test(failedDraft.error) ? 'conflict' : /timed out|acknowledgement lost|unconfirmed/i.test(failedDraft.error) ? 'unconfirmed' : 'failed';
           localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
         }
-        if (quickCreate) { render(); if (entryVisible) leaveQuickEntry(); }
+        if (quickCreate) render();
         renderDraftRecovery();
         throw error;
       }
@@ -1211,35 +1493,31 @@
     }).catch(() => {});
     return job;
   }
-  async function createQuickTask(status = 'Backlog', sourceInput = null) {
-    const input = sourceInput || $('#quick-title'), title = input.value.trim();
-    if (!title || !state.ready) return;
-    const shared = input === $('#quick-title');
-    if (shared && !entrySession) beginQuickEntry();
-    if (shared && !applyQuickParent()) return;
-    const kind = shared ? entrySession.type : input.dataset.quickKind || 'Task';
-    const inferred = shared ? entrySession : creationDefaults(kind);
-    const { rankStep, createdCount, ...base } = inferred;
-    const contextualRank = Number.isFinite(Number(inferred.rank)) ? Number(inferred.rank) + (Number(inferred.rankStep) || 1000) * (Number(inferred.createdCount) || 0) : null;
-    const defaults = shared
-      ? { ...base, ...(contextualRank === null ? {} : { rank: contextualRank }) }
-      : { ...base, parentId: kind === 'Epic' ? '' : input.dataset.quickParentId ?? inferred.parentId, status: typeof status === 'string' ? status : 'Backlog' };
-    const draftKey = input.dataset.quickDraftKey || 'quick-' + newOperationId();
-    const operationId = state.drafts[draftKey]?.operationId || input.dataset.quickOperationId || draftKey;
+  function createQuickTask() {
+    const input = $('#quick-title');
+    if (!input.value.trim() || !state.ready || !entrySession || !applyQuickParent()) return;
+    const parsed = validatedQuickTitle();
+    if (!parsed) return;
+    const title = parsed.summary;
+    const { rankStep, createdCount, ...base } = entrySession;
+    const draftKey = 'quick-' + newOperationId();
     try {
-      const payload = { ...defaults, summary: title };
+      const payload = { ...base, ...parsed.updates, rank: entrySession.rank + rankStep * createdCount, summary: title };
+      if (bulkDeleteDraft?.items.some(item => item.id === payload.parentId)) throw new Error('Resolve the pending deletion before adding work under this parent.');
       C.validate(C.prepare(payload, null, today(), new Date().toISOString()), state.issues);
-      const next = [...state.quickQueue, { title, status: defaults.status, kind, parentId: defaults.parentId, draftKey, operationId, focusOnCreate: true, input: payload }];
+      const next = [...state.quickQueue, { title, status: payload.status, kind: payload.type, parentId: payload.parentId, draftKey, operationId: draftKey, input: payload }];
       localStorage.setItem(quickQueueStorageKey, JSON.stringify(next)); state.quickQueue = next;
-      if (shared) entrySession.createdCount = (Number(entrySession.createdCount) || 0) + 1;
-      input.value = ''; delete input.dataset.quickDraftKey; delete input.dataset.quickOperationId;
-      render(); syncText('Work item queued…'); queueMicrotask(drainQuickQueue);
+      entrySession.createdCount++; input.value = '';
+      closeQuickAssignees(); dismissedAssigneeToken = ''; renderQuickSmartPreview();
+      render(); syncText('Work item queued…');
+      input.focus({ preventScroll: true }); positionGhostEntry(true);
+      queueMicrotask(drainQuickQueue);
     } catch (error) { showError(error); }
   }
   async function undoLastCommand() {
     const entry = state.undoStack.at(-1);
     if (!entry) return;
-    if (state.busy || hasPendingSaves() || dialog.open || $('#bulk-edit-dialog').open || Object.keys(state.drafts).length || state.quickQueue.length || state.bulkDraft || state.bulkEditDraft || state.pendingDuplicate) { notify('Finish or discard pending edits before undoing.', true); return; }
+    if (state.busy || hasPendingSaves() || dialog.open || $('#bulk-edit-dialog').open || Object.keys(state.drafts).length || state.quickQueue.length || state.bulkDraft || state.bulkEditDraft || state.pendingDuplicate || bulkDeleteDraft) { notify('Finish or discard pending edits before undoing.', true); return; }
     if (entry.kind === 'bulk') { await undoBulkCommand(entry); return; }
     if (entry.kind === 'duplicate') { await undoDuplicateCommand(entry); return; }
     const current = issueById(entry.id);
@@ -1393,11 +1671,18 @@
     $('#filter-context').hidden = !state.epic;
     $('#filter-context').textContent = state.epic ? `Epic: ${issueById(state.epic)?.summary || state.epic} · Includes all child issues` : '';
   }
-  function render() {
+  function render(focusOverride = null) {
     if (!state.ready) return;
-    const navigationFocus = navigationSnapshot();
+    if (entryVisible && entrySession) revealParentContext(entrySession.parentId);
+    const navigationFocus = focusOverride?.id ? focusOverride : navigationSnapshot();
+    const entry = $('.quick-entry'), focusedEntry = entry.contains(document.activeElement) ? document.activeElement : null;
+    const entrySelection = focusedEntry && typeof focusedEntry.selectionStart === 'number' ? [focusedEntry.selectionStart, focusedEntry.selectionEnd] : null;
+    const parentOptions = $('#quick-parent-options');
+    if (parentOptions.matches(':popover-open')) parentOptions.hidePopover();
+    const assigneeOptions = $('#quick-assignee-options');
+    if (assigneeOptions.matches(':popover-open')) assigneeOptions.hidePopover();
+    if (entry.parentElement !== $('#quick-entry-home')) $('#quick-entry-home').append(entry);
     renderDraftRecovery();
-    renderQuickEntryPending();
     const sheetFocus = state.view === 'sheet' ? (pendingSheetFocus || captureSheetCellFocus()) : null;
     pendingSheetFocus = null;
     renderSavedViews();
@@ -1416,33 +1701,45 @@
     const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
-    const hasPendingRows = pendingQuickTasks().length;
-    if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; if (entryVisible) queueMicrotask(positionGhostEntry); return; }
-    if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; if (entryVisible) queueMicrotask(positionGhostEntry); return; }
+    const hasPendingRows = pendingQuickTasks().length || entryVisible;
+    if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; syncSelection(); return; }
+    if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; syncSelection(); return; }
     if (state.view === 'kanban') renderBoard(issues);
-    $$('[data-sheet-manual]').forEach(el=>el.remove());
     sheetViewportObserver?.disconnect();
     $('#sheet-actions').replaceChildren();
     if (state.view === 'sheet') renderSheet(issues);
     if (state.view === 'gantt') renderGantt(issues);
+    syncSelection();
     arrangeWorkspaceTools();
     const nextScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
     if (restoreScroll && nextScroll) { nextScroll.scrollLeft = restoreScroll.left; nextScroll.scrollTop = restoreScroll.top; }
-    if (sheetFocus) restoreSheetCellFocus(sheetFocus);
-    else if (navigationFocus && (document.activeElement === document.body || !document.activeElement?.isConnected)) focusNavigation(findNavigationTarget(navigationFocus));
+    if (entryVisible) positionGhostEntry();
+    if (focusedEntry && entryVisible) {
+      restoringEntryFocus = true;
+      focusedEntry.focus({ preventScroll: true });
+      restoringEntryFocus = false;
+      if (entrySelection) focusedEntry.setSelectionRange(...entrySelection);
+    } else if (sheetFocus) restoreSheetCellFocus(sheetFocus);
+    else if (navigationFocus && (document.activeElement === document.body || !document.activeElement?.isConnected)) {
+      const target = findNavigationTarget(navigationFocus);
+      if (target && navigationFocus.value !== null && navigationFocus.value !== undefined) target.value = navigationFocus.value;
+      focusNavigation(target);
+      if (target && navigationFocus.start !== null && navigationFocus.start !== undefined && target.setSelectionRange) target.setSelectionRange(navigationFocus.start, navigationFocus.end);
+    }
     const visibleNavigation = navigationTargets();
     if (activeIssueId && !visibleNavigation.some(el => issueIdFor(el) === activeIssueId)) activeIssueId = '';
-    if (entryVisible && document.activeElement !== $('#quick-parent')) { renderQuickEntryContext(); queueMicrotask(positionGhostEntry); }
+    if (entryVisible && !parentPickerOpen) renderQuickEntryContext();
   }
   function captureSheetCellFocus() {
     const active = document.activeElement;
     if (!active?.matches('.cell-input[data-id][data-field]')) return null;
     const textInput = active.tagName === 'INPUT' && active.type === 'text';
-    return { id: active.dataset.id, field: active.dataset.field, start: textInput ? active.selectionStart : null, end: textInput ? active.selectionEnd : null };
+    return { id: active.dataset.id, field: active.dataset.field, value: active.value, start: textInput ? active.selectionStart : null, end: textInput ? active.selectionEnd : null };
   }
   function restoreSheetCellFocus(snapshot) {
     const cell = document.querySelector(`.cell-input[data-id="${CSS.escape(snapshot.id)}"][data-field="${CSS.escape(snapshot.field)}"]`);
     if (!cell) return;
+    if (snapshot.value !== undefined) cell.value = snapshot.value;
     cell.focus({ preventScroll: true });
     if (snapshot.start !== null && cell.tagName === 'INPUT' && cell.type === 'text') cell.setSelectionRange(snapshot.start, snapshot.end);
     if (snapshot.reveal) revealSheetCell(cell);
@@ -1464,31 +1761,22 @@
     else if (target.bottom > bottom) viewport.scrollTop += Math.min(target.bottom - bottom, target.top - top);
   }
   function pendingQuickTasks() {
-    const firstRank = state.issues.reduce((max, issue) => Math.max(max, Number(issue.rank) || 0), 0) + 1000;
     return [
-      ...Object.entries(state.drafts).filter(([key, draft]) => key.startsWith('quick-') && !draft.input.id).map(([key, draft]) => ({ id: `pending:${key}`, draftKey: key, summary: draft.input.summary, taskTypeId: draft.input.taskTypeId, type: draft.input.type, status: draft.input.status, parentId: draft.input.parentId || '', pendingState: draft.error || !quickSavesInFlight.has(key) ? 'failed' : 'saving', error: draft.error || (!quickSavesInFlight.has(key) ? 'Save is unconfirmed. Retry to check safely.' : '') })),
-      ...state.quickQueue.filter(item => !state.drafts[item.draftKey]).map(item => ({ id: `pending:${item.draftKey}`, draftKey: item.draftKey, summary: item.title, type: item.kind, status: item.status, parentId: item.parentId || '', pendingState: 'queued' }))
-    ].map((issue, index) => ({ ...issue, rank: firstRank + index * 1000 }));
-  }
-  function renderQuickEntryPending() {
-    const panel = $('#quick-entry-pending'), pending = state.view === 'sheet' ? pendingQuickTasks() : [];
-    panel.innerHTML = pending.map(issue => {
-      const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
-      return `<div class="quick-entry-pending-item ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><strong>${escape(issue.summary)}</strong><span>${escape(issue.status)} · ${label}</span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div>`;
-    }).join('');
-    panel.hidden = !pending.length;
+      ...Object.entries(state.drafts).filter(([key, draft]) => key.startsWith('quick-') && !draft.input.id).map(([key, draft]) => ({
+        ...draft.input, id: `pending:${key}`, draftKey: key,
+        pendingState: draft.error || !quickSavesInFlight.has(key) ? 'failed' : 'saving',
+        error: draft.error || (!quickSavesInFlight.has(key) ? 'Save is unconfirmed. Retry to check safely.' : '')
+      })),
+      ...state.quickQueue.filter(item => !state.drafts[item.draftKey]).map(item => ({ ...quickEntryPayload(item), id: `pending:${item.draftKey}`, draftKey: item.draftKey, pendingState: 'queued' }))
+    ];
   }
   function retryQuickDraft(key) {
     const draft = state.drafts[key];
     if (draft && !quickSavesInFlight.has(key)) persist(draft.input, draft.version, 'Work item saved', 'saveIssue', { retry: true }).catch(() => {});
   }
-  $('#quick-entry-pending').addEventListener('click', event => {
-    const retry = event.target.closest('[data-retry-quick]');
-    if (retry) retryQuickDraft(retry.dataset.retryQuick);
-  });
   function pendingQuickCard(issue) {
     const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
-    return `<article class="card pending-card ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="card-top"><span class="card-meta">${typeIcon(issue.type)}${label}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${issue.error ? `<p class="pending-error">${escape(issue.error)}</p><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</article>`;
+    return `<article class="card pending-card ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" tabindex="0" aria-label="${escape(issue.summary)} · ${label}" aria-busy="${issue.pendingState !== 'failed'}"><div class="card-top"><span class="card-meta">${typeIcon(issue.type)}${label}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${issue.error ? `<p class="pending-error">${escape(issue.error)}</p><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</article>`;
   }
   function card(issue) {
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
@@ -1516,16 +1804,18 @@
     </article>`;
   }
   function renderBoard(issues) {
-    const pending = pendingQuickTasks();
-    const renderColumns = (items, pendingItems = pending) => C.statuses.map((status, index) => {
-      const cards = items.filter(i => i.status === status), pendingCards = pendingItems.filter(i => i.status === status);
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task</button></section>`;
+    const displayIssues = [...issues, ...pendingQuickTasks(), ...composerItems()];
+    const renderColumns = items => C.statuses.map((status, index) => {
+      const cards = C.sorted(items.filter(i => i.status === status));
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.filter(issue => !issue.composer).length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(issue => issue.composer ? '<div class="composer-card" data-composer-slot></div>' : issue.draftKey ? pendingQuickCard(issue) : card(issue)).join('')}${!cards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task · T</button></section>`;
     }).join('');
-    if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(issues)}</div>`; return; }
-    $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(issues, true).map(lane => {
+    if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(displayIssues)}</div>`; return; }
+    const lanes = epicLanes(displayIssues, true);
+    $('#view-content').innerHTML = `<div class="kanban-tools"><div class="left"></div></div><div class="swimlanes">${lanes.map(lane => {
       const collapsed = laneCollapsed(lane);
-      return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items, pending.filter(issue => lane.id ? inEpicWithin(issue, lane.id) : !state.issues.some(epic => epic.type === 'Epic' && inEpicWithin(issue, epic.id))))}</div>`}</section>`;
+      return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items)}</div>`}</section>`;
     }).join('')}</div>`;
+    addEpicViewControls('kanban', lanes.filter(lane => lane.id).map(lane => lane.id), $('#view-content .kanban-tools .left'));
   }
   function inEpicWithin(issue, epicId) {
     let current = issue, seen = new Set();
@@ -1565,13 +1855,13 @@
     return lanes;
   }
   function laneCollapsedKey(lane) { return lane.id || noEpicLaneKey; }
-  function laneCollapsed(lane) { return Boolean(state.collapsedEpics[laneCollapsedKey(lane)]); }
+  function laneCollapsed(lane) { return Boolean(state.collapsedEpics[laneCollapsedKey(lane)]) && !lane.items.some(issue => issue.composer); }
   function overallLeafProgress(laneId) {
     if (leafProgressCache.issues !== state.issues) leafProgressCache = { issues: state.issues, counts: C.leafWorkProgress(state.issues) };
     return leafProgressCache.counts.get(laneId) || { done: 0, total: 0 };
   }
   function renderSwimlaneHeader(lane, extraClass = '') {
-    const visibleCount = lane.items.filter(issue => issue.type !== 'Epic').length;
+    const visibleCount = lane.items.filter(issue => issue.type !== 'Epic' && !issue.composer).length;
     const visibleLabel = visibleCount === 1 ? 'item' : 'items';
     const { done, total } = overallLeafProgress(lane.id);
     const progress = total ? Math.round(done / total * 100) : 0;
@@ -1594,7 +1884,7 @@
         <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
       </button>
       <button type="button" class="swimlane-collapse" data-select-lane="${escape(key)}" ${draggable} aria-pressed="${Boolean(epic && activeIssueId === epic.id)}" aria-label="Select ${escape(lane.label)} as task creation context${draggable ? '. Drag to reorder.' : ''}">
-        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>${epic && activeIssueId === epic.id ? '<span class="task-context-badge">Task context</span>' : ''}
+        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>${epic ? `<span class="task-context-marker" aria-label="Task creation context" title="Task creation context" ${activeIssueId === epic.id ? '' : 'hidden'}></span>` : ''}
       </button>
       ${inSheet && epic ? `<button type="button" class="swimlane-add" data-ghost-add data-ghost-kind="Task" data-ghost-parent-id="${escape(epic.id)}" aria-label="Add task under ${escape(epic.summary)}">+ Task</button>` : ''}
       ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">${inGantt ? '✎' : 'Edit'}</button>` : ''}
@@ -1602,12 +1892,18 @@
   }
   function renderSheet(issues) {
     const definitions = sheetColumnDefinitions(), columns = normalizeSheetColumnOrder(state.visibleColumns).map(key => definitions.get(key)).filter(Boolean);
-    const list = sortSheetItems(issues), visibleIds = [];
+    const list = sortSheetItems([...issues, ...pendingQuickTasks(), ...composerItems()]), visibleIds = [];
     const scopeLengths = new Map(), scopePositions = new Map();
-    list.forEach(issue => { const scope = issue.parentId || '', index = scopeLengths.get(scope) || 0; scopePositions.set(issue.id, index); scopeLengths.set(scope, index + 1); });
+    list.filter(issue => !issue.draftKey && !issue.composer).forEach(issue => { const scope = issue.parentId || '', index = scopeLengths.get(scope) || 0; scopePositions.set(issue.id, index); scopeLengths.set(scope, index + 1); });
     const manualOrder = state.sort === 'rank' && state.ascending;
     const renderRow = node => {
-      const issue = node.issue, treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
+      const issue = node.issue;
+      if (issue.composer) return `<tr class="sheet-composer-row" data-sheet-depth="${node.depth}"><td colspan="${columns.length}"><div class="sheet-composer-slot" data-composer-slot style="--sheet-depth:${node.depth}"></div></td></tr>`;
+      if (issue.draftKey) {
+        const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
+        return `<tr class="sheet-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" data-sheet-depth="${node.depth}" data-sheet-parent="${escape(issue.parentId || '')}" tabindex="0" aria-label="${escape(issue.summary)} · ${label}" aria-busy="${issue.pendingState !== 'failed'}"><td colspan="${columns.length}"><div class="sheet-pending-copy" style="--sheet-depth:${node.depth}">${typeIcon(issue.type)}<strong>${escape(issue.summary)}</strong><span>${label}</span>${issue.error ? `<span class="pending-error">${escape(issue.error)}</span><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div></td></tr>`;
+      }
+      const treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
       return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td data-column-key="${field.key}">${field.key === 'summary' ? `<div class="sheet-primary-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
     };
     const body = state.swimlanes
@@ -1616,11 +1912,9 @@
         return `<tbody class="sheet-lane-group"><tr class="sheet-lane-row" data-sheet-parent-target="${escape(lane.id)}"><td colspan="${columns.length}">${renderSwimlaneHeader(lane, 'sheet-lane-title')}</td></tr>${collapsed ? '' : sheetHierarchyRows(lane.items, lane.id).map(renderRow).join('')}</tbody>`;
       }).join('')
       : `<tbody>${sheetHierarchyRows(list).map(renderRow).join('')}</tbody>`;
-    state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
-    const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
-    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}<button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'summary' ? 'summary-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'summary' ? `<div class="sheet-primary-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
-    $('#view-content').insertAdjacentHTML('beforeend', '<button type="button" class="ghost-add sheet-ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task</button>');
+    $('#view-content').innerHTML = `<div class="sheet-tools"><div class="sheet-tool-actions"><button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'summary' ? 'summary-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'summary' ? `<div class="sheet-primary-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').insertAdjacentHTML('beforeend', '<button type="button" class="ghost-add sheet-ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task · T</button>');
     const viewport=$('.table-wrap');
     const sizeHeader=()=>viewport.style.setProperty('--sheet-content-width',viewport.clientWidth+'px');
     sizeHeader(); sheetViewportObserver=new ResizeObserver(sizeHeader); sheetViewportObserver.observe(viewport);
@@ -1992,32 +2286,33 @@
     if (grid) grid.style.setProperty('--label-width', `${state.ganttLabelWidth}px`);
     if (resizer) { const max = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
   }
-  function addGanttEpicViewButton(epicIds) {
-    const previous = state.previousGanttEpics;
-    if (!epicIds.length && !previous) return;
-    const expand = epicIds.some(id => state.collapsedEpics[id]);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'gantt-epic-view';
-    button.className = 'button secondary';
-    button.textContent = expand ? 'Expand all epics' : 'Collapse all epics';
-    button.title = button.textContent + ' shown on this timeline';
-    if (previous) {
-      button.textContent = 'Go back';
-      button.title = 'Restore the Epics you had open before expanding all';
-    }
-    button.addEventListener('click', () => {
-      if (previous) {
-        state.previousGanttEpics = null;
-        setEpicCollapseStates(previous);
-      } else {
-        if (expand) state.previousGanttEpics = Object.fromEntries(epicIds.map(id => [id, Boolean(state.collapsedEpics[id])]));
-        setEpicCollapseStates(Object.fromEntries(epicIds.map(id => [id, !expand])));
-      }
-      render();
-      $('#gantt-epic-view')?.focus({ preventScroll: true });
+  function addEpicViewControls(view, epicIds, mount) {
+    const ids = [...new Set(epicIds)];
+    const group = document.createElement('div');
+    group.className = `epic-fold-controls ${view}-epic-controls`;
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', `${view === 'gantt' ? 'Gantt' : 'Kanban'} Epic display`);
+    group.insertAdjacentHTML('beforeend', '<span class="epic-fold-label">Epics</span>');
+    [
+      { action: 'expand', label: 'Expand all', collapsed: false, disabled: !ids.length || !ids.some(id => state.collapsedEpics[id]) },
+      { action: 'collapse', label: 'Collapse all', collapsed: true, disabled: !ids.length || ids.every(id => state.collapsedEpics[id]) }
+    ].forEach(control => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = `${view}-${control.action}-all`;
+      button.className = 'button secondary';
+      button.textContent = control.label;
+      button.title = ids.length ? `${control.label} Epics shown in this view` : 'No Epics shown in this view';
+      button.disabled = control.disabled;
+      button.addEventListener('click', () => {
+        if (control.collapsed) closeEmptyQuickEntry();
+        setEpicCollapseStates(Object.fromEntries(ids.map(id => [id, control.collapsed])));
+        render();
+        $(`#${view}-${control.collapsed ? 'expand' : 'collapse'}-all`)?.focus({ preventScroll: true });
+      });
+      group.append(button);
     });
-    $('#view-content .gantt-tools .left').append(button);
+    mount.prepend(group);
   }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
@@ -2066,14 +2361,18 @@
       ticks.push(`<div class="gantt-date gantt-tick gantt-${state.zoom}" style="width:${count * dayWidth}px;--day-width:${dayWidth}px" title="${value} – ${tickEnd}">${label}</div>`);
       offset += count;
     }
-    const positions = new Map(), displayIssues = [...issues, ...pendingQuickTasks()];
+    const positions = new Map(), displayIssues = [...issues, ...pendingQuickTasks(), ...composerItems()];
     const renderTrackContent = (issue, y, schedule = issue, summary = false) => {
-      const scheduled = !!schedule && C.validDate(schedule.startDate) && C.validDate(schedule.dueDate) && schedule.dueDate >= schedule.startDate;
-      const rawStart = scheduled ? C.dateNumber(schedule.startDate) - C.dateNumber(start) : 0;
-      const rawEnd = scheduled ? C.dateNumber(schedule.dueDate) - C.dateNumber(start) + 1 : 0;
-      const left = Math.max(0, rawStart) * dayWidth + 3, right = Math.min(days, rawEnd) * dayWidth - 3;
-      const visible = scheduled && right > left;
-      if (visible) positions.set(issue.id, { left, right, y });
+      const hasStart = !!schedule && C.validDate(schedule.startDate);
+      const hasDue = !!schedule && C.validDate(schedule.dueDate);
+      const scheduled = hasStart && hasDue && schedule.dueDate >= schedule.startDate;
+      const startOnly = !summary && hasStart && !schedule.dueDate;
+      const rawStart = scheduled || startOnly ? C.dateNumber(schedule.startDate) - C.dateNumber(start) : 0;
+      const rawEnd = scheduled ? C.dateNumber(schedule.dueDate) - C.dateNumber(start) + 1 : startOnly ? rawStart + 1 : 0;
+      const left = Math.max(0, rawStart) * dayWidth + 3;
+      const right = Math.min(days, rawEnd) * dayWidth - 3;
+      const visible = (scheduled || startOnly) && rawStart < days && rawEnd > 0 && (startOnly || right > left);
+      if (visible && scheduled) positions.set(issue.id, { left, right, y });
       const index = C.statuses.indexOf(issue.status), colors = {
         Epic: ['#F5F3FF', '#6D28D9', '#DDD6FE'],
         Story: ['#ECFEFF', '#0E7490', '#A5F3FC'],
@@ -2082,20 +2381,27 @@
       }[issue.type] || ['#EFF6FF', '#1D4ED8', '#BFDBFE'];
       if (!visible) {
         if (summary) return `<span class="schedule-note epic-schedule-note">${scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Schedule child issues to set epic duration'}</span>`;
-        return `<button class="schedule-note" data-open="${escape(issue.id)}">${scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Set start and due dates →'}</button>`;
+        const note = startOnly ? `Starts outside this window · ${shortDate(schedule.startDate)}` : scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Set a start date →';
+        return `<button class="schedule-note" data-open="${escape(issue.id)}">${note}</button>`;
       }
-      const dateRange = `${schedule.startDate} → ${schedule.dueDate}`;
-      const barStart = summary ? `<div class="gantt-bar epic-summary-bar" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" tabindex="0" role="button" aria-label="Open ${escape(issue.id)}; Epic duration from child schedules: ${escape(dateRange)}"` : `<button class="gantt-bar" data-bar="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" data-day-width="${dayWidth}" data-full-start="${rawStart}" data-full-end="${rawEnd}" aria-label="Edit schedule for ${escape(issue.id)}: ${escape(dateRange)}, ${issue.progress}% complete, ${escape(C.statuses[index])}"`;
+      const dateRange = startOnly ? `${schedule.startDate} · No due date` : `${schedule.startDate} → ${schedule.dueDate}`;
+      const barStart = summary ? `<div class="gantt-bar epic-summary-bar" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" tabindex="0" role="button" aria-label="Open ${escape(issue.id)}; Epic duration from child schedules: ${escape(dateRange)}"` : `<button class="gantt-bar${startOnly ? ' start-only' : ''}" data-bar="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" data-day-width="${dayWidth}" data-full-start="${rawStart}" data-full-end="${rawEnd}" data-start-only="${startOnly}" aria-label="${startOnly ? 'Move' : 'Edit schedule for'} ${escape(issue.id)}: ${escape(dateRange)}${startOnly ? '' : `, ${issue.progress}% complete, ${escape(C.statuses[index])}`}" title="${escape(dateRange)}"`;
       const barEnd = summary ? '</div>' : '</button>';
-      const resizeHandle = !summary && rawEnd <= days ? '<span class="resize-handle" title="Drag to change due date"></span>' : '';
-      return `${barStart} style="left:${left}px;width:${right - left}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}"><span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span><span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
+      const resizeHandle = !summary && rawEnd <= days ? `<span class="resize-handle" title="${startOnly ? 'Drag to set a due date' : 'Drag to change due date'}"></span>` : '';
+      const barWidth = startOnly ? Math.max(18, right - left) : right - left;
+      const barLeft = startOnly ? Math.max(3, Math.min(left, width - barWidth - 3)) : left;
+      return `${barStart} style="left:${barLeft}px;width:${barWidth}px;--bar-bg:${colors[0]};--bar-color:${colors[1]};--bar-border:${colors[2]};--bar-fill:${colors[2]}">${startOnly ? '' : `<span class="bar-progress" style="width:${Math.max(0, Math.min(100, issue.progress))}%"></span>`}<span class="bar-text">${escape(issue.summary)}</span>${resizeHandle}${barEnd}`;
     };
     const renderTrack = (issue, y, schedule = issue, summary = false) => `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px">${renderTrackContent(issue, y, schedule, summary)}</div>`;
     const epicIds = [];
     const renderRows = (nodes, topOffset) => nodes.map(({ issue, depth, childCount }, row) => {
+      if (issue.composer) {
+        topOffset += composerHeight - 45;
+        return `<div class="gantt-row gantt-composer-row" style="height:${composerHeight}px"><div class="gantt-row-label" data-composer-slot></div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div></div>`;
+      }
       if (issue.draftKey) {
         const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
-        return `<div class="gantt-row gantt-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="gantt-row-label" style="--row-depth:${depth}">${typeIcon(issue.type)}<span class="gantt-label-copy"><strong>${label}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"><span class="gantt-pending-message">${escape(issue.error || 'Syncing with Sheets in the background')}</span></div></div>`;
+        return `<div class="gantt-row gantt-pending-row ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" tabindex="0" aria-label="${escape(issue.summary)} · ${label}" aria-busy="${issue.pendingState !== 'failed'}"><div class="gantt-row-label" style="--row-depth:${depth}">${typeIcon(issue.type)}<span class="gantt-label-copy"><strong>${label}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span>${issue.error ? `<button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div><div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"><span class="gantt-pending-message">${escape(issue.error || (isCloud ? 'Saving to Sheets' : 'Saving in this browser'))}</span></div></div>`;
       }
       const summary = issue.type === 'Epic';
       const schedule = effectiveDates(issue);
@@ -2125,13 +2431,13 @@
         rowsHeight += 45;
         const nodes = collapsed ? [] : ganttHierarchyRows(lane.items, lane.id);
         const laneRows = renderRows(nodes, rowsHeight);
-        rowsHeight += nodes.length * 45;
+        rowsHeight += nodes.reduce((height, node) => height + (node.issue.composer ? composerHeight : 45), 0);
         return `<section class="gantt-swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${epicHeader}${laneRows}</section>`;
       }).join('');
     } else {
       const nodes = ganttHierarchyRows(displayIssues);
       rows = renderRows(nodes, 0);
-      rowsHeight = nodes.length * 45;
+      rowsHeight = nodes.reduce((height, node) => height + (node.issue.composer ? composerHeight : 45), 0);
     }
     let links = '';
     issues.forEach(issue => C.split(issue.dependencies).forEach(id => {
@@ -2144,7 +2450,7 @@
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
     $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
-    addGanttEpicViewButton(epicIds);
+    addEpicViewControls('gantt', epicIds, $('#view-content .gantt-tools .left'));
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
   }
@@ -2176,6 +2482,9 @@
     form.elements.priority.innerHTML = options(C.priorities, issue.priority);
     form.elements.parentId.innerHTML = options(parentsFor(issue, true), issue.parentId, 'No parent');
     for (const field of C.fields) if (form.elements[field.key]) form.elements[field.key].value = issue[field.key];
+    if (!original && !restoredDraft && issue.type === 'Epic' && !Object.prototype.hasOwnProperty.call(defaults, 'startDate')) {
+      epicDateFormValues = { startDate: today(), dueDate: issue.dueDate };
+    }
     updateEpicDateFields();
     $('#form-error').hidden = true; $('#delete-issue').hidden = !id;
     $('#editor-related').hidden = !id;
@@ -2347,13 +2656,7 @@
     try { await persist({ id: issue.id, [field]: value }, issue.version, `${field === 'dueDate' ? 'Due date' : field[0].toUpperCase() + field.slice(1)} updated`); closeTriage(); }
     catch (error) { $('#triage-error').textContent = error.message; formElement.querySelector('button').disabled = false; }
   }
-  function toggleFocusedSelection(issue, anchor) {
-    const selected = new Set(state.selectedIssueIds);
-    if (selected.has(issue.id)) selected.delete(issue.id);
-    else if (selected.size < 100) selected.add(issue.id);
-    else { notify('Select up to 100 issues.', true); return; }
-    state.selectedIssueIds = [...selected]; render(); queueMicrotask(() => focusNavigation(findNavigationTarget(navigationSnapshot(anchor)) || navigationTargets().find(element => issueIdFor(element) === issue.id)));
-  }
+  function toggleFocusedSelection(issue, anchor) { selectIssue(issue.id); }
   triageControl.addEventListener('submit', saveTriage);
   triagePopover.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closeTriage(); } });
   $('#triage-close').addEventListener('click', () => closeTriage());
@@ -2446,7 +2749,6 @@
     const mount = narrow ? $('#mobile-view-options') : $('#workspace-view-options');
     const savedMenu=$('.workspace-saved-views'); if(narrow) savedMenu.removeAttribute('name'); else savedMenu.setAttribute('name','workspace-tools');
     for (const el of Array.from(document.querySelectorAll('.workspace-bar .view-toggle, .workspace-saved-views'))) if(el.parentElement!==mount) mount.append(el);
-    const manual = $('[data-sheet-manual]'); if (manual) { const manualMount=narrow ? $('#mobile-view-options') : $('.sheet-tool-actions'); if(manual.parentElement!==manualMount) manualMount.prepend(manual); }
   }
   window.addEventListener('resize', arrangeWorkspaceTools);
   document.addEventListener('pointerdown', event => {
@@ -2468,13 +2770,54 @@
   $('#create-issue').addEventListener('click', () => openIssue());
   $('#quick-add').addEventListener('click', () => createQuickTask());
   $('#quick-title').addEventListener('focus', () => { if (!entrySession) beginQuickEntry(); else positionGhostEntry(); });
+  $('#quick-title').addEventListener('compositionstart', () => { quickTitleComposing = true; closeQuickAssignees(); });
+  $('#quick-title').addEventListener('compositionend', () => { quickTitleComposing = false; dismissedAssigneeToken = ''; renderQuickSmartPreview(); updateQuickAssignees(); });
+  $('#quick-title').addEventListener('input', event => {
+    if (event.isComposing || quickTitleComposing) return;
+    dismissedAssigneeToken = ''; renderQuickSmartPreview(); updateQuickAssignees(); positionGhostEntry();
+  });
+  $('#quick-title').addEventListener('click', updateQuickAssignees);
+  $('#quick-title').addEventListener('keyup', event => {
+    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key) && !event.isComposing) updateQuickAssignees();
+  });
   $('#quick-title').addEventListener('keydown', event => {
-    if (event.isComposing || event.keyCode === 229 || event.repeat) return;
-    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) { event.preventDefault(); createQuickTask(); }
+    if (event.isComposing || quickTitleComposing || event.keyCode === 229 || event.repeat) return;
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      if (!assigneePickerToken) updateQuickAssignees();
+      else {
+        assigneePickerIndex = (assigneePickerIndex + (event.key === 'ArrowDown' ? 1 : -1) + assigneePickerMatches.length) % assigneePickerMatches.length;
+        renderQuickAssignees();
+      }
+      if (assigneePickerToken) { event.preventDefault(); $('#quick-assignee-options .active')?.scrollIntoView({ block: 'nearest' }); }
+    } else if (assigneePickerToken && !event.ctrlKey && !event.metaKey && !event.altKey && (event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey))) {
+      event.preventDefault(); chooseQuickAssignee(assigneePickerIndex); return;
+    }
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey) { event.preventDefault(); createQuickTask(); }
   });
   $('.quick-entry').addEventListener('keydown', event => {
-    if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229 || !entryVisible) return;
-    event.preventDefault(); event.stopPropagation(); leaveQuickEntry();
+    if (event.key !== 'Escape' || event.isComposing || quickTitleComposing || event.keyCode === 229 || !entryVisible) return;
+    event.preventDefault(); event.stopPropagation();
+    if (assigneePickerToken) { closeQuickAssignees(true); $('#quick-title').focus({ preventScroll: true }); }
+    else leaveQuickEntry();
+  });
+  $('#quick-assignee-options').addEventListener('pointerdown', event => { if (event.target.closest('[data-quick-assignee]')) event.preventDefault(); });
+  $('#quick-assignee-options').addEventListener('click', event => {
+    const option = event.target.closest('[data-quick-assignee]');
+    if (option) chooseQuickAssignee(Number(option.dataset.quickAssignee));
+  });
+  $('#quick-smart-preview').addEventListener('click', event => {
+    const button = event.target.closest('[data-quick-literal]');
+    if (!button) return;
+    const input = $('#quick-title'), start = Number(button.dataset.quickLiteral);
+    input.value = input.value.slice(0, start) + '\\' + input.value.slice(start);
+    closeQuickAssignees(); input.focus({ preventScroll: true }); input.setSelectionRange(start + 1, start + 1);
+    renderQuickSmartPreview(); positionGhostEntry();
+  });
+  document.addEventListener('focusin', event => {
+    if (assigneePickerToken && event.target !== $('#quick-title') && !event.target.closest('#quick-assignee-options')) closeQuickAssignees();
+  });
+  document.addEventListener('pointerdown', event => {
+    if (assigneePickerToken && !event.target.closest('#quick-title, #quick-assignee-options')) closeQuickAssignees();
   });
   $('#quick-title').addEventListener('paste', event => {
     const text = event.clipboardData?.getData('text') || '';
@@ -2485,13 +2828,14 @@
     entrySession.type = event.target.value;
     if (entrySession.type === 'Story') entrySession.parentId = containingEpic(entrySession.parentId);
     Object.assign(entrySession, creationRank(null, entrySession.parentId, entrySession.status)); entrySession.createdCount = 0;
-    renderQuickEntryContext(); positionGhostEntry();
+    renderQuickEntryContext(); render(); positionGhostEntry(true);
   });
   $('#quick-status').addEventListener('change', event => {
     if (!entrySession) return;
     entrySession.status = event.target.value; Object.assign(entrySession, creationRank(null, entrySession.parentId, entrySession.status)); entrySession.createdCount = 0;
+    render(); positionGhostEntry(true);
   });
-  $('#quick-parent').addEventListener('focus', () => { openQuickParentPicker(); $('#quick-parent').select(); });
+  $('#quick-parent').addEventListener('focus', () => { if (!restoringEntryFocus) { openQuickParentPicker(); $('#quick-parent').select(); } });
   $('#quick-parent').addEventListener('click', () => { if (!parentPickerOpen) openQuickParentPicker(); });
   $('#quick-parent').addEventListener('input', event => {
     event.target.setCustomValidity(''); parentPickerOpen = true; parentPickerQuery = event.target.value; parentPickerIndex = -1; renderQuickParentResults();
@@ -2525,8 +2869,7 @@
 
   $('#quick-details').addEventListener('click', openQuickEntryDetails);
   $('#quick-clear').addEventListener('click', () => {
-    const type = entrySession?.type || 'Task', anchor = entryAnchor;
-    $('#quick-title').value = ''; closeQuickBatch(true); entrySession = null; beginQuickEntry(type, false, anchor);
+    $('#quick-title').value = ''; dismissedAssigneeToken = ''; renderQuickSmartPreview(); closeQuickBatch(true); leaveQuickEntry();
   });
   $('#quick-batch-input').addEventListener('input', renderQuickBatch);
   $('#quick-batch-input').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); leaveQuickEntry(); } });
@@ -2540,6 +2883,42 @@
   $('#bulk-create-cancel').addEventListener('click', () => $('#bulk-create-dialog').close());
   $('#bulk-create-input').addEventListener('input', renderBulkPreview);
   $('#bulk-create-submit').addEventListener('click', submitBulkCreate);
+  $('#selection-edit').addEventListener('click', openBulkEdit);
+  $('#selection-delete').addEventListener('click', openBulkDelete);
+  $('#selection-clear').addEventListener('click', () => { if (!deleteSubmitting) { state.selectedIssueIds = []; selectionAnchorId = ''; syncSelection(); } });
+  $('#delete-recovery-open').addEventListener('click', openBulkDelete);
+  $('#bulk-delete-submit').addEventListener('click', submitBulkDelete);
+  $('#bulk-delete-cancel').addEventListener('click', () => { if (!deleteSubmitting) $('#bulk-delete-dialog').close(); });
+  $('#bulk-delete-close').addEventListener('click', () => { if (!deleteSubmitting) $('#bulk-delete-dialog').close(); });
+  $('#bulk-delete-dialog').addEventListener('cancel', event => { if (deleteSubmitting) event.preventDefault(); });
+  $('#bulk-delete-dialog').addEventListener('close', () => { if (deleteReturnFocus?.isConnected && !deleteReturnFocus.closest('[hidden]')) deleteReturnFocus.focus(); else $('#view-content').querySelector(navigationSelector)?.focus(); });
+  $('#bulk-delete-forget').addEventListener('click', () => {
+    if (deleteSubmitting || !bulkDeleteDraft) return;
+    if ($('#bulk-delete-forget').textContent !== 'Confirm forget retry') {
+      $('#bulk-delete-error').textContent = 'Forgetting this retry cannot undo a deletion already received by storage. Refresh before starting a new selection. Confirm only if you no longer want to check the original request.';
+      $('#bulk-delete-error').hidden = false; $('#bulk-delete-forget').textContent = 'Confirm forget retry'; return;
+    }
+    try {
+      localStorage.removeItem(deleteDraftStorageKey); bulkDeleteDraft = null;
+      $('#bulk-delete-forget').textContent = 'Forget retry'; $('#bulk-delete-dialog').close(); syncSelection(); syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); queueMicrotask(drainQuickQueue);
+    } catch (error) { $('#bulk-delete-error').textContent = error.message; $('#bulk-delete-error').hidden = false; }
+  });
+  $('#bulk-edit-dialog').addEventListener('cancel', event => { if (state.activeSaves) event.preventDefault(); });
+  $('#view-content').addEventListener('pointerdown', event => {
+    if (event.target.closest('input:not([data-issue-select]), textarea, select, [contenteditable="true"]')) return;
+    if (event.button === 0 && (event.shiftKey || event.ctrlKey || event.metaKey) && event.target.closest('[data-selection-id]')) {
+      event.preventDefault(); event.stopImmediatePropagation();
+    }
+  }, true);
+  $('#view-content').addEventListener('click', event => {
+    const row = event.target.closest('[data-selection-id]'), checkbox = event.target.closest('[data-issue-select]');
+    if (!row || (!checkbox && event.target.closest('input, textarea, select, [contenteditable="true"]'))) return;
+    if (checkbox || event.shiftKey || event.ctrlKey || event.metaKey) {
+      event.stopImmediatePropagation(); cancelGanttStoryClick();
+      if (!checkbox) event.preventDefault();
+      selectIssue(row.dataset.selectionId, { range: event.shiftKey, additive: event.ctrlKey || event.metaKey, checked: checkbox ? checkbox.checked : undefined });
+    } else if (!state.busy) selectionAnchorId = row.dataset.selectionId;
+  }, true);
   $('#bulk-edit-close').addEventListener('click', () => $('#bulk-edit-dialog').close());
   $('#bulk-edit-cancel').addEventListener('click', () => $('#bulk-edit-dialog').close());
   $('#bulk-edit-field').addEventListener('change', renderBulkEditValue);
@@ -2676,7 +3055,7 @@
     if (state.view === 'sheet' && sheetMove) { moveSheetWithKeyboard(sheetMove.dataset.sheetMoveId, sheetMove.dataset.sheetMove); return; }
     const storyLabel = event.target.closest('.gantt-row-label.has-story-toggle');
     if (ganttStoryClickTimer && (!storyLabel || storyLabel.dataset.open !== ganttStoryClickTimer.id || event.detail > 1)) cancelGanttStoryClick();
-    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
+    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
     if (target.hasAttribute('data-ghost-add')) {
       const parentId = target.dataset.ghostParentId;
@@ -2687,17 +3066,26 @@
     else if (target.hasAttribute('data-select-lane')) {
       const id = target.dataset.selectLane;
       activeIssueId = issueById(id)?.type === 'Epic' ? id : '';
-      render();
-      $('#view-content [data-select-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
+      // Keep the heading mounted so the second click can produce a native double-click.
+      $$('#view-content [data-select-lane]').forEach(button => {
+        const selected = Boolean(activeIssueId && button.dataset.selectLane === activeIssueId);
+        button.setAttribute('aria-pressed', String(selected));
+        button.closest('.swimlane-header').classList.toggle('context-active', selected);
+        const marker = button.querySelector('.task-context-marker');
+        if (marker) marker.hidden = !selected;
+      });
+      target.focus({ preventScroll: true });
     }
     else if (target.hasAttribute('data-toggle-lane')) {
-      const id = target.dataset.toggleLane;
-      setEpicCollapseStates({ [id]: !state.collapsedEpics[id] });
+      const id = target.dataset.toggleLane, collapse = !state.collapsedEpics[id];
+      if (collapse) closeEmptyQuickEntry();
+      setEpicCollapseStates({ [id]: collapse });
       render();
       $('#view-content [data-toggle-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
     }
     else if (target.hasAttribute('data-sheet-lanes')) {
       const collapsed = target.dataset.sheetLanes === 'collapse', layout = {};
+      if (collapsed) closeEmptyQuickEntry();
       $$('#view-content .sheet-lane-title [data-toggle-lane]').forEach(button => { layout[button.dataset.toggleLane] = collapsed; });
       setEpicCollapseStates(layout);
       render();
@@ -2711,7 +3099,6 @@
     else if (target.hasAttribute('data-new')) openIssue('', { status: target.dataset.new, parentId: state.epic });
     else if (target.hasAttribute('data-clear')) clearFilters();
     else if (target.hasAttribute('data-sort')) { state.ascending = state.sort === target.dataset.sort ? !state.ascending : true; state.sort = target.dataset.sort; render(); }
-    else if (target.hasAttribute('data-sheet-manual')) { state.sort = 'rank'; state.ascending = true; render(); }
     else if (target.hasAttribute('data-sheet-column-move')) moveSheetColumn(target.dataset.sheetColumnKey, target.dataset.sheetColumnMove);
     else if (target.hasAttribute('data-timeline')) {
       const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
@@ -2727,11 +3114,13 @@
     else openIssue(target.dataset.open || target.dataset.issue || target.dataset.bar);
   });
   $('#view-content').addEventListener('dblclick', event => {
-    if (state.view !== 'gantt') return;
-    const target = event.target.closest('.gantt-row-label, .gantt-bar');
-    if (!target || event.target.closest('.gantt-add-button, .gantt-tree-toggle, .swimlane-collapse')) return;
+    if (state.busy || Date.now() < suppressClickUntil || dialog.open || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    const control = event.target.closest('input, textarea, select, button, a, [contenteditable]');
+    if (control && !control.matches('.cell-summary, .sheet-row-grip, .swimlane-collapse, .gantt-label-hit, .gantt-bar')) return;
+    const target = event.target.closest('[data-sheet-row-id], .card[data-issue], .swimlane-collapse, .gantt-row-label, .gantt-bar');
+    const id = issueIdFor(target);
+    if (!id || !issueById(id)) return;
     cancelGanttStoryClick();
-    const id = target.dataset.open || target.dataset.bar; if (!id) return;
     event.preventDefault(); openIssue(id);
   });
   $('#view-content').addEventListener('mouseover', event => {
@@ -2789,24 +3178,20 @@
     if (event.target.matches('.gantt-resizer') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); applyGanttLabelWidth(state.ganttLabelWidth + (event.key === 'ArrowRight' ? 10 : -10)); saveUiState(); }
     else if (state.view === 'sheet' && event.altKey && event.target.matches('.sheet-row-grip') && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); moveSheetWithKeyboard(event.target.dataset.sheetDragId, event.key === 'ArrowUp' ? 'up' : 'down'); }
     else if (state.view === 'gantt' && event.altKey && event.target.matches('.gantt-label-hit, .swimlane-collapse[data-gantt-drag-id]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveGanttWithKeyboard(event.target.dataset.ganttDragId, event.key.slice(5).toLowerCase(), event.target); }
-    else if (state.view === 'kanban' && event.altKey && event.target.matches('.card') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveCardWithKeyboard(event.target.dataset.issue, event.key.slice(5).toLowerCase(), event.target); }
+    else if (state.view === 'kanban' && event.altKey && event.target.matches('.card[data-issue]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveCardWithKeyboard(event.target.dataset.issue, event.key.slice(5).toLowerCase(), event.target); }
     else if (event.target.matches('.gantt-label-hit, .gantt-bar') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); const target = event.target.closest('[data-open], [data-bar]'); openIssue(target?.dataset.open || target?.dataset.bar); }
-    else if (event.target.matches('.card, .sheet-row-grip') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue || event.target.dataset.sheetDragId); }
+    else if (event.target.matches('.card[data-issue], .sheet-row-grip') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue || event.target.dataset.sheetDragId); }
   });
   document.addEventListener('change', async event => {
     if (!event.target.closest('#view-content, #sheet-actions, #workspace-more')) return;
     const target = event.target;
     if (target.matches('[data-sheet-column-toggle]')) { toggleSheetColumn(target.dataset.sheetColumnToggle, target.checked); return; }
-    if (target.matches('[data-sheet-select]')) {
-      const selected = new Set(state.selectedIssueIds);
-      if (target.checked) selected.add(target.dataset.sheetSelect); else selected.delete(target.dataset.sheetSelect);
-      if (selected.size > 100) { target.checked = false; notify('Bulk edits support up to 100 selected issues.', true); return; }
-      state.selectedIssueIds = [...selected]; render(); $(`[data-sheet-select="${CSS.escape(target.dataset.sheetSelect)}"]`)?.focus(); return;
-    }
+    if (target.matches('[data-issue-select]')) return;
     if (target.matches('[data-sheet-select-visible]')) {
       const visible = $$('.sheet-issue-row').map(row => row.dataset.sheetRowId);
       if (visible.length > 100) { target.checked = false; notify('Select up to 100 visible rows for a bulk edit.', true); return; }
-      state.selectedIssueIds = target.checked ? visible : []; render(); $('[data-sheet-select-visible]')?.focus(); return;
+      if (state.busy || deleteSubmitting) { syncSelection(); return; }
+      state.selectedIssueIds = target.checked ? visible : []; selectionAnchorId = target.checked ? visible[0] || '' : ''; syncSelection(); return;
     }
     if (target.id === 'timeline-date') { if (C.validDate(target.value) && target.checkValidity()) { state.timelineStart = target.value; render(); } return; }
     if (target.id === 'timeline-zoom') { state.zoom = target.value; render(); return; }
@@ -2841,6 +3226,7 @@
     catch (error) { render(); notify(error.message, true); }
   });
   $('#view-content').addEventListener('dragstart', event => {
+    if (event.shiftKey || event.ctrlKey || event.metaKey || event.target.closest('[data-issue-select]')) { event.preventDefault(); return; }
     const ganttSource = event.target.closest('[data-gantt-drag-id]');
     if (state.view === 'gantt' && ganttSource && !state.busy) {
       const issue = issueById(ganttSource.dataset.ganttDragId); if (!issue) { event.preventDefault(); return; }
@@ -2858,7 +3244,7 @@
       sheetSource.closest('.sheet-issue-row')?.classList.add('sheet-dragging'); return;
     }
     if (event.target.closest('[data-card-priority], [data-card-assignee]')) { event.preventDefault(); return; }
-    const card = event.target.closest('.card'); if (!card || state.busy) { event.preventDefault(); return; }
+    const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
   function clearDragStyle() { $$('.drag-over, .drop-before, .dragging, .gantt-dragging, .gantt-drop-before, .gantt-drop-after, .gantt-drop-parent, .gantt-drop-invalid, .gantt-drop-unparent, .sheet-dragging, .sheet-drop-before, .sheet-drop-after, .sheet-drop-parent, .sheet-drop-invalid, .sheet-drop-unparent').forEach(el => el.classList.remove('drag-over', 'drop-before', 'dragging', 'gantt-dragging', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-dragging', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent')); }
@@ -2937,7 +3323,7 @@
     if (resizer && event.button === 0 && !state.busy) { event.preventDefault(); ganttResize = { x: event.clientX, width: state.ganttLabelWidth, pointer: event.pointerId, element: resizer }; resizer.setPointerCapture(event.pointerId); return; }
     const bar = event.target.closest('[data-bar]'); if (!bar || event.button !== 0 || state.busy) return;
     const issue = issueById(bar.dataset.bar); if (!issue) return;
-    timelineDrag = { bar, issue: { ...issue }, x: event.clientX, width: bar.offsetWidth, left: parseFloat(bar.style.left), days: 0, resize: event.target.classList.contains('resize-handle'), moved: false, pointer: event.pointerId };
+    timelineDrag = { bar, issue: { ...issue }, x: event.clientX, width: bar.offsetWidth, left: parseFloat(bar.style.left), days: 0, resize: event.target.classList.contains('resize-handle'), startOnly: bar.dataset.startOnly === 'true', moved: false, pointer: event.pointerId };
     bar.setPointerCapture(event.pointerId);
   });
   $('#view-content').addEventListener('pointermove', event => {
@@ -2945,19 +3331,22 @@
     if (!timelineDrag || event.pointerId !== timelineDrag.pointer) return;
     const d = timelineDrag, dayWidth = Number(d.bar.dataset.dayWidth);
     let days = Math.round((event.clientX - d.x) / dayWidth);
-    if (d.resize) days = Math.max(days, C.dateNumber(d.issue.startDate) - C.dateNumber(d.issue.dueDate));
+    if (d.resize) days = Math.max(days, d.startOnly ? 0 : C.dateNumber(d.issue.startDate) - C.dateNumber(d.issue.dueDate));
     d.days = days; if (Math.abs(event.clientX - d.x) > 4) d.moved = true;
-    if (d.resize) d.bar.style.width = Math.max(8, d.width + days * dayWidth) + 'px';
+    if (d.resize) d.bar.style.width = d.startOnly ? Math.max(8, (days + 1) * dayWidth - 6) + 'px' : Math.max(8, d.width + days * dayWidth) + 'px';
     else d.bar.style.transform = `translateX(${days * dayWidth}px)`;
-    if (d.moved) d.bar.title = `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
+    if (d.moved) d.bar.title = d.startOnly ? d.resize ? `${d.issue.startDate} → ${C.addDays(d.issue.startDate, days)}` : `${C.addDays(d.issue.startDate, days)} · No due date` : `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
   });
   async function endTimeline(event, cancel = false) {
     if (!timelineDrag || event.pointerId !== timelineDrag.pointer) return;
     const d = timelineDrag; timelineDrag = null;
     if (d.bar.hasPointerCapture(event.pointerId)) d.bar.releasePointerCapture(event.pointerId);
     if (d.moved) suppressClickUntil = Date.now() + 400;
-    if (cancel || !d.days) { d.bar.style.transform = ''; d.bar.style.width = d.width + 'px'; return; }
-    try { await persist({ ...d.issue, startDate: d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, d.days), dueDate: C.addDays(d.issue.dueDate, d.days) }, d.issue.version, 'Schedule updated'); }
+    const changed = d.startOnly && d.resize ? d.moved : Boolean(d.days);
+    if (cancel || !changed) { d.bar.style.transform = ''; d.bar.style.width = d.width + 'px'; return; }
+    const startDate = d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, d.days);
+    const dueDate = d.startOnly ? d.resize ? C.addDays(d.issue.startDate, d.days) : '' : C.addDays(d.issue.dueDate, d.days);
+    try { await persist({ ...d.issue, startDate, dueDate }, d.issue.version, 'Schedule updated'); }
     catch (error) { render(); notify(error.message, true); }
   }
   function endGanttResize(event) {
@@ -2969,7 +3358,7 @@
   $('#view-content').addEventListener('pointerup', event => { if (!endGanttResize(event)) endTimeline(event); });
   $('#view-content').addEventListener('pointercancel', event => { if (!endGanttResize(event)) endTimeline(event, true); });
   window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); if (entryVisible) positionGhostEntry(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); });
-  document.addEventListener('scroll', () => { if (entryVisible) positionGhostEntry(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); }, true);
+  document.addEventListener('scroll', () => { if (parentPickerOpen) positionQuickParentOptions(); positionQuickAssignees(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); }, true);
   document.addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k' && !event.isComposing && !event.target.isContentEditable && !event.target.matches('input,textarea,select') && !$('dialog[open]')) { event.preventDefault(); openCommands(); return; }
     if (event.defaultPrevented || event.repeat || !state.singleKeyShortcuts || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.keyCode === 229 || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
@@ -2987,8 +3376,8 @@
     else if (['1', '2', '3'].includes(event.key)) setView(['sheet', 'kanban', 'gantt'][Number(event.key) - 1]);
   });
   window.addEventListener('beforeunload', event => { if (state.busy || hasPendingSaves() || (dialog.open && formSnapshot() !== initialForm)) { event.preventDefault(); event.returnValue = ''; } });
-  window.addEventListener('storage', event => { if (event.key === storageKey && !state.busy && !hasPendingSaves() && !dialog.open) refresh(true); });
-  setInterval(() => { if (isCloud && state.mode !== 'personal' && !document.hidden && !dialog.open && !state.busy && !hasPendingSaves() && !document.activeElement?.matches('.cell-input')) refresh(true); }, 45000);
+  window.addEventListener('storage', event => { if (event.key === storageKey && !state.busy && !hasPendingSaves() && !bulkDeleteDraft && !document.querySelector('dialog[open]')) refresh(true); });
+  setInterval(() => { if (isCloud && state.mode !== 'personal' && !document.hidden && !document.querySelector('dialog[open]') && !bulkDeleteDraft && !state.busy && !hasPendingSaves() && !document.activeElement?.matches('.cell-input')) refresh(true); }, 45000);
   const requestedView = location.hash.slice(1) || new URLSearchParams(location.search).get('view') || document.body.dataset.initialView;
   state.view = ['sheet', 'kanban', 'gantt'].includes(requestedView) ? requestedView : 'kanban';
   updateUndoControl();

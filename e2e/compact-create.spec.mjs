@@ -89,7 +89,6 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await expect(dialog).toHaveClass(/create-dialog/);
     await expect(dialog).toHaveClass(/quick-create/);
     await expect(field(page, 'estimate')).toBeHidden();
-    await expect(page.locator('#editor-related')).toBeHidden();
     await expect(page.locator('#duplicate-issue')).toBeHidden();
     await expect(page.locator('#create-more-options')).toBeVisible();
     const editBox = await dialog.boundingBox();
@@ -99,7 +98,6 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     } else { expect(editBox.width).toBe(viewport.width); expect(editBox.height).toBe(viewport.height); }
     await page.locator('#create-more-options').click();
     await expect(field(page, 'estimate')).toBeVisible();
-    await expect(page.locator('#editor-related')).toBeVisible();
     await expect(page.locator('#duplicate-issue')).toBeVisible();
     await expect(field(page, 'estimate')).toHaveValue('3');
     await expect(field(page, 'description')).toHaveValue('Keep the context');
@@ -224,3 +222,135 @@ test('unconfirmed cloud create keeps its draft and retries with the original ide
   await expect(page.locator('#issue-dialog')).not.toBeVisible();
   expect(await page.evaluate(() => compactCloud.issues.filter(issue => issue.summary === 'Retry this create').length)).toBe(1);
 });
+
+test('local paste list gives every new task today, including weekends', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+  await page.goto('/#kanban');
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#bulk-create-open').click();
+  await page.locator('#bulk-create-input').fill('Local pasted one\n\nLocal pasted two');
+  await page.locator('#bulk-create-submit').click();
+  await expect(page.locator('#bulk-create-dialog')).toBeHidden();
+  const saved = (await issues(page)).filter(issue => issue.type === 'Task');
+  expect(saved.map(issue => ({ summary: issue.summary, startDate: issue.startDate }))).toEqual([
+    { summary: 'Local pasted one', startDate: '2026-11-07' },
+    { summary: 'Local pasted two', startDate: '2026-11-07' }
+  ]);
+  await page.reload();
+  expect((await issues(page)).filter(issue => issue.type === 'Task')).toEqual(saved);
+  expect((await issues(page)).find(issue => issue.id === epic.id).startDate).toBe('');
+});
+
+for (const type of ['Task', 'Story', 'Bug']) {
+  test(`compact New ${type} defaults to today and preserves explicit dates and clearing`, async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+    await page.goto('/#kanban');
+    for (const [label, startDate] of [['default', '2026-11-07'], ['override', '2026-10-01'], ['clear', '']]) {
+      await page.locator('#create-issue').click();
+      await field(page, 'type').selectOption(type);
+      await expect(field(page, 'startDate')).toHaveValue('2026-11-07');
+      await field(page, 'summary').fill(`${type} ${label}`);
+      if (label !== 'default') {
+        await page.locator('#create-more-options').click();
+        await field(page, 'startDate').fill(startDate);
+        await page.locator('#create-more-options').click();
+      }
+      await page.locator('#save-issue').click();
+      await expect(page.locator('#issue-dialog')).toBeHidden();
+      expect((await issues(page)).find(issue => issue.summary === `${type} ${label}`).startDate).toBe(startDate);
+    }
+    // Editing an already blank issue on a later day must not apply creation defaults.
+    const cleared = (await issues(page)).find(issue => issue.summary === `${type} clear`);
+    await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'));
+    await page.reload();
+    await page.locator(`.card[data-issue="${cleared.id}"] .card-title`).click();
+    await expect(field(page, 'startDate')).toHaveValue('');
+    await field(page, 'summary').fill(`${type} still blank`);
+    await page.locator('#save-issue').click();
+    await expect.poll(async () => (await issues(page)).find(issue => issue.id === cleared.id)).toMatchObject({ summary: `${type} still blank`, startDate: '' });
+  });
+}
+
+test('switching a new Epic to a Task uses today without losing a later cleared date', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+  await page.goto('/#kanban');
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#add-epic').click();
+  await field(page, 'type').selectOption('Task');
+  await expect(field(page, 'startDate')).toHaveValue('2026-11-07');
+  await page.locator('#create-more-options').click();
+  await field(page, 'startDate').fill('');
+  await field(page, 'type').selectOption('Epic');
+  await field(page, 'type').selectOption('Task');
+  await expect(field(page, 'startDate')).toHaveValue('');
+  await field(page, 'summary').fill('Explicitly unscheduled after type switch');
+  await page.locator('#save-issue').click();
+  await expect(page.locator('#issue-dialog')).toBeHidden();
+  expect((await issues(page)).find(issue => issue.summary === 'Explicitly unscheduled after type switch').startDate).toBe('');
+});
+
+for (const type of ['Task', 'Epic']) {
+  test(`${type} can have no activity type across reload and all views, then regain one`, async ({ page }) => {
+    await page.goto('/#kanban');
+    await page.locator('#create-issue').click();
+    await field(page, 'summary').fill(`Untyped ${type}`);
+    await field(page, 'type').selectOption(type);
+    await page.locator('#create-more-options').click();
+    await expect(field(page, 'taskTypeId')).toHaveValue('algo');
+    await field(page, 'taskTypeId').selectOption({ label: 'No activity type' });
+    await page.locator('#save-issue').click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    const created = (await issues(page)).find(issue => issue.summary === `Untyped ${type}`);
+    expect(created.taskTypeId).toBe('none');
+    for (const view of ['sheet', 'gantt', 'kanban']) {
+      await page.goto('/#' + view);
+      const row = page.locator(view === 'sheet' ? `[data-sheet-row-id="${created.id}"]` : view === 'gantt' ? `[data-gantt-row-id="${created.id}"]` : `.card[data-issue="${created.id}"]`);
+      await expect(row).toBeVisible();
+      await expect(row.locator('.task-type-badge')).toHaveCount(0);
+      expect((await issues(page)).find(issue => issue.id === created.id).taskTypeId).toBe('none');
+    }
+    await page.locator(`.card[data-issue="${created.id}"] .card-title`).click();
+    await page.locator('#create-more-options').click();
+    await expect(field(page, 'taskTypeId')).toHaveValue('none');
+    await field(page, 'taskTypeId').selectOption('data');
+    await page.locator('#save-issue').click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    await expect(page.locator(`.card[data-issue="${created.id}"] .task-type-badge`)).toHaveAttribute('aria-label', 'Data');
+    expect((await issues(page)).find(issue => issue.id === created.id).taskTypeId).toBe('data');
+    expect((await issues(page)).find(issue => issue.id === epic.id).taskTypeId).toBe('algo');
+  });
+}
+
+for (const width of [1366, 390]) {
+  test(`compact comments support reading, editing and adding without expanding at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto('/#kanban');
+    await page.evaluate(({ key, child }) => {
+      const project = JSON.parse(localStorage.getItem(key));
+      project.issues.push(child); project.sequence = 2;
+      project.comments = [{ id: 'COM-1', taskId: 'PRJ-1', body: 'Existing discussion', authorId: 'Reviewer', createdAt: '2026-11-01T12:00:00Z' }];
+      localStorage.setItem(key, JSON.stringify(project));
+    }, { key: storageKey, child: { ...C.blank(), id: 'PRJ-2', summary: 'Child work', parentId: epic.id } });
+    await page.reload();
+    await page.locator('.card[data-issue="PRJ-1"] .card-title').click();
+    const existing = page.locator('[data-comment-edit="COM-1"]');
+    await expect(existing).toBeVisible();
+    await expect(existing).toHaveValue('Existing discussion');
+    await expect(page.locator('#child-issues')).toBeHidden();
+    await expect(page.locator('#duplicate-subtasks-option')).toBeHidden();
+    await existing.fill('Updated discussion');
+    await page.locator('[data-comment-save="COM-1"]').click();
+    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)).comments[0].body, storageKey)).toBe('Updated discussion');
+    await page.locator('#new-comment').fill('Compact reply');
+    await page.locator('#create-more-options').click();
+    await page.locator('#create-more-options').click();
+    await expect(page.locator('#new-comment')).toHaveValue('Compact reply');
+    await page.locator('#add-comment').click();
+    await expect(page.locator('#comments-section')).toContainText('Comments (2)');
+    await page.locator('#close-dialog').click();
+    await page.reload();
+    await page.locator('.card[data-issue="PRJ-1"] .card-title').click();
+    await expect(page.locator('[data-comment-edit="COM-1"]')).toHaveValue('Updated discussion');
+    await expect(page.locator('.comment-item textarea').nth(1)).toHaveValue('Compact reply');
+  });
+}
