@@ -36,6 +36,44 @@ function harness() {
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
   return { api: context, rows, notes, props, sheet, book, reads, logs, balanced: () => locks === releases };
 }
+function setTime(h, value) {
+  const timestamp = Date.parse(value);
+  h.api.Date = class extends Date {
+    constructor(...args) { super(...(args.length ? args : [timestamp])); }
+    static now() { return timestamp; }
+    static [Symbol.hasInstance](value) { return value instanceof Date; }
+  };
+}
+test('ordinary, sidebar, and batch creates default only missing non-Epic starts in the book timezone', () => {
+  const h = harness(); setTime(h, '2026-11-06T23:30:00.000Z');
+  const today = '2026-11-07';
+  for (const type of C.types) {
+    const expected = type === 'Epic' ? '' : today;
+    const saved = h.api.saveIssue({ summary: 'Ordinary ' + type, type });
+    const quick = h.api.quickCreateIssue('Sidebar ' + type, type, '', 'quick-' + type);
+    assert.equal(saved.startDate, expected); assert.equal(saved.dueDate, '');
+    assert.equal(quick.startDate, expected); assert.equal(quick.dueDate, '');
+    for (const startDate of ['', '2026-10-20']) {
+      const explicit = h.api.saveIssue({ summary: 'Explicit ' + type, type, startDate });
+      assert.equal(explicit.startDate, startDate);
+      const edited = h.api.saveIssue({ id: explicit.id, summary: 'Edited ' + type }, explicit.version);
+      assert.equal(edited.startDate, startDate);
+      const cleared = h.api.saveIssue({ id: edited.id, startDate: '' }, edited.version);
+      assert.equal(cleared.startDate, '');
+    }
+  }
+  const items = C.types.flatMap(type => [{}, { startDate: '' }, { startDate: '2026-10-20' }].map((dates, index) => ({
+    operationId: `batch-date-${type}-${index}`, input: { summary: 'Batch ' + type, type, ...dates }
+  })));
+  const batch = h.api.createIssuesBatch(items);
+  assert.equal(batch.errors.length, 0); assert.equal(batch.items.length, items.length);
+  batch.items.forEach(({ index, issue }) => {
+    const input = items[index].input;
+    assert.equal(issue.startDate, Object.hasOwn(input, 'startDate') ? input.startDate : input.type === 'Epic' ? '' : today);
+    assert.equal(issue.dueDate, '');
+  });
+  assert.ok(h.balanced());
+});
 test('server creates, updates, serializes dates, and deletes issues', () => {
   const h = harness();
   const issue = h.api.saveIssue({ summary: 'First', startDate: '2026-10-27', dueDate: '2026-11-02' });
@@ -207,6 +245,33 @@ test('direct multiline pastes get unique IDs and preserve input fields', () => {
   assert.equal(h.rows[1][1], 'Task'); assert.equal(h.rows[1][5], 'Backlog'); assert.equal(h.rows[2][14], 100);
   assert.equal(h.rows[1][4], 'Keep this description'); assert.ok(h.rows[2][11] instanceof Date);
 });
+test('legacy native creation defaults only new non-Epic rows and preserves supplied or cleared starts', () => {
+  const h = harness(); setTime(h, '2026-11-06T23:30:00.000Z');
+  const existing = h.api.saveIssue({ summary: 'Existing unscheduled', startDate: '' });
+  for (const type of C.types) {
+    const row = Array(C.fields.length).fill('');
+    row[1] = type; row[3] = 'Native ' + type;
+    h.rows.push(row);
+  }
+  const supplied = Array(C.fields.length).fill('');
+  supplied[3] = 'Native scheduled'; supplied[9] = '2026-10-20'; h.rows.push(supplied);
+  h.api.handleSheetEdit({ range: h.sheet.getRange(2, 2, h.rows.length - 1, 9) });
+  const issues = h.api.getProject().issues;
+  assert.equal(issues.find(issue => issue.id === existing.id).startDate, '');
+  for (const type of C.types) {
+    const issue = issues.find(issue => issue.summary === 'Native ' + type);
+    assert.equal(issue.startDate, type === 'Epic' ? '' : '2026-11-07');
+    assert.equal(issue.dueDate, '');
+  }
+  assert.equal(issues.find(issue => issue.summary === 'Native scheduled').startDate, '2026-10-20');
+  assert.ok(h.rows.find(row => row[3] === 'Native Task')[9] instanceof Date);
+  const taskRow = h.rows.findIndex(row => row[3] === 'Native Task');
+  h.rows[taskRow][9] = '';
+  h.api.handleSheetEdit({ range: h.sheet.getRange(taskRow + 1, 10), oldValue: '2026-11-07' });
+  h.api.handleSheetEdit({ range: h.sheet.getRange(taskRow + 1, 4) });
+  assert.equal(h.rows[taskRow][9], '');
+  for (let row = 2; row <= h.rows.length; row++) assert.equal(h.notes.get(`${row}:4`), '');
+});
 test('direct edits validate rows and leave a correction note without discarding invalid input', () => {
   const h = harness(); h.rows.push(Array(21).fill(''));
   h.rows[1][3] = 'Bad dates'; h.rows[1][9] = '2026-11-10'; h.rows[1][10] = '2026-11-09';
@@ -333,4 +398,165 @@ test('ordinary legacy saves hash only the edited issue and their returned row', 
   const project=h.api.getProject();
   assert.equal(hashes,7,'project responses still provide all versions');
   assert.equal(project.issues.find(issue=>issue.id===created.id).version,updated.version);
+});
+
+function bulkDeleteFixture() {
+  const h = harness(), receipts = new Map(), events = [];
+  h.api.SheetFlowHistory = {
+    findReceipt: (_, id) => id && receipts.has(id) ? { result: receipts.get(id) } : null,
+    receipt: (_, id, result) => { if (id) receipts.set(id, result); },
+    record: (_, event) => events.push(event)
+  };
+  const epic = h.api.saveIssue({ summary: 'Selected epic', type: 'Epic' });
+  const story = h.api.saveIssue({ summary: 'Selected story', type: 'Story', parentId: epic.id });
+  const task = h.api.saveIssue({ summary: 'Selected task', parentId: story.id, dependencies: epic.id });
+  const outside = h.api.saveIssue({ summary: 'Unselected task' });
+  const items = [story, epic, task].map(issue => ({ id: issue.id, expectedVersion: issue.version }));
+  return { ...h, receipts, events, epic, story, task, outside, items };
+}
+
+test('bulk delete removes an explicitly selected linked tree and replays the same intent', () => {
+  const h = bulkDeleteFixture(), removedMetadata = [];
+  h.api.CacheService = { getScriptCache: () => ({ remove: key => removedMetadata.push(key) }) };
+  const result = h.api.deleteIssuesBatch(h.items, 'delete-tree');
+  assert.deepEqual(Array.from(result.deletedIds), h.items.map(item => item.id));
+  assert.equal(result.replayed, undefined);
+  assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id), [h.outside.id]);
+  assert.equal(h.events.filter(event => event.details?.bulkDelete && event.eventKind === 'deleted').length, 3);
+  const replayed = h.api.deleteIssuesBatch(h.items.slice().reverse(), 'delete-tree');
+  assert.equal(replayed.replayed, true);
+  assert.deepEqual(Array.from(replayed.deletedIds), h.items.map(item => item.id));
+  assert.equal(h.events.filter(event => event.details?.bulkDelete).length, 3);
+  assert.deepEqual(removedMetadata, ['PERSONAL_SAVE_META_V1:book-1']);
+  assert.ok(h.balanced());
+});
+
+test('bulk delete validates every revision and missing ID before removing any issue', () => {
+  const h = bulkDeleteFixture();
+  const updated = h.api.saveIssue({ id: h.task.id, summary: 'Newer task' }, h.task.version);
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'stale-delete'), /changed elsewhere/);
+  assert.equal(h.rows.length, 5); assert.equal(h.receipts.size, 0);
+  const missing = [{ id: h.outside.id, expectedVersion: h.outside.version }, { id: 'MISSING', expectedVersion: 'v1' }];
+  assert.throws(() => h.api.deleteIssuesBatch(missing, 'missing-delete'), /no longer exists/);
+  assert.equal(h.api.getProject().issues.find(issue => issue.id === updated.id).summary, 'Newer task');
+  assert.equal(h.rows.length, 5); assert.equal(h.receipts.size, 0); assert.ok(h.balanced());
+});
+
+for (const link of ['parentId', 'dependencies']) test('bulk delete rejects the whole selection when unselected work uses ' + link, () => {
+  const h = bulkDeleteFixture();
+  h.api.saveIssue({ id: h.outside.id, [link]: h.task.id }, h.outside.version);
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'linked-delete'), /parent\/dependency/);
+  assert.equal(h.rows.length, 5); assert.equal(h.receipts.size, 0); assert.ok(h.balanced());
+});
+
+test('bulk delete never includes descendants implicitly and permits outbound links', () => {
+  const h = bulkDeleteFixture();
+  assert.throws(() => h.api.deleteIssuesBatch([h.items[1]], 'epic-only'), /parent\/dependency/);
+  const deleted = h.api.deleteIssuesBatch([{ id: h.task.id, expectedVersion: h.task.version }], 'leaf-only');
+  assert.deepEqual(Array.from(deleted.deletedIds), [h.task.id]);
+  assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id).sort(), [h.epic.id, h.story.id, h.outside.id].sort());
+});
+
+test('bulk delete rejects malformed, empty, duplicate and oversized selections before writes', () => {
+  const h = bulkDeleteFixture(), valid = h.items[0];
+  const invalid = [null, {}, [], Array(1), [null], [{ id: valid.id }], [{ expectedVersion: valid.expectedVersion }],
+    [{ id: 1, expectedVersion: 'v1' }], [{ id: valid.id, expectedVersion: '' }], [valid, valid],
+    Array.from({ length: 101 }, (_, index) => ({ id: 'PRJ-' + index, expectedVersion: 'v1' }))];
+  for (const items of invalid) {
+    assert.throws(() => h.api.deleteIssuesBatch(items, 'invalid-delete'), /1 and 100|ID and expected version|unique/);
+  }
+  for (const operationId of [undefined, null, '', ' ', 42]) assert.throws(() => h.api.deleteIssuesBatch(h.items, operationId), /operation ID is required/);
+  assert.equal(h.rows.length, 5); assert.equal(h.receipts.size, 0); assert.ok(h.balanced());
+});
+
+test('bulk delete accepts the inclusive 100-issue boundary', () => {
+  const h = bulkDeleteFixture();
+  for (let index = 4; index < 100; index++) h.api.saveIssue({ summary: 'Additional ' + index });
+  const items = Array.from(h.api.getProject().issues, issue => ({ id: issue.id, expectedVersion: issue.version }));
+  assert.equal(items.length, 100);
+  assert.equal(h.api.deleteIssuesBatch(items, 'delete-100').deletedIds.length, 100);
+  assert.equal(h.api.getProject().issues.length, 0); assert.ok(h.balanced());
+});
+
+test('bulk delete checks write permission before mutation and before replay', () => {
+  const h = bulkDeleteFixture();
+  h.api.SheetFlowAuth = { require: capability => { assert.equal(capability, 'write'); throw new Error('AUTH_FORBIDDEN'); } };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'authorized-delete'), /AUTH_FORBIDDEN/);
+  assert.equal(h.rows.length, 5); assert.equal(h.receipts.size, 0);
+  h.api.SheetFlowAuth.require = () => {};
+  h.api.deleteIssuesBatch(h.items, 'authorized-delete');
+  h.api.SheetFlowAuth.require = () => { throw new Error('AUTH_FORBIDDEN'); };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'authorized-delete'), /AUTH_FORBIDDEN/);
+  assert.equal(h.rows.length, 2); assert.ok(h.balanced());
+});
+
+test('bulk delete rejects operation collisions with other commands, selections and revisions', () => {
+  const h = bulkDeleteFixture();
+  h.receipts.set('existing-save', h.outside);
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'existing-save'), /different operation/);
+  h.api.SheetFlowHistory.findCreateReservation = (_, id) => id === 'pending-create' ? { id: 'PRJ-9' } : null;
+  h.api.SheetFlowHistory.findUpdateReservation = (_, id) => id === 'pending-update' ? { id: h.task.id } : null;
+  for (const operationId of ['pending-create', 'pending-update']) assert.throws(() => h.api.deleteIssuesBatch(h.items, operationId), /different operation/);
+  h.api.deleteIssuesBatch(h.items, 'owned-delete');
+  assert.throws(() => h.api.deleteIssuesBatch([{ id: h.outside.id, expectedVersion: h.outside.version }], 'owned-delete'), /different operation or delete selection/);
+  assert.throws(() => h.api.deleteIssuesBatch(h.items.map(item => ({ ...item, expectedVersion: 'forged' })), 'owned-delete'), /different operation or delete selection/);
+  assert.equal(h.api.getProject().issues[0].id, h.outside.id); assert.ok(h.balanced());
+});
+
+for (const afterWrite of [false, true]) test('bulk delete restores legacy rows when deletion fails ' + (afterWrite ? 'after applying' : 'before applying'), () => {
+  const h = bulkDeleteFixture(), remove = h.sheet.deleteRow;
+  let calls = 0;
+  h.sheet.deleteRow = row => {
+    calls++;
+    if (calls === 2 && !afterWrite) throw new Error('Injected delete failure');
+    const result = remove(row);
+    if (calls === 2) throw new Error('Injected lost delete acknowledgement');
+    return result;
+  };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'retry-delete'), /Written changes were rolled back/);
+  assert.equal(h.api.getProject().issues.length, 4);
+  h.items.forEach(item => assert.equal(h.api.getProject().issues.find(issue => issue.id === item.id).version, item.expectedVersion));
+  assert.equal(h.receipts.get('retry-delete').phase, 'pending');
+  assert.equal(h.events.filter(event => event.details?.bulkDelete).length, 0);
+  h.sheet.deleteRow = remove;
+  assert.equal(h.api.deleteIssuesBatch(h.items, 'retry-delete').deletedIds.length, 3);
+  assert.equal(h.api.getProject().issues[0].id, h.outside.id); assert.ok(h.balanced());
+});
+
+test('bulk delete refuses to write without a persisted recovery intent', () => {
+  const h = bulkDeleteFixture();
+  h.api.SheetFlowHistory.receipt = () => {};
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'unrecorded-delete'), /recovery record could not be saved/);
+  assert.equal(h.rows.length, 5);
+  delete h.api.SheetFlowHistory;
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'missing-history'), /Restore History.js/);
+  assert.equal(h.rows.length, 5); assert.ok(h.balanced());
+});
+
+test('bulk delete reports incomplete rollback and safely finishes only its reserved selection on retry', () => {
+  const h = bulkDeleteFixture(), remove = h.sheet.deleteRow, write = h.api.writeIssue_;
+  let calls = 0;
+  h.sheet.deleteRow = row => { if (++calls === 2) throw new Error('Delete interrupted'); return remove(row); };
+  h.api.writeIssue_ = () => { throw new Error('Restore unavailable'); };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'partial-delete'), /Some issues could not be restored/);
+  assert.equal(h.api.getProject().issues.length, 3);
+  assert.equal(h.receipts.get('partial-delete').phase, 'pending');
+  h.sheet.deleteRow = remove; h.api.writeIssue_ = write;
+  const recovered = h.api.deleteIssuesBatch(h.items, 'partial-delete');
+  assert.equal(recovered.replayed, true); assert.equal(recovered.deletedIds.length, 3);
+  assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id), [h.outside.id]);
+  assert.ok(h.balanced());
+});
+
+test('bulk delete rechecks revisions and outside links after reserving an interrupted intent', () => {
+  for (const change of ['revision', 'reference']) {
+    const h = bulkDeleteFixture(), receipt = h.api.SheetFlowHistory.receipt;
+    h.api.SheetFlowHistory.receipt = (...args) => { receipt(...args); throw new Error('Intent acknowledgement lost'); };
+    assert.throws(() => h.api.deleteIssuesBatch(h.items, 'pending-delete'), /Intent acknowledgement lost/);
+    h.api.SheetFlowHistory.receipt = receipt;
+    if (change === 'revision') h.api.saveIssue({ id: h.task.id, summary: 'Newer work' }, h.task.version);
+    else h.api.saveIssue({ id: h.outside.id, dependencies: h.task.id }, h.outside.version);
+    assert.throws(() => h.api.deleteIssuesBatch(h.items, 'pending-delete'), change === 'revision' ? /changed elsewhere/ : /parent\/dependency/);
+    assert.equal(h.api.getProject().issues.length, 4); assert.ok(h.balanced());
+  }
 });

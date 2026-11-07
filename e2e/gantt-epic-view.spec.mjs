@@ -38,7 +38,6 @@ for (const grouped of [false, true]) {
     const sign = grouped ? branch(page, 'PRJ-2').locator('.swimlane-toggle') : branch(page, 'PRJ-2');
     await expect(sign).toHaveText('+');
     await expect(sign).toBeInViewport({ ratio: 1 });
-    if (grouped) await expect(branch(page, 'PRJ-2').getByText('Delivery', { exact: true })).toBeVisible();
     await expect(row(page, 'PRJ-2').getByRole('button', { name: 'Add work under PRJ-2' })).toHaveText('Add');
 
     await page.locator('.gantt-viewport').evaluate(el => { el.scrollLeft = 130; });
@@ -91,3 +90,41 @@ test('bulk folding follows visible Epic ancestors through filters and preserves 
   await expect(row(page, 'PRJ-6')).toBeVisible();
   await expect(all).toHaveCount(0);
 });
+
+for (const view of ['sheet', 'gantt']) {
+  test(`${view}: Collapse all closes empty capture and actually folds its Epic`, async ({ page }) => {
+    await openGantt(page, { swimlanes: true, collapsedEpics: {} });
+    await page.locator(`[data-view="${view}"]`).first().click();
+    await page.locator('[data-select-lane="PRJ-1"]').click();
+    await page.keyboard.press('t');
+    await page.locator('#quick-title').fill('   ');
+    const before = await storedProject(page);
+    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : '#gantt-epic-view').click();
+    await expect(page.locator('.quick-entry')).toBeHidden();
+    await expect(page.locator('[data-toggle-lane="PRJ-1"]')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('[data-issue-select="PRJ-3"]')).toHaveCount(0);
+    expect(await storedProject(page)).toBe(before);
+    await page.locator('[data-select-lane="PRJ-2"]').click();
+    await page.keyboard.press('t');
+    await expect(page.locator('#quick-title')).toBeFocused();
+    await expect(page.locator('#quick-title')).toHaveValue('');
+    await expect(page.locator('#quick-context')).toHaveText('Delivery');
+  });
+
+  for (const draft of ['title', 'batch']) test(`${view}: Collapse all preserves a nonempty ${draft} draft`, async ({ page }) => {
+    await openGantt(page, { swimlanes: true, collapsedEpics: {} });
+    await page.locator(`[data-view="${view}"]`).first().click();
+    await page.locator('[data-select-lane="PRJ-1"]').click();
+    await page.keyboard.press('t');
+    if (draft === 'title') await page.locator('#quick-title').fill('Keep this draft 5d');
+    else await page.locator('#quick-title').evaluate(input => {
+      const data = new DataTransfer(); data.setData('text', 'First draft\nSecond draft');
+      input.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    });
+    const before = await storedProject(page);
+    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : '#gantt-epic-view').click();
+    await expect(page.locator('.quick-entry')).toBeVisible();
+    await expect(page.locator(draft === 'title' ? '#quick-title' : '#quick-batch-input')).toHaveValue(draft === 'title' ? 'Keep this draft 5d' : 'First draft\nSecond draft');
+    expect(await storedProject(page)).toBe(before);
+  });
+}

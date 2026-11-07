@@ -224,3 +224,101 @@ test('unconfirmed cloud create keeps its draft and retries with the original ide
   await expect(page.locator('#issue-dialog')).not.toBeVisible();
   expect(await page.evaluate(() => compactCloud.issues.filter(issue => issue.summary === 'Retry this create').length)).toBe(1);
 });
+
+test('local paste list gives every new task today, including weekends', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+  await page.goto('/#kanban');
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#bulk-create-open').click();
+  await page.locator('#bulk-create-input').fill('Local pasted one\n\nLocal pasted two');
+  await page.locator('#bulk-create-submit').click();
+  await expect(page.locator('#bulk-create-dialog')).toBeHidden();
+  const saved = (await issues(page)).filter(issue => issue.type === 'Task');
+  expect(saved.map(issue => ({ summary: issue.summary, startDate: issue.startDate }))).toEqual([
+    { summary: 'Local pasted one', startDate: '2026-11-07' },
+    { summary: 'Local pasted two', startDate: '2026-11-07' }
+  ]);
+  await page.reload();
+  expect((await issues(page)).filter(issue => issue.type === 'Task')).toEqual(saved);
+  expect((await issues(page)).find(issue => issue.id === epic.id).startDate).toBe('');
+});
+
+for (const type of ['Task', 'Story', 'Bug']) {
+  test(`compact New ${type} defaults to today and preserves explicit dates and clearing`, async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+    await page.goto('/#kanban');
+    for (const [label, startDate] of [['default', '2026-11-07'], ['override', '2026-10-01'], ['clear', '']]) {
+      await page.locator('#create-issue').click();
+      await field(page, 'type').selectOption(type);
+      await expect(field(page, 'startDate')).toHaveValue('2026-11-07');
+      await field(page, 'summary').fill(`${type} ${label}`);
+      if (label !== 'default') {
+        await page.locator('#create-more-options').click();
+        await field(page, 'startDate').fill(startDate);
+        await page.locator('#create-more-options').click();
+      }
+      await page.locator('#save-issue').click();
+      await expect(page.locator('#issue-dialog')).toBeHidden();
+      expect((await issues(page)).find(issue => issue.summary === `${type} ${label}`).startDate).toBe(startDate);
+    }
+    // Editing an already blank issue on a later day must not apply creation defaults.
+    const cleared = (await issues(page)).find(issue => issue.summary === `${type} clear`);
+    await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'));
+    await page.reload();
+    await page.locator(`.card[data-issue="${cleared.id}"] .card-title`).click();
+    await expect(field(page, 'startDate')).toHaveValue('');
+    await field(page, 'summary').fill(`${type} still blank`);
+    await page.locator('#save-issue').click();
+    await expect.poll(async () => (await issues(page)).find(issue => issue.id === cleared.id)).toMatchObject({ summary: `${type} still blank`, startDate: '' });
+  });
+}
+
+test('switching a new Epic to a Task uses today without losing a later cleared date', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-07T12:00:00'));
+  await page.goto('/#kanban');
+  await page.locator('#workspace-more > summary').click();
+  await page.locator('#add-epic').click();
+  await field(page, 'type').selectOption('Task');
+  await expect(field(page, 'startDate')).toHaveValue('2026-11-07');
+  await page.locator('#create-more-options').click();
+  await field(page, 'startDate').fill('');
+  await field(page, 'type').selectOption('Epic');
+  await field(page, 'type').selectOption('Task');
+  await expect(field(page, 'startDate')).toHaveValue('');
+  await field(page, 'summary').fill('Explicitly unscheduled after type switch');
+  await page.locator('#save-issue').click();
+  await expect(page.locator('#issue-dialog')).toBeHidden();
+  expect((await issues(page)).find(issue => issue.summary === 'Explicitly unscheduled after type switch').startDate).toBe('');
+});
+
+for (const type of ['Task', 'Epic']) {
+  test(`${type} can have no activity type across reload and all views, then regain one`, async ({ page }) => {
+    await page.goto('/#kanban');
+    await page.locator('#create-issue').click();
+    await field(page, 'summary').fill(`Untyped ${type}`);
+    await field(page, 'type').selectOption(type);
+    await page.locator('#create-more-options').click();
+    await expect(field(page, 'taskTypeId')).toHaveValue('algo');
+    await field(page, 'taskTypeId').selectOption({ label: 'No activity type' });
+    await page.locator('#save-issue').click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    const created = (await issues(page)).find(issue => issue.summary === `Untyped ${type}`);
+    expect(created.taskTypeId).toBe('none');
+    for (const view of ['sheet', 'gantt', 'kanban']) {
+      await page.goto('/#' + view);
+      const row = page.locator(view === 'sheet' ? `[data-sheet-row-id="${created.id}"]` : view === 'gantt' ? `[data-gantt-row-id="${created.id}"]` : `.card[data-issue="${created.id}"]`);
+      await expect(row).toBeVisible();
+      await expect(row.locator('.task-type-badge')).toHaveCount(0);
+      expect((await issues(page)).find(issue => issue.id === created.id).taskTypeId).toBe('none');
+    }
+    await page.locator(`.card[data-issue="${created.id}"] .card-title`).click();
+    await page.locator('#create-more-options').click();
+    await expect(field(page, 'taskTypeId')).toHaveValue('none');
+    await field(page, 'taskTypeId').selectOption('data');
+    await page.locator('#save-issue').click();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+    await expect(page.locator(`.card[data-issue="${created.id}"] .task-type-badge`)).toHaveAttribute('aria-label', 'Data');
+    expect((await issues(page)).find(issue => issue.id === created.id).taskTypeId).toBe('data');
+    expect((await issues(page)).find(issue => issue.id === epic.id).taskTypeId).toBe('algo');
+  });
+}

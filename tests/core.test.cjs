@@ -43,6 +43,27 @@ test('whole-project validation keeps hierarchy and dependency safety at large lo
 });
 
 test('blank projects allow unassigned, unscheduled work', () => assert.doesNotThrow(() => C.validate(make(), [])));
+test('new Task, Story, and Bug start today while Epics and explicit start values stay unchanged', () => {
+  const today = '2026-11-07';
+  assert.equal(C.prepare({ summary: 'Default task' }, null, today, now).startDate, today);
+  for (const type of C.types) {
+    const input = { summary: type, type };
+    assert.equal(C.prepare(input, null, today, now).startDate, type === 'Epic' ? '' : today);
+    assert.equal(C.prepare({ ...input, startDate: '' }, null, today, now).startDate, '');
+    assert.equal(C.prepare({ ...input, startDate: '2026-10-20' }, null, today, now).startDate, '2026-10-20');
+    for (const startDate of [null, undefined]) assert.equal(C.prepare({ ...input, startDate }, null, today, now).startDate, '');
+    assert.equal(Object.hasOwn(input, 'startDate'), false, 'preparation does not mutate the submitted intent');
+  }
+});
+test('editing existing work preserves blank or scheduled starts and allows explicit clearing', () => {
+  for (const type of C.types) {
+    const unscheduled = make({ type, startDate: '' }), scheduled = make({ type, startDate: '2026-10-20' });
+    assert.equal(C.prepare({ summary: 'Edited' }, unscheduled, day, now).startDate, '');
+    assert.equal(C.prepare({ summary: 'Edited' }, scheduled, day, now).startDate, '2026-10-20');
+    assert.equal(C.prepare({ startDate: '' }, scheduled, day, now).startDate, '');
+  }
+  assert.equal(C.prepare({ type: 'Task' }, make({ type: 'Epic', startDate: '' }), day, now).startDate, '');
+});
 test('calendar arithmetic works across leap days and daylight saving boundaries', () => {
   assert.equal(C.addDays('2024-02-28', 1), '2024-02-29');
   assert.equal(C.addDays('2026-10-24', 2), '2026-10-26');

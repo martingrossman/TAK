@@ -13,19 +13,23 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts & help' });
     await expect(dialog).toBeVisible();
     await expect(page.getByRole('button', { name: 'Close help', exact: true })).toBeFocused();
-    await expect(dialog.getByText('Switch to Sheet / Kanban / Gantt', { exact: true })).toBeVisible();
-    expect((await dialog.locator('[aria-labelledby="shortcuts-essentials"] dd').allTextContents()).slice(0, 4)).toEqual([
-      'Quick task / story in the focused context',
-      'Create a task / story with the compact editor',
-      'In Ghost Capture: create, then focus the acknowledged item',
-      'Open New issue'
-    ]);
+    const essentials = dialog.locator('[aria-labelledby="shortcuts-essentials"]');
+    await expect(essentials.locator('dd')).toHaveCount(5);
+    for (const key of ['T', 'S', 'Enter', 'Shift', 'Esc']) {
+      await expect(essentials.locator('kbd').filter({ hasText: new RegExp(`^${key}$`) }).first()).toBeInViewport();
+    }
+    await expect(dialog.locator('#single-key-shortcuts')).toBeHidden();
     // Global navigation must not run while help is open.
     await page.keyboard.press('1');
     await expect(page).toHaveURL(/#kanban$/);
-    for (const group of ['Create & edit', 'Sheet', 'Kanban', 'Gantt', 'Commands', 'Getting started']) {
-      await dialog.locator('summary').filter({ hasText: new RegExp(`^${group}$`) }).click();
+    for (const summary of await dialog.locator('summary').all()) {
+      await summary.click();
+      await expect(summary.locator('..')).toHaveAttribute('open', '');
     }
+    const preference = dialog.getByRole('checkbox', { name: /single.key shortcuts/i });
+    await expect(preference).toBeVisible();
+    await preference.uncheck();
+    await expect(preference).not.toBeChecked();
     await expect(dialog.locator('#help-storage')).toContainText('only in this browser');
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
@@ -35,6 +39,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await expect(page.locator('#search')).toHaveValue('guide');
     await help.press('Enter');
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('checkbox', { name: /single.key shortcuts/i })).not.toBeChecked();
     await page.getByRole('button', { name: 'Close help', exact: true }).click();
     await expect(dialog).not.toBeVisible();
     await expect(help).toBeFocused();

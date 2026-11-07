@@ -45,8 +45,9 @@ Creation and editing shortcuts depend on the focused control:
 
 | Where / focus | Key | Action |
 | --- | --- | --- |
-| Quick-add title, including Kanban column entry | `Enter` | Submit the title; focus the created item after acknowledgement unless another title is already being typed. |
-| Ghost Capture, from any control | `Esc` | Hide capture, keep the unfinished draft for resume, and restore focus to the originating item. Clear explicitly discards it. |
+| Quick-add title, including Kanban column entry | `Enter` | Submit and leave an empty, focused composer ready for another title; Esc closes it. |
+| Quick-add title | `Shift+Enter` | Submit and leave an empty, focused composer ready for another title. |
+| Ghost Capture, from any control | `Esc` | Hide capture, retain the unfinished draft, and restore originating focus. Discard draft is a secondary action. |
 | Focused row grip, card or Gantt label | `↑` / `↓` | Navigate visible items; Kanban `←` / `→` changes column without changing data. |
 | Issue dialog title | `Enter` | Submit the issue form. |
 | Issue dialog | `Ctrl/Cmd + Enter` | Submit the issue form, including from the description. |
@@ -68,21 +69,63 @@ Creation and editing shortcuts depend on the focused control:
 | Focused Commands result | `↑` / `↓` | Move between results; Up from the first returns to search. |
 | Commands dialog | `Esc` | Close Commands and restore focus. |
 
-Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. The **Commands** button also opens the palette with a mouse or touch. Click **Shortcuts** in the app header for the in-app reference and Getting started help.
+Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. **Commands** also opens the palette with mouse or touch. **Shortcuts** starts with five capture actions (T, S, Enter, Shift+Enter, Esc); expand Navigate and find, Edit focused work, the view-specific groups, or Full reference and preferences for everything else, including the single-key preference.
 
 ### Ghost Capture in all three views
 
-Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. A temporary **Ghost Capture** control appears beside that work instead of occupying the toolbar permanently. Visible **+ Add task** controls open the same capture flow. Type a title and press **Enter**; after the save is acknowledged, focus moves to the created item in the current view. If you start typing another title while a remote save is pending, TAK keeps that draft and input focus instead of interrupting you. **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but keeps unfinished text for resume; **Clear** explicitly discards it.
+Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. **Ghost Capture** appears as a temporary Sheet row, a Kanban card in the intended lane/status, or a Gantt label row under its parent—not an overlay on the timeline. Visible **+ Add task** controls open the same flow. The generous title field, searchable parent breadcrumb, quiet **Create ↵**, and **Details** are primary; Type, Status, and **Discard draft** live in secondary options. On phones the compact composer stays reachable above the keyboard.
+
+**Enter**, **Shift+Enter** and **Create** submit and keep an empty composer focused for repeat capture. Capture remains open until Escape; acknowledgement must never interrupt the next draft or steal focus after navigation. Pending work cannot be edited, dragged, or used as a parent. **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but retains unfinished text for resume.
+
+**Collapse all** in Sheet and **Collapse all epics** in Gantt also close an empty capture box so it cannot keep an Epic open. Nonempty titles (including smart-entry tokens) and pasted drafts remain open and unchanged.
 
 Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. The parent picker supports pointer or keyboard search and legal choices only.
-In every grouped view, clicking an Epic heading makes it the visible **Task context** without changing its open/closed state; `T` and the view's contextual Add controls inherit that Epic. Choosing a different parent inside Ghost Capture immediately moves Task context to its containing Epic. A successful parent change in the issue dialog does the same; removing the parent clears it. Parent-driven focus opens any collapsed destination Epic and Story ancestors, places the destination near the top of its scroll viewport with capture clearance, and keeps typing focus in Ghost Capture. Manual heading selection never changes collapse state. The left **+ / −** independently expands or collapses one Epic. Sheet also provides **Expand all**, **Collapse all** and an Epic-level **+ Task** button.
+In every grouped view, clicking an Epic heading selects the task context without changing its open/closed state; a restrained marker identifies the selected Epic, while keyboard focus rings remain visible. `T` and contextual Add controls inherit that Epic. Choosing a parent in capture or successfully changing it in the issue dialog moves context to its containing Epic; removing the parent clears it. Parent-driven focus opens collapsed destination Epic/Story ancestors and keeps capture reachable with typing focus retained. Manual heading selection never changes collapse state. The left **+ / −** independently expands or collapses one Epic. Sheet also provides **Expand all**, **Collapse all** and an Epic-level **+ Task** button.
+
+Double-click a task title, Sheet row/grip, or Epic heading to open details in any view. Single-click Epic headings still select task context without folding the lane; use +/− to fold it. Kanban cards also retain single-click opening. Selection checkboxes, inline property controls and Add buttons keep their own actions.
+
+To remove an activity classification, open **More options → Metadata → Activity type → No activity type**, or choose it in **Edit selected**. No activity badge is shown in Sheet, Kanban or Gantt. You can assign a type again later; existing classifications and the configured creation default are unchanged. The explicit `none` value uses existing storage, with no schema migration.
 
 
 Status inherits the focused issue in Sheet/Gantt and the exact Kanban column for keyboard or visible Add. New work is ranked immediately after a focused sibling when that ordering scope is valid. New items otherwise append to their inherited scope. Priority defaults to Medium, start date to today, due date remains empty, and every queued submission freezes its own defaults, rank, and operation ID.
 
+New Tasks, Stories and Bugs default their start date to today across capture, the editor, Paste list, the Sheets sidebar and native Sheet creation. Browser entry uses the local calendar day; server/native entry uses the spreadsheet timezone. Explicit dates or cleared dates remain unchanged, as do existing tasks. Epics keep derived dates. Plain creation can start on a weekend; only a working-day duration advances that start to Monday. Submitted dates remain frozen for retries.
+
 Pasting multiple lines into an empty Ghost Capture opens an editable preview for up to 100 titles. Each non-empty line becomes one work item in the same context and order. Technical title text is never interpreted as commands or natural language.
 
 From a focused issue, use **P**, **A**, **M**, or **D** for anchored priority, assignee, status, or due-date editing; **E** opens details and **X** toggles selection. The same actions are discoverable through visible controls and Commands. Single-key shortcuts can be disabled in Shortcuts; they never run while typing, during IME composition, or in dialogs.
+
+### Smart quick entry
+
+Type `Prepare release @Martin 5d !high` in single-title capture. With a known Martin, this creates **Prepare release**, assigned to Martin, with High priority and a five-working-day schedule.
+
+| Token | Meaning |
+|---|---|
+| `@Martin` or `@"Martin Novak"` | Existing assignee; choose a suggestion when names are ambiguous |
+| `!highest`, `!high`, `!medium`, `!low`, `!lowest` | Priority |
+| `5d` | Five working days, including the start day |
+| `2w` | Ten working days |
+| `due:today`, `due:tomorrow`, `due:2026-12-15` | Explicit deadline, not duration |
+
+Workdays are Monday–Friday. A Monday start plus `5d` ends Friday; a Friday start ends the following Thursday. Weekend starts advance to Monday. Holidays are not excluded. Duration sets the existing start/due fields; later Gantt edits still use their existing calendar-day behavior.
+
+Preview chips show the resolved values before creation. Keep typing freely: the raw title stays editable. Choose **Keep as title text** for a recognized token, or prefix it with a backslash (`\5d`, `\!high`) to keep it literal. Unknown tokens and email addresses remain title text. Conflicting priorities, ambiguous names, invalid dates/durations or disagreeing duration/deadline combinations require correction before creation.
+
+At `@`, use arrows and Tab/Enter or click to choose an assignee. Enter accepts an open suggestion first; the next Enter creates and keeps capture ready. Escape dismisses suggestions first, then closes capture while preserving the draft. Details receives the parsed title and values. Submitted values are frozen for retry; metadata does not carry into the next title.
+
+Assignee suggestions currently come from names already used on project issues; quick entry does not create people or load a separate Team directory.
+
+Smart syntax applies only to single-title capture. Multiline paste remains a literal-title batch.
+
+
+### Select, modify or delete multiple items
+
+- Select an item, then **Shift+click** another to select the visible range in Sheet, Kanban or Gantt. Individual selection controls and **X** on focused work also support keyboard/touch use.
+- The selection bar offers **Edit selected**, **Delete selected** and **Clear selection**. Actions support up to 100 items; hidden/collapsed items and pending creations are excluded.
+- **Edit selected** changes one common field across the selected set: status, assignee, priority, Epic, activity type, start date or due date. Other values stay unchanged; existing revision checks and bulk-edit Undo apply.
+- **Delete selected** requires confirmation and has no general Undo. Include related children/dependants explicitly: any unselected item referencing the selection blocks the entire deletion. No automatic cascade.
+- An uncertain deletion retains its original operation identity for retry. Items disappear only after acknowledgement; a stale revision or validation error is shown instead of silently overwriting newer work.
+
 
 ## Project setup
 
@@ -196,7 +239,7 @@ Use `configureTrackerEnvironment('production', 'PRODUCTION_SPREADSHEET_ID')` onl
 
 After setup, administrators can run `openHelpSetup` or `startupHealthCheck` in the Apps Script editor to check the connection, schema tabs, and edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
 
-The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, and quick-add retries; delete and comment mutations still need the same idempotency treatment.
+The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, quick-add and selected-item deletion retries; the separate single-item delete and comment mutations still need the same idempotency treatment.
 
 ### Authorization foundation
 
@@ -261,7 +304,7 @@ Further live checks on 2026-10-28 measured a metadata-only request (`getTrackerM
 
 App edits save to Sheets; detail text autosaves after a short pause and dates/selects save immediately. Client saves queue per issue while independent issues can save in parallel. A script lock serializes server writes. A content hash detects stale edits, including changes made directly in Sheets even if their timestamp has not changed. Failed saves keep a local draft and can be retried with the same operation ID. On a detected revision conflict, **Compare with latest** shows field differences and offers to load the latest copy; **Discard draft** removes the local copy after confirmation. Pasted batches keep per-item operation IDs across retries. Automatic merging is not implemented.
 
-Kanban quick-add shows the new item immediately in its Epic/status column with **Saving…** or **Queued…**, while Sheets saves in the background. The form keeps its position, focus, next unsent title, and chosen kind across redraws; each swimlane retains its horizontal scroll. A failed or interrupted save keeps a **Save unconfirmed** card with **Retry save**, including after reload. Retry uses the original operation ID to check whether the server accepted the earlier request. Pending cards cannot be edited, dragged, or used as parents until the server returns a real issue ID.
+Quick-add shows pending work immediately in all three views with **Saving…** or **Queued…** while Sheets saves in the background. Repeat capture keeps its next unsent title and chosen context across redraws; filters and swimlane horizontal scroll remain intact. A failed or interrupted save retains a recoverable pending item with **Retry save**, including after reload. Retry uses the original operation ID to avoid duplicate creation. Pending work cannot be edited, dragged, or used as a parent until the server returns a real issue ID.
 
 In Gantt, use **−** beside an Epic to fold its children and **+** to open it. **Expand all epics** opens the Epic rows on the current timeline. **Go back** restores your earlier mix of open and closed Epics, including after a reload. When all Epics are already open, **Collapse all epics** folds them together.
 

@@ -41,14 +41,14 @@ test('visible Kanban Add opens Ghost Capture in the exact lane without a permane
   await add.click();
   await expect(page.locator('#quick-title')).toBeFocused();
   await expect(page.locator('#quick-status')).toHaveValue('In Progress');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Second epic');
+  await expect(page.locator('#quick-context')).toHaveText('Second epic');
   await page.locator('#quick-title').fill('Created in lane'); await page.keyboard.press('Enter');
   await expect.poll(() => page.evaluate(() => captureHarness.requests.length)).toBe(1);
   expect(await page.evaluate(() => captureHarness.requests[0].input)).toMatchObject({ summary: 'Created in lane', parentId: 'PRJ-2', status: 'In Progress', type: 'Task' });
   await page.evaluate(() => finishCapture(0));
   await expect(page.locator('[data-issue="PRJ-4"]')).toContainText('Created in lane');
-  await expect(page.locator('[data-issue="PRJ-4"]')).toBeFocused();
-  await expect(page.locator('#quick-title')).toBeHidden();
+  await expect(page.locator('#quick-title')).toBeFocused();
+  await expect(page.locator('#quick-title')).toHaveValue('');
 });
 
 test('failed Ghost Capture stays recoverable and retries with the same operation identity', async ({ page }) => {
@@ -92,30 +92,21 @@ test('Escape hides Ghost Capture but preserves and resumes the exact draft', asy
   await page.locator('[data-sheet-drag-id="PRJ-1"]').focus(); await page.keyboard.press('s');
   await expect(page.locator('#quick-title')).toHaveValue('Unfinished draft');
   await expect(page.locator('#quick-kind')).toHaveValue('Task');
-  await expect(page.locator('#quick-context')).toHaveText('EPIC: Second epic');
+  await expect(page.locator('#quick-context')).toHaveText('Second epic');
 });
 
-test('Ghost Capture docks inside the viewport when its anchor scrolls above or below', async ({ page }) => {
-  const items = structuredClone(initial), template = items.find(issue => issue.id === 'PRJ-3');
-  for (let number = 4; number <= 43; number++) items.push({ ...template, id: `PRJ-${number}`, summary: `Scrollable task ${number}`, rank: number * 1000, version: `v${number}` });
-  await page.addInitScript(projectIssues => localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues: projectIssues, comments: [], sequence: 43 })), items);
-  await page.setViewportSize({ width: 900, height: 480 }); await page.goto('/#sheet');
-  const captureFits = () => page.locator('.quick-entry').evaluate(element => {
-    const rect = element.getBoundingClientRect();
-    return rect.top >= 7 && rect.bottom <= innerHeight - 7;
-  });
-  const viewport = page.locator('.table-wrap');
-
-  await page.locator('[data-sheet-drag-id="PRJ-43"]').scrollIntoViewIfNeeded();
-  await page.locator('[data-sheet-drag-id="PRJ-43"]').focus(); await page.keyboard.press('t');
-  await viewport.evaluate(element => { element.scrollTop = 0; });
-  await expect(page.locator('#quick-title')).toBeVisible();
-  await expect.poll(captureFits).toBe(true);
-
-  await page.locator('#quick-clear').click(); await page.keyboard.press('Escape');
-  await page.locator('[data-sheet-drag-id="PRJ-1"]').scrollIntoViewIfNeeded();
-  await page.locator('[data-sheet-drag-id="PRJ-1"]').focus(); await page.keyboard.press('t');
-  await viewport.evaluate(element => { element.scrollTop = element.scrollHeight; });
-  await expect(page.locator('#quick-title')).toBeVisible();
-  await expect.poll(captureFits).toBe(true);
+for (const view of ['sheet', 'kanban', 'gantt']) test(`${view}: mobile capture remains reachable in a keyboard-sized viewport`, async ({ page }) => {
+  await seedLocal(page);
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/#' + view);
+  const selector = view === 'sheet' ? '[data-sheet-drag-id="PRJ-3"]' : view === 'kanban' ? '[data-issue="PRJ-3"]' : '.gantt-label-hit[data-open="PRJ-3"]';
+  await page.locator(selector).focus(); await page.keyboard.press('t');
+  await page.locator('#quick-title').fill('Phone draft');
+  // Desktop automation cannot open a native phone keyboard; emulate its reduced viewport.
+  await page.setViewportSize({ width: 390, height: 420 });
+  for (const id of ['quick-title', 'quick-add', 'quick-parent', 'quick-details']) {
+    await expect(page.locator('#' + id)).toBeInViewport({ ratio: 1 });
+  }
+  await page.locator('#quick-add').click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues.some(issue => issue.summary === 'Phone draft'))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });

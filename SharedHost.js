@@ -24,7 +24,7 @@ function sharedTrackerRpc(sheetId, method, args) {
   if (!sharedHost_()) throw new Error('This project is not the shared TAK app.');
   var methods = {
     getProject: getProject, saveIssue: saveIssue, createIssuesBatch: createIssuesBatch,
-    updateIssuesBatch: updateIssuesBatch, deleteIssue: deleteIssue, moveIssue: moveIssue,
+    updateIssuesBatch: updateIssuesBatch, deleteIssuesBatch: deleteIssuesBatch, deleteIssue: deleteIssue, moveIssue: moveIssue,
     duplicateIssue: duplicateIssue, undoDuplicateIssues: undoDuplicateIssues,
     getTaskComments: getTaskComments, addTaskComment: addTaskComment, updateTaskComment: updateTaskComment
   };

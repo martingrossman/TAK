@@ -65,3 +65,65 @@ Avoid feeding complete successful logs, entire traces, screenshots of passing te
 ## Safety
 
 Use isolated test fixtures and local browser storage. Never point automated tests at a production Google Sheet or run Apps Script deployment commands without explicit approval. A passing local browser suite does not verify the Apps Script-backed mode.
+
+## Multi-item action verification
+
+```powershell
+npm.cmd run check
+npx.cmd playwright test e2e/multi-selection.spec.mjs --workers=2 --retries=0 --reporter=line
+```
+
+The targeted suite exercises visible forward/reverse Shift+click ranges, individual keyboard/modifier selection, view changes, filtered/collapsed exclusions, the 100-item limit, bulk-edit persistence, confirmed deletion/cancellation, protected references, stale versions, failed/lost responses, recovery after reload, pending-work guards and unavailable storage.
+
+Manual acceptance: in each view select an item and Shift+click another, inspect the count/highlighting, change a common field, and reload. Verify Shift+click inside a Sheet text field still selects text. Cancel a deletion before confirming a disposable selection. Confirm the dialog and selection bar remain reachable at a narrow viewport. Use synthetic local data only; do not test destructive actions on a production spreadsheet.
+
+Local verification for this extension: 170 Node tests and the 100-case selection/capture/Sheet-focus/Gantt-folding browser run passed. Desktop Edge visual smoke demonstrated range selection, bulk priority editing, deletion cancellation and confirmed removal of only the selected items. A 390×700 viewport showed the selection bar and confirmation fitting onscreen. Live Apps Script, real-phone keyboard/touch and large-project selection performance remain unverified.
+
+After the text-field gesture fix, `npm.cmd run check` passed again and all 33 multi-selection browser cases passed with retries disabled, including the new native-text-selection regression.
+
+Sheets deletion uses bounded validation, persistent recovery intent and best-effort rollback, not a database transaction. Native spreadsheet edits do not participate in the script lock. Do not interpret local fixture coverage as a guarantee against concurrent native edits or a live-deployment check.
+
+## Smart quick-entry verification
+
+```powershell
+npm.cmd run check
+npx.cmd playwright test e2e/smart-entry.spec.mjs e2e/quick-entry-keyboard.spec.mjs --workers=2 --retries=0 --reporter=line
+```
+
+The parser suite covers inclusive weekdays, weekend starts, weeks, leap/year/DST boundaries, bounded dates, quoted/ambiguous names, token conflicts, literal escapes and unchanged calendar-day arithmetic. Browser cases exercise all three views, suggestions and keyboard precedence, literal choices, Details handoff, invalid input without writes, parsed-title limits, repeat capture, IME, literal batch paste and frozen payloads after lost acknowledgements/reload.
+
+Manual local Edge smoke saved `Prepare release @Martin 5d !high` as title `Prepare release`, assignee `Martin Novak`, priority `High`, start `2026-11-09` and due `2026-11-13` when entered on Saturday `2026-11-07`. Capture remained ready for the next title. Literal opt-out removed duration metadata while retaining `5d` in the title; a conflicting explicit deadline retained the raw draft and showed an error. Desktop Sheet/Gantt and 390×700 Kanban previews/suggestions were visually checked. Escape dismissed assignee suggestions before closing capture.
+
+No live Apps Script deployment, real-phone keyboard/touch, holiday calendar or large-project performance verification was performed. Assignees come from existing issue names; scheduling changes apply only when parsing a new quick-entry duration.
+
+Results: `npm.cmd run check` passed all 181 Node tests. The final smart-entry/keyboard run passed 73/73 browser cases with retries disabled; the other 18 Kanban/Gantt capture and batch cases passed in the preceding run. Initial verification found and corrected a parent-picker Escape regression and an ambiguity test that needed to dismiss suggestions without selecting a name. Overall, 91 distinct browser cases passed.
+
+## Collapse all and empty capture
+
+Collapse all now closes empty/whitespace-only quick capture in Sheet and Gantt, resetting its creation context without touching queued items. Nonempty titles and pasted drafts stay open. Local Edge smoke reproduced the empty composer keeping its Epic open before the fix, then confirmed it closes and the Epic folds afterward; a typed draft remained visible and unchanged.
+
+`npm.cmd run check` passed all 181 Node tests. `npx.cmd playwright test e2e/gantt-epic-view.spec.mjs e2e/quick-entry-keyboard.spec.mjs --workers=2 --retries=0 --reporter=line` passed all 60 browser cases, including empty cancellation, new-context reopening and title/batch draft preservation in both views. Live Apps Script was not exercised; persistence behavior was not changed.
+
+## New-work start-date defaults
+
+Run `npm.cmd run check`, then `npx.cmd playwright test e2e/compact-create.spec.mjs e2e/quick-create-batch.spec.mjs e2e/quick-entry-keyboard.spec.mjs e2e/smart-entry.spec.mjs --workers=2 --retries=0 --reporter=line`.
+
+Local Edge smoke reproduced Paste list saving a blank start, then confirmed two new pasted tasks and a new Epic switched to Task saved `2026-11-07` on that local calendar day. The previously saved blank task remained blank. Automated coverage includes explicit dates/clearing, existing-item edits, spreadsheet timezone, native creation, frozen midnight retries, and working-day duration behavior.
+
+Live Apps Script was not exercised. Existing versioned-native multi-row paste with several missing IDs remains outside this change; single-row native creation is covered by the server harness. The legacy-schema receipt-recovery harness also exposes an empty returned version before refresh; this pre-existing recovery concern is separate from start-date preservation and remains unchanged.
+
+Date-default verification: `npm.cmd run check` passed all 191 Node tests; the targeted compact-create, batch, keyboard and smart-entry run passed all 91 browser cases.
+
+## Double-click details
+
+Local Edge smoke confirmed task and Epic double-clicks open the correct issue in Sheet, Kanban and Gantt. Before the change, neither Sheet title nor Epic-heading double-click opened details. Epic context updates now keep the heading mounted so the browser can deliver the second click; single clicks still select context without changing expansion.
+
+Run `npm.cmd run check`, then `npx.cmd playwright test e2e/quick-entry-keyboard.spec.mjs e2e/gantt-epic-view.spec.mjs --workers=2 --retries=0 --reporter=line`. New cases cover task/Epic details, collapsed Epic preservation, subsequent quick-capture context and no data mutation across all views. No live Apps Script or real-phone verification was performed.
+
+Results: `npm.cmd run check` passed all 191 Node tests; the targeted keyboard/Gantt run passed all 63 browser cases with retries disabled.
+
+## Optional activity type
+
+`npm.cmd run check` passed all 194 Node tests. `npx.cmd playwright test e2e/compact-create.spec.mjs e2e/multi-selection.spec.mjs --workers=2 --retries=0 --reporter=line` passed all 49 browser cases, including Task/Epic creation without a type, reload, badge absence in all views, reassignment, bulk removal and Undo.
+
+Local Edge smoke changed an existing task to **No activity type**, reloaded Sheet/Kanban/Gantt and confirmed no activity badge while its original start date remained unchanged. Server harnesses verified the explicit `none` value survives legacy, versioned and optimized personal storage; live Apps Script was not exercised. Existing missing values still use the established default, with no schema migration.

@@ -459,7 +459,10 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     return recoveredUpdate;
   }
   if (current && current.version !== expectedVersion) throw new Error('This issue changed elsewhere. Refresh, then apply your changes again.');
-  var issue = TrackerCore.prepare(input, current, today_(book), new Date().toISOString());
+  var now = reservation ? new Date(reservation.createdAt) : new Date();
+  var issue = TrackerCore.prepare(input, current, today_(book, now), now.toISOString());
+  // New reservations freeze the prepared start; older reservations represent unscheduled creates.
+  if (reservation && !Object.prototype.hasOwnProperty.call(input, 'startDate')) issue.startDate = Object.prototype.hasOwnProperty.call(reservation, 'startDate') ? reservation.startDate : '';
   if (updateReservation) issue.updatedAt = updateReservation.updatedAt;
   if (!current) {
     issue.id = reservation ? reservation.id : nextId_(issues, request);
@@ -477,7 +480,7 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     SpreadsheetApp.flush();
   }
   if (!current && createFingerprint && !reservation && history.reserveCreate) {
-    history.reserveCreate(book, operationId, { id: issue.id, createdAt: issue.createdAt, updatedAt: issue.updatedAt, fingerprint: createFingerprint }, systemRows);
+    history.reserveCreate(book, operationId, { id: issue.id, createdAt: issue.createdAt, updatedAt: issue.updatedAt, startDate: issue.startDate, fingerprint: createFingerprint }, systemRows);
     SpreadsheetApp.flush();
   }
   mark = Date.now();
@@ -670,6 +673,113 @@ function moveIssue(id, move, expectedVersion, operationId) {
     return saved;
   });
 }
+/** Delete exactly one revision-checked selection; a durable intent makes uncertain replies retryable. */
+function deleteIssuesBatch(items, operationId) {
+  return withLock_(function () {
+    authorizationService_().require('write');
+    if (typeof operationId !== 'string' || !operationId.trim()) throw new Error('A delete operation ID is required.');
+    if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Select between 1 and 100 issues to delete.');
+    var selected = new Set(), requested = [];
+    for (var index = 0; index < items.length; index++) {
+      var item = items[index];
+      if (!item || typeof item.id !== 'string' || !item.id.trim() || typeof item.expectedVersion !== 'string' || !item.expectedVersion.trim()) throw new Error('Every selected issue needs an ID and expected version.');
+      if (selected.has(item.id)) throw new Error('Selected issue IDs must be unique.');
+      selected.add(item.id); requested.push({ id: item.id, expectedVersion: item.expectedVersion });
+    }
+    var fingerprint = Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(requested.slice().sort(function (a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; }))));
+    if (typeof SheetFlowHistory === 'undefined') throw new Error('Delete recovery is unavailable. Restore History.js before deleting issues.');
+    var book = getBook_(), history = historyService_(), systemRows = readSystemRows_(book);
+    var previous = history.findReceipt(book, operationId, systemRows), intent = previous && previous.result;
+    if (previous && (!intent || intent.kind !== 'deleteIssuesBatch' || intent.fingerprint !== fingerprint)) throw new Error('This operation ID belongs to a different operation or delete selection.');
+    if (intent && intent.phase === 'complete') return { deletedIds: intent.deletedIds, replayed: true };
+    if (intent && intent.phase !== 'pending') throw new Error('This delete recovery record is unreadable. Refresh and review the project.');
+    if (!intent && ((history.findCreateReservation && history.findCreateReservation(book, operationId, systemRows)) || (history.findUpdateReservation && history.findUpdateReservation(book, operationId, systemRows)))) throw new Error('This operation ID belongs to a different operation.');
+    var versioned = versionedRepositoryActive_(book);
+    if (intent && intent.versioned !== versioned) throw new Error('The repository changed during this delete. Refresh and review the project.');
+    var issues = versioned ? readVersionedIssues_(book, true) : readIssues_(book);
+    var byId = new Map(issues.map(function (issue) { return [issue.id, issue]; })), pending = [];
+    var expected = intent ? intent.items : requested;
+    expected.forEach(function (entry) {
+      var issue = byId.get(entry.id);
+      if (!issue) {
+        if (intent && !versioned) return;
+        throw new Error(entry.id + ': This issue no longer exists. Refresh the project.');
+      }
+      if (issue._archivedAt || (issue._storageTab === 'projects' && issue._record.Active === false)) {
+        if (intent && issue._archivedAt && issue._storageRevision === entry.archivedRevision && issueStateFingerprint_(issue) === entry.stateFingerprint) return;
+        throw new Error(entry.id + ': This issue changed elsewhere. Refresh before deleting.');
+      }
+      if (issue.version !== entry.expectedVersion) throw new Error(entry.id + ': This issue changed elsewhere. Refresh before deleting.');
+      pending.push(issue);
+    });
+    var linked = issues.filter(function (issue) {
+      return !issue._archivedAt && !(issue._storageTab === 'projects' && issue._record.Active === false) && !selected.has(issue.id)
+        && (selected.has(issue.parentId) || TrackerCore.split(issue.dependencies).some(function (id) { return selected.has(id); }));
+    });
+    if (linked.length) throw new Error('Remove parent/dependency links from ' + linked.map(function (issue) { return issue.id; }).join(', ') + ' before deleting.');
+    if (!intent) {
+      intent = { kind: 'deleteIssuesBatch', phase: 'pending', fingerprint: fingerprint, versioned: versioned, items: requested.map(function (entry) {
+        var issue = byId.get(entry.id), saved = { id: entry.id, expectedVersion: entry.expectedVersion };
+        if (versioned) { saved.archivedRevision = issue._storageRevision + 1; saved.stateFingerprint = issueStateFingerprint_(issue); }
+        return saved;
+      }) };
+      history.receipt(book, operationId, intent); SpreadsheetApp.flush();
+      var reserved = history.findReceipt(book, operationId);
+      if (!reserved || !reserved.result || reserved.result.kind !== intent.kind || reserved.result.fingerprint !== fingerprint) throw new Error('The delete recovery record could not be saved. No issues were deleted.');
+    }
+    var changed = [];
+    try {
+      if (versioned) {
+        pending.slice().reverse().forEach(function (issue) { changed.push(issue); archiveVersionedIssue_(book, issue); });
+      } else {
+        var sheet = book.getSheetByName('Issues');
+        pending.slice().sort(function (a, b) { return b._row - a._row; }).forEach(function (issue) { changed.push(issue); sheet.deleteRow(issue._row); });
+      }
+      SpreadsheetApp.flush();
+    } catch (writeError) {
+      var rollbackErrors = [];
+      if (versioned) {
+        changed.slice().reverse().forEach(function (issue) {
+          try { SheetFlowRepository.upsert(book, issue._storageTab, issue._record); }
+          catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
+        });
+      } else {
+        try {
+          var remaining = new Set(readIssues_(book).map(function (issue) { return issue.id; }));
+          changed.slice().reverse().forEach(function (issue) {
+            if (remaining.has(issue.id)) return;
+            try {
+              writeIssue_(book, issue, null);
+              if (typeof SheetFlowSettings !== 'undefined') SheetFlowSettings.setTaskType(book, issue.id, issue.taskTypeId);
+            } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
+          });
+        } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
+      }
+      try { SpreadsheetApp.flush(); } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
+      throw new Error('Bulk delete failed. ' + (rollbackErrors.length ? 'Some issues could not be restored; refresh and review the project. ' : 'Written changes were rolled back. ') + String(writeError.message || writeError));
+    } finally {
+      if (!versioned && changed.length) invalidatePersonalSaveMetadata_(book.getId());
+    }
+    // Data is committed. Keep the pending intent if journaling fails so retry completes it, not another deletion.
+    var archived = versioned ? readVersionedIssues_(book, true) : [];
+    var historySheet = book.getSheetByName('Change History'), recorded = new Set();
+    if (historySheet && historySheet.getName() === 'Change History' && historySheet.getLastRow() > 1) {
+      historySheet.getRange(2, 2, historySheet.getLastRow() - 1, 3).getValues().forEach(function (row) { recorded.add(JSON.stringify([String(row[0]), String(row[2])])); });
+    }
+    intent.items.forEach(function (entry) {
+      var eventOperationId = operationId + ':' + entry.id;
+      if (recorded.has(JSON.stringify([eventOperationId, entry.id]))) return;
+      var removed = versioned && archived.find(function (issue) { return issue.id === entry.id; });
+      history.record(book, { operationId: eventOperationId, entityId: entry.id, eventKind: versioned ? 'archived' : 'deleted', beforeRevision: entry.expectedVersion, afterRevision: removed && removed.version || '', changedFields: [], details: { source: 'app', bulkDelete: true, operationId: operationId } });
+    });
+    var deletedIds = intent.items.map(function (entry) { return entry.id; });
+    history.receipt(book, operationId, { kind: intent.kind, phase: 'complete', fingerprint: fingerprint, deletedIds: deletedIds });
+    SpreadsheetApp.flush();
+    var result = { deletedIds: deletedIds };
+    if (previous) result.replayed = true;
+    return result;
+  });
+}
 function deleteIssue(id, expectedVersion) {
   return withLock_(function () {
     authorizationService_().require('write');
@@ -832,8 +942,10 @@ function handleSheetEdit(e) {
     var validated = [], diagnostics = [];
     values.forEach(function (row, offset) {
       if (!String(row[3]).trim()) return;
-      if (!row[0]) row[0] = nextId_(issues);
+      var isNew = !row[0];
+      if (isNew) row[0] = nextId_(issues);
       if (!row[1]) row[1] = 'Task';
+      if (isNew && row[1] !== 'Epic' && row[9] === '') row[9] = appDateToSheet_(today_(book, now), book);
       if (!row[5]) row[5] = 'Backlog';
       if (!row[6]) row[6] = 'Medium';
       if (row[14] === '') row[14] = 0;
@@ -902,6 +1014,7 @@ function handleVersionedSheetEdit_(e) {
     var titleIndex = headers.indexOf(tab === 'tasks' ? 'Title' : 'Title');
     if (!String(row[titleIndex] || '').trim()) return;
     var record = {}; headers.forEach(function (header, index) { record[header] = row[index]; });
+    var isNew = !record.ID;
     if (tab === 'tasks') {
       if (!record.ID) record.ID = nextId_(allIssues);
       if (!record.Kind) record.Kind = 'Task';
@@ -934,6 +1047,7 @@ function handleVersionedSheetEdit_(e) {
     var managed = legacyState.__sheetflow || {}, managedRestore = false, managedMessage = '';
     var knownId = String(managed.id || legacyState.id || '');
     if (knownId && String(record.ID || '') !== knownId) { record.ID = knownId; managedRestore = true; managedMessage = 'ID is managed by TAK and was restored.'; }
+    if (tab === 'tasks' && isNew && !knownId && record['Start Date'] === '') record['Start Date'] = appDateToSheet_(today_(book, now), book);
     if (managed.revision != null && Number(record.Revision) !== Number(managed.revision)) { record.Revision = Number(managed.revision); managedRestore = true; managedMessage = 'Revision is managed by TAK and was restored.'; }
     if (tab === 'tasks' && managed.createdAt && comparableTimestamp_(record['Created At']) !== String(managed.createdAt)) { record['Created At'] = new Date(managed.createdAt); managedRestore = true; managedMessage = 'Created At is managed by TAK and was restored.'; }
     if (tab === 'projects' && managed.active != null && Boolean(record.Active) !== Boolean(managed.active)) { record.Active = Boolean(managed.active); managedRestore = true; managedMessage = 'Active state is managed by TAK and was restored.'; }
@@ -1242,7 +1356,7 @@ function nextId_(issues, request) {
   if (request) request.config.LAST_ISSUE_NUMBER = String(highest + 1);
   return 'PRJ-' + (highest + 1);
 }
-function today_(book) { return Utilities.formatDate(new Date(), book.getSpreadsheetTimeZone(), 'yyyy-MM-dd'); }
+function today_(book, now) { return Utilities.formatDate(now || new Date(), book.getSpreadsheetTimeZone(), 'yyyy-MM-dd'); }
 function withLock_(fn) {
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try { return fn(); } finally { lock.releaseLock(); }

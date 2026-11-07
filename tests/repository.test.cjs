@@ -16,6 +16,7 @@ function harness() {
       getName: () => name,
       getLastRow: () => rows.length,
       getMaxRows: () => 1000,
+      deleteRow: row => rows.splice(row - 1, 1),
       getParent: () => book,
       getRange(row, col, height = 1, width = 1) {
         return {
@@ -78,6 +79,58 @@ function loadBrowserServices(h) {
   for (const name of ['Settings', 'Comments', 'History']) vm.runInContext(fs.readFileSync(require.resolve(`../${name}.js`), 'utf8'), h.api);
   h.api.SheetFlowSettings.ensure(h.book);
 }
+function setTime(h, value) {
+  const timestamp = Date.parse(value);
+  h.api.Date = class extends Date {
+    constructor(...args) { super(...(args.length ? args : [timestamp])); }
+    static now() { return timestamp; }
+    static [Symbol.hasInstance](value) { return value instanceof Date; }
+  };
+}
+
+for (const mode of ['versioned', 'personal']) test(`${mode} save, sidebar, and batch create preserve explicit starts and default missing work dates`, () => {
+  const h = mode === 'personal' ? personalBatchHarness() : harness();
+  if (mode === 'versioned') loadBrowserServices(h);
+  else vm.runInContext(fs.readFileSync(require.resolve('../PersonalBatch.js'), 'utf8'), h.api);
+  setTime(h, '2026-11-06T23:30:00.000Z');
+  const items = Core.types.flatMap(type => [{}, { startDate: '' }, { startDate: '2026-10-20' }].map((dates, index) => ({
+    operationId: `date-batch-${type}-${index}`, input: { summary: `${type} ${index}`, type, ...dates }
+  })));
+  for (const { input, operationId } of items) {
+    const saved = h.api.saveIssue({ ...input, operationId: 'save-' + operationId });
+    const expected = Object.hasOwn(input, 'startDate') ? input.startDate : input.type === 'Epic' ? '' : '2026-11-07';
+    assert.equal(saved.startDate, expected); assert.equal(saved.dueDate, '');
+    const edited = h.api.saveIssue({ id: saved.id, summary: 'Edited ' + input.summary, operationId: 'edit-' + operationId }, saved.version);
+    assert.equal(edited.startDate, expected);
+    const cleared = h.api.saveIssue({ id: saved.id, startDate: '', operationId: 'clear-' + operationId }, edited.version);
+    assert.equal(cleared.startDate, '');
+  }
+  for (const type of Core.types) {
+    const quick = h.api.quickCreateIssue('Sidebar ' + type, type, '', 'date-quick-' + type);
+    assert.equal(quick.startDate, type === 'Epic' ? '' : '2026-11-07');
+  }
+  const batch = h.api.createIssuesBatch(items);
+  assert.equal(batch.errors.length, 0); assert.equal(batch.items.length, items.length);
+  batch.items.forEach(({ index, issue }) => {
+    const input = items[index].input;
+    assert.equal(issue.startDate, Object.hasOwn(input, 'startDate') ? input.startDate : input.type === 'Epic' ? '' : '2026-11-07');
+    assert.equal(issue.dueDate, '');
+  });
+});
+
+for (const mode of ['legacy', 'versioned', 'personal']) test(`${mode} preserves no activity type through save, reread and ordinary edits`, () => {
+  const h = mode === 'personal' ? personalBatchHarness() : harness();
+  if (mode !== 'personal') { h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', mode === 'legacy' ? '1' : '2'); loadBrowserServices(h); }
+  const saved = h.api.saveIssue({ summary: 'Without activity', taskTypeId: 'none', operationId: 'no-activity-create' });
+  assert.equal(saved.taskTypeId, 'none');
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === saved.id).taskTypeId, 'none');
+  const edited = h.api.saveIssue({ id: saved.id, summary: 'Still without activity', operationId: 'no-activity-edit' }, saved.version);
+  assert.equal(edited.taskTypeId, 'none');
+  const restored = h.api.saveIssue({ id: saved.id, taskTypeId: 'data', operationId: 'restore-activity' }, edited.version);
+  assert.equal(restored.taskTypeId, 'data');
+  assert.equal(h.api.readIssues_(h.book).find(issue => issue.id === saved.id).taskTypeId, 'data');
+});
+
 
 test('save journal resolves both destinations before writing and preserves existing receipt timestamps', () => {
   const h = harness(); loadBrowserServices(h);
@@ -116,8 +169,9 @@ test('journal destination lookup failure writes neither history nor receipt', ()
   assert.equal(h.tabs._System.rows.length, systemCount);
 });
 
-for (const schema of ['1', '2']) test(`schema ${schema} create retry reuses a committed row after receipt failure`, () => {
+for (const schema of ['1', '2']) test(`schema ${schema} create retry reuses a committed row and start date across midnight after receipt failure`, () => {
   const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
+  setTime(h, '2026-11-06T23:30:00.000Z');
   const system = h.tabs._System, getRange = system.getRange;
   let failReceipt = true;
   system.getRange = (...args) => {
@@ -135,9 +189,12 @@ for (const schema of ['1', '2']) test(`schema ${schema} create retry reuses a co
   assert.throws(() => h.api.saveIssue(input), /Receipt write failed/);
   const first = h.api.readIssues_(h.book).filter(issue => issue.summary === input.summary);
   assert.equal(first.length, 1, 'the first data write committed');
+  assert.equal(first[0].startDate, '2026-11-07');
+  setTime(h, '2026-11-07T23:30:00.000Z');
   assert.throws(() => h.api.saveIssue({ ...input, summary: 'Different content' }), /belongs to different create content/);
   const saved = h.api.saveIssue(input);
   assert.equal(saved.id, first[0].id);
+  assert.equal(saved.startDate, '2026-11-07');
   assert.equal(h.api.readIssues_(h.book).filter(issue => issue.summary === input.summary).length, 1);
   assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, input.operationId).result.id, saved.id);
   assert.equal(h.tabs['Change History'].rows.filter(row => row[1] === input.operationId).length, 1);
@@ -247,21 +304,45 @@ test('create reservation failure prevents data writes, and a retry can create on
   assert.equal(h.api.readIssues_(h.book).filter(issue => issue.id === saved.id).length, 1);
 });
 
-test('a failed data write after reservation retries the reserved ID', () => {
-  const h = harness(); loadBrowserServices(h);
+for (const schema of ['1', '2']) test(`schema ${schema} reserved create freezes missing starts in book time across midnight and preserves explicit dates`, () => {
+  const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
   const write = h.api.writeIssue_;
-  let failWrite = true;
+  let failWrite = false, count = 0;
   h.api.writeIssue_ = (...args) => {
     if (failWrite) { failWrite = false; throw new Error('Data write failed'); }
     return write(...args);
   };
-  const input = { summary: 'Reserved task after write failure', operationId: 'write-after-reserve' };
-  assert.throws(() => h.api.saveIssue(input), /Data write failed/);
-  assert.equal(h.api.readIssues_(h.book).length, 0);
-  assert.equal(h.api.SheetFlowHistory.findCreateReservation(h.book, input.operationId).id, 'PRJ-1');
-  const saved = h.api.saveIssue(input);
-  assert.equal(saved.id, 'PRJ-1');
-  assert.equal(h.api.readIssues_(h.book).length, 1);
+  for (const type of Core.types) for (const dates of [{}, { startDate: '' }, { startDate: '2026-10-20' }]) {
+    setTime(h, '2026-11-06T23:30:00.000Z'); failWrite = true;
+    const input = { summary: 'Reserved ' + type, type, ...dates, operationId: 'write-after-reserve-' + count };
+    assert.throws(() => h.api.saveIssue(input), /Data write failed/);
+    assert.equal(h.api.readIssues_(h.book).length, count);
+    const reservation = h.api.SheetFlowHistory.findCreateReservation(h.book, input.operationId);
+    assert.equal(reservation.createdAt, '2026-11-06T23:30:00.000Z');
+    setTime(h, '2026-11-07T23:30:00.000Z');
+    const saved = h.api.saveIssue(input);
+    assert.equal(saved.id, reservation.id); assert.equal(saved.createdAt, reservation.createdAt);
+    assert.equal(saved.startDate, Object.hasOwn(dates, 'startDate') ? dates.startDate : type === 'Epic' ? '' : '2026-11-07');
+    assert.equal(saved.startDate, reservation.startDate);
+    assert.equal(saved.dueDate, '');
+    assert.equal(h.api.readIssues_(h.book).length, ++count);
+    assert.equal(h.api.saveIssue(input).startDate, saved.startDate);
+  }
+});
+
+for (const schema of ['1', '2']) test(`schema ${schema} pre-default reservations keep omitted dates blank and respect explicit input`, () => {
+  const h = harness(); h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema); loadBrowserServices(h);
+  setTime(h, '2026-11-07T23:30:00.000Z');
+  let count = 0;
+  for (const dates of [{}, { startDate: '' }, { startDate: '2026-10-20' }]) {
+    const input = { summary: 'Legacy reserved create', ...dates, operationId: 'legacy-reserve-' + ++count };
+    const reservation = { id: 'PRJ-' + count, createdAt: '2026-11-06T23:30:00.000Z', updatedAt: '2026-11-06T23:30:00.000Z', fingerprint: h.api.createIntentFingerprint_(input) };
+    h.api.SheetFlowHistory.reserveCreate(h.book, input.operationId, reservation);
+    const saved = h.api.saveIssue(input);
+    assert.equal(saved.id, reservation.id); assert.equal(saved.createdAt, reservation.createdAt);
+    assert.equal(saved.startDate, dates.startDate || '');
+    assert.equal(h.api.readIssues_(h.book).length, count);
+  }
 });
 
 test('a failed history write is recovered once with the create receipt', () => {
@@ -390,6 +471,45 @@ test('native edits on the active Tasks tab receive defaults and validation notes
   assert.match(h.notes.get(`Tasks:2:${titleColumn}`), /valid status/);
   assert.equal(h.tabs.Tasks.rows[1][statusColumn - 1], 'Invalid status');
 });
+test('versioned native creation defaults new work only and leaves existing blanks and Epic dates unchanged', () => {
+  const h = harness(); setTime(h, '2026-11-06T23:30:00.000Z');
+  addRecord(h.tabs['Projects and Epics'], { ID: 'PROJECT-1', 'Entity Kind': 'Project', Title: 'Project', Active: true, Revision: 1 });
+  const existing = h.api.saveIssue({ summary: 'Existing unscheduled', startDate: '' });
+  const existingEpic = h.api.saveIssue({ summary: 'Existing Epic', type: 'Epic' });
+  const taskHeaders = h.tabs.Tasks.rows[0], titleColumn = taskHeaders.indexOf('Title') + 1;
+  for (const type of ['Task', 'Story', 'Bug']) {
+    addRecord(h.tabs.Tasks, { Kind: type === 'Story' ? 'Story' : 'Task', Title: 'Native ' + type, 'Legacy JSON': JSON.stringify({ type }) });
+    h.api.handleSheetEdit({ range: h.tabs.Tasks.getRange(h.tabs.Tasks.rows.length, titleColumn) });
+  }
+  addRecord(h.tabs.Tasks, { Kind: 'Task', Title: 'Native scheduled', 'Start Date': '2026-10-20' });
+  h.api.handleSheetEdit({ range: h.tabs.Tasks.getRange(2, 1, h.tabs.Tasks.rows.length - 1, taskHeaders.length) });
+  const projects = h.tabs['Projects and Epics'], projectHeaders = projects.rows[0];
+  addRecord(projects, { 'Entity Kind': 'Epic', Title: 'Native Epic' });
+  h.api.handleSheetEdit({ range: projects.getRange(projects.rows.length, projectHeaders.indexOf('Title') + 1) });
+  addRecord(projects, { 'Entity Kind': 'Epic', Title: 'Native dated Epic', 'Start Date': '2026-10-20' });
+  h.api.handleSheetEdit({ range: projects.getRange(3, 1, projects.rows.length - 2, projectHeaders.length) });
+  const issues = h.api.getProject().issues;
+  assert.equal(issues.find(issue => issue.id === existing.id).startDate, '');
+  assert.equal(issues.find(issue => issue.id === existingEpic.id).startDate, '');
+  assert.equal(issues.find(issue => issue.summary === 'Native Epic').startDate, '');
+  assert.equal(issues.find(issue => issue.summary === 'Native dated Epic').startDate, '2026-10-20');
+  assert.equal(issues.find(issue => issue.summary === 'Native scheduled').startDate, '2026-10-20');
+  for (const type of ['Task', 'Story', 'Bug']) {
+    const issue = issues.find(issue => issue.summary === 'Native ' + type);
+    assert.equal(issue.type, type); assert.equal(issue.startDate, '2026-11-07'); assert.equal(issue.dueDate, '');
+  }
+  for (let row = 2; row <= h.tabs.Tasks.rows.length; row++) assert.equal(h.notes.get(`Tasks:${row}:${titleColumn}`), '');
+  const taskIndex = h.tabs.Tasks.rows.findIndex(row => row[titleColumn - 1] === 'Native Task');
+  const dateColumn = taskHeaders.indexOf('Start Date') + 1;
+  assert.ok(h.tabs.Tasks.rows[taskIndex][dateColumn - 1] instanceof Date);
+  h.tabs.Tasks.rows[taskIndex][dateColumn - 1] = '';
+  h.api.handleSheetEdit({ range: h.tabs.Tasks.getRange(taskIndex + 1, dateColumn), oldValue: '2026-11-07' });
+  h.api.handleSheetEdit({ range: h.tabs.Tasks.getRange(taskIndex + 1, titleColumn) });
+  assert.equal(h.tabs.Tasks.rows[taskIndex][dateColumn - 1], '');
+  h.tabs.Tasks.rows[taskIndex][taskHeaders.indexOf('ID')] = '';
+  h.api.handleSheetEdit({ range: h.tabs.Tasks.getRange(taskIndex + 1, 1, 1, taskHeaders.length) });
+  assert.equal(h.tabs.Tasks.rows[taskIndex][dateColumn - 1], '', 'restoring a managed ID must not turn an old blank into a new default');
+});
 
 test('server ordering writes ranks through the active versioned repository', () => {
   const h = harness();
@@ -484,6 +604,142 @@ test('duplicate undo uses persisted history receipts after the history service r
   assert.equal(JSON.stringify(replayed), JSON.stringify(undone));
   assert.equal(h.tabs['Change History'].rows.length, rows);
   assert.equal(h.api.getProject().issues.length, 1);
+});
+
+function persistedBulkDeleteFixture(schema) {
+  const h = harness();
+  h.properties.set('SHEETFLOW_ACTIVE_SCHEMA', schema);
+  loadBrowserServices(h);
+  addRecord(h.tabs['Projects and Epics'], { ID: 'PROJECT-1', 'Entity Kind': 'Project', Title: 'Project', Active: true, Revision: 1 });
+  const epic = h.api.saveIssue({ summary: 'Delete epic', type: 'Epic' });
+  const story = h.api.saveIssue({ summary: 'Delete story', type: 'Story', parentId: epic.id, taskTypeId: 'data' });
+  const task = h.api.saveIssue({ summary: 'Delete task', parentId: story.id, dependencies: epic.id });
+  const outside = h.api.saveIssue({ summary: 'Keep task' });
+  const items = [epic, story, task].map(issue => ({ id: issue.id, expectedVersion: issue.version }));
+  return { ...h, epic, story, task, outside, items };
+}
+
+for (const schema of ['legacy', '2']) test(`bulk delete persists schema ${schema} receipts and replays after service reload`, () => {
+  const h = persistedBulkDeleteFixture(schema), before = h.tabs['Change History'].rows.length;
+  const deleted = h.api.deleteIssuesBatch(h.items, 'persisted-delete');
+  assertBrowserValue(deleted);
+  assert.deepEqual(Array.from(deleted.deletedIds), h.items.map(item => item.id));
+  assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id), [h.outside.id]);
+  const events = h.tabs['Change History'].rows.slice(before);
+  assert.equal(events.length, 3);
+  assert.ok(events.every(row => row[4] === (schema === '2' ? 'archived' : 'deleted')));
+  if (schema === '2') {
+    const archived = h.api.readVersionedIssues_(h.book, true).filter(issue => deleted.deletedIds.includes(issue.id));
+    assert.equal(archived.length, 3); assert.ok(archived.every(issue => issue._archivedAt && issue._storageRevision === 2));
+    assert.equal(h.tabs.Issues.rows.length, 1, 'legacy storage is untouched');
+    assert.equal(h.tabs['Projects and Epics'].rows.find(row => row[0] === 'PROJECT-1')[h.tabs['Projects and Epics'].rows[0].indexOf('Active')], true);
+  }
+  vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+  const replayed = h.api.deleteIssuesBatch(h.items, 'persisted-delete');
+  assert.equal(replayed.replayed, true); assertBrowserValue(replayed);
+  assert.deepEqual(Array.from(replayed.deletedIds), Array.from(deleted.deletedIds));
+  assert.equal(h.tabs['Change History'].rows.length, before + 3);
+});
+
+for (const schema of ['legacy', '2']) {
+  for (const afterWrite of [false, true]) test(`schema ${schema} bulk delete recovers a ${afterWrite ? 'lost' : 'failed'} completion receipt`, () => {
+    const h = persistedBulkDeleteFixture(schema), history = h.api.SheetFlowHistory, receipt = history.receipt;
+    const before = h.tabs['Change History'].rows.length;
+    let fail = true;
+    history.receipt = (...args) => {
+      if (args[2].phase === 'complete' && fail) {
+        fail = false;
+        if (afterWrite) receipt(...args);
+        throw new Error('Injected completion receipt failure');
+      }
+      return receipt(...args);
+    };
+    assert.throws(() => h.api.deleteIssuesBatch(h.items, 'receipt-delete'), /completion receipt failure/);
+    assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id), [h.outside.id]);
+    vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+    const replayed = h.api.deleteIssuesBatch(h.items, 'receipt-delete');
+    assert.equal(replayed.replayed, true); assert.equal(replayed.deletedIds.length, 3);
+    assert.equal(h.tabs['Change History'].rows.length, before + 3, 'history is not duplicated during journal recovery');
+    assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, 'receipt-delete').result.phase, 'complete');
+    assert.equal(h.api.getProject().issues.length, 1);
+  });
+
+  test(`schema ${schema} bulk delete recovers a partial journal without duplicate events`, () => {
+    const h = persistedBulkDeleteFixture(schema), history = h.api.SheetFlowHistory, record = history.record;
+    const before = h.tabs['Change History'].rows.length;
+    let calls = 0;
+    history.record = (...args) => {
+      const result = record(...args);
+      if (++calls === 2) throw new Error('Injected journal acknowledgement failure');
+      return result;
+    };
+    assert.throws(() => h.api.deleteIssuesBatch(h.items, 'journal-delete'), /journal acknowledgement failure/);
+    assert.equal(h.api.getProject().issues.length, 1);
+    assert.equal(h.tabs['Change History'].rows.length, before + 2);
+    vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+    const replayed = h.api.deleteIssuesBatch(h.items, 'journal-delete');
+    assert.equal(replayed.replayed, true);
+    const events = h.tabs['Change History'].rows.slice(before);
+    assert.equal(events.length, 3);
+    assert.equal(new Set(events.map(row => row[3])).size, 3);
+  });
+
+  test(`schema ${schema} bulk delete retries a lost intent receipt without touching unrelated work`, () => {
+    const h = persistedBulkDeleteFixture(schema), history = h.api.SheetFlowHistory, receipt = history.receipt;
+    let fail = true;
+    history.receipt = (...args) => {
+      const result = receipt(...args);
+      if (fail) { fail = false; throw new Error('Intent acknowledgement lost'); }
+      return result;
+    };
+    assert.throws(() => h.api.deleteIssuesBatch(h.items, 'intent-delete'), /Intent acknowledgement lost/);
+    assert.equal(h.api.getProject().issues.length, 4);
+    assert.throws(() => h.api.deleteIssuesBatch([{ id: h.outside.id, expectedVersion: h.outside.version }], 'intent-delete'), /different operation or delete selection/);
+    assert.equal(h.api.deleteIssuesBatch(h.items, 'intent-delete').deletedIds.length, 3);
+    assert.equal(h.api.getProject().issues[0].id, h.outside.id);
+  });
+}
+
+test('v2 bulk delete validates native revisions and external references before archiving', () => {
+  const h = persistedBulkDeleteFixture('2');
+  h.api.saveIssue({ id: h.outside.id, dependencies: h.task.id }, h.outside.version);
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'external-v2-delete'), /parent\/dependency/);
+  assert.equal(h.api.getProject().issues.length, 4);
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, 'external-v2-delete'), null);
+  const taskRow = h.tabs.Tasks.rows.find(row => row[0] === h.task.id);
+  taskRow[h.tabs.Tasks.rows[0].indexOf('Title')] = 'Native edit without revision bump';
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'stale-v2-delete'), /changed elsewhere/);
+  assert.equal(h.api.getProject().issues.length, 4);
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, 'stale-v2-delete'), null);
+});
+
+test('v2 bulk delete rollback restores full records and revisions after a partially applied archive', () => {
+  const h = persistedBulkDeleteFixture('2'), upsert = h.api.SheetFlowRepository.upsert;
+  const original = JSON.stringify([h.tabs.Tasks.rows, h.tabs['Projects and Epics'].rows]);
+  let calls = 0;
+  h.api.SheetFlowRepository.upsert = (...args) => {
+    const result = upsert(...args);
+    if (++calls === 2) throw new Error('Injected partially applied archive');
+    return result;
+  };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'rollback-v2-delete'), /Written changes were rolled back/);
+  assert.equal(JSON.stringify([h.tabs.Tasks.rows, h.tabs['Projects and Epics'].rows]), original);
+  assert.equal(h.api.getProject().issues.length, 4);
+  h.items.forEach(item => assert.equal(h.api.getProject().issues.find(issue => issue.id === item.id).version, item.expectedVersion));
+  assert.equal(h.api.SheetFlowHistory.findReceipt(h.book, 'rollback-v2-delete').result.phase, 'pending');
+  h.api.SheetFlowRepository.upsert = upsert;
+  assert.equal(h.api.deleteIssuesBatch(h.items, 'rollback-v2-delete').deletedIds.length, 3);
+});
+
+test('v2 bulk delete recovery does not archive a restored issue with a newer revision', () => {
+  const h = persistedBulkDeleteFixture('2'), history = h.api.SheetFlowHistory, receipt = history.receipt;
+  history.receipt = (...args) => { if (args[2].phase === 'complete') throw new Error('Completion receipt unavailable'); return receipt(...args); };
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'restored-v2-delete'), /Completion receipt unavailable/);
+  const archived = h.api.readVersionedIssues_(h.book, true).find(issue => issue.id === h.epic.id);
+  const restored = h.api.restoreIssue(archived.id, archived.version);
+  history.receipt = receipt;
+  assert.throws(() => h.api.deleteIssuesBatch(h.items, 'restored-v2-delete'), /changed elsewhere/);
+  assert.equal(h.api.getProject().issues.find(issue => issue.id === restored.id).version, restored.version);
 });
 
 test('ordinary v2 saves reuse one locked snapshot and verify only the saved row', () => {
@@ -617,13 +873,15 @@ test('personal batch saves native dates and literal text with category and recei
   assert.equal(h.calls.length,2);
 });
 
-test('a lost personal batch acknowledgement replays its receipt without another write', () => {
-  const h=personalBatchHarness();h.loseAcknowledgement();
+test('a lost personal batch acknowledgement replays its original start date across midnight without another write', () => {
+  const h=personalBatchHarness();setTime(h,'2026-11-06T23:30:00.000Z');h.loseAcknowledgement();
   const input={summary:'One task',operationId:'personal-lost'};
   assert.throws(()=>h.api.saveIssue(input),/Acknowledgement lost/);
+  setTime(h,'2026-11-07T23:30:00.000Z');
   const saved=h.api.saveIssue(input);
   assert.equal(h.calls.length,1);assert.equal(h.api.getProject().issues.length,1);
   assert.equal(saved.id,h.tabs.Issues.rows[1][0]);
+  assert.equal(saved.startDate,'2026-11-07');
 });
 
 test('a rejected personal batch leaves neither task nor receipt and a retry can create once', () => {
@@ -736,16 +994,20 @@ test('personal create batch reads once and atomically writes accepted items with
   assert.equal(h.tabs['Change History'].rows.length,1);
 });
 
-test('personal create batch replays every accepted item after a lost acknowledgement without rewriting', () => {
+test('personal create batch replays original starts across midnight after a lost acknowledgement without rewriting', () => {
   const h=personalBatchHarness(),items=[1,2].map(n=>({operationId:`lost-batch-${n}`,input:{summary:`Task ${n}`}}));
+  setTime(h,'2026-11-06T23:30:00.000Z');
   h.loseAcknowledgement();
   assert.throws(()=>runPersonalCreateBatch(h,items),/Acknowledgement lost/);
   assert.equal(h.calls.length,1);assert.equal(h.tabs.Issues.rows.length,3);
+  setTime(h,'2026-11-07T23:30:00.000Z');
   const replay=runPersonalCreateBatch(h,items);
   assert.equal(replay.errors.length,0);assert.equal(replay.items.length,2);assert.equal(h.calls.length,1);
   assert.deepEqual(Array.from(replay.items,item=>item.issue.id),['PRJ-1','PRJ-2']);
+  assert.deepEqual(Array.from(replay.items,item=>item.issue.startDate),['2026-11-07','2026-11-07']);
   const mixed=runPersonalCreateBatch(h,[items[0],{operationId:'mixed-new',input:{summary:'Third task'}}]);
   assert.deepEqual(Array.from(mixed.items,item=>item.issue.id),['PRJ-1','PRJ-3']);
+  assert.deepEqual(Array.from(mixed.items,item=>item.issue.startDate),['2026-11-07','2026-11-08']);
   assert.equal(h.calls.length,2);assert.equal(h.api.getProject().issues.length,3);
 });
 

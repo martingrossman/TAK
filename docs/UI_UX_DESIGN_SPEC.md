@@ -79,7 +79,7 @@ Use text or an accessible name alongside each status or priority color. Use the 
 
 ### 5.1 Inline Add — primary workflow
 
-In Kanban: under each status column show `+ Add task`; in Sheet: visible new-row/quick-add surface. On activation, a focused single-line title input appears.
+Use a quiet contextual composer: a temporary Sheet row, a temporary card in the intended Kanban lane/status, or a Gantt label row beneath the parent, never an overlay across the timeline. Visible Add controls and T/S open the same surface with a generous focused title, clickable searchable parent breadcrumb, quiet Create ↵, and Details. Type/Status and Discard draft belong in a secondary disclosure, not primary controls. On mobile keep the compact composer reachable above the keyboard.
 
 ```text
 Backlog (8)                       To Do (3)
@@ -90,9 +90,17 @@ Backlog (8)                       To Do (3)
 [ + Add task             ]       [ + Add task             ]
 ```
 
-**Interaction:** Type a title → Enter → create in the correct context → show a pending state → on acknowledgement, focus and reveal the created item. If the user starts another title before acknowledgement, preserve that draft and input focus rather than interrupting it. Esc exits. Blank title cannot create. On a save failure retain the title (or a visibly recoverable pending item) and present Retry; do not discard the only copy. Do not duplicate on slow/retried requests. Support keyboard and touch.
+**Interaction:** Enter, Shift+Enter and Create submit in the frozen context and keep an empty composer focused for another title. Capture remains open until Esc; acknowledgement must not interrupt the next draft or steal focus after navigation. Pending work cannot be edited, dragged or used as a parent. Esc hides capture and retains its draft; explicit Discard draft removes it. Blank titles cannot create. Failures retain a recoverable pending item with Retry using the original operation identity. Preserve batch-paste preview, filters, scroll, drafts, queue recovery and storage safety.
 
-**Context:** Status comes from board column; selected epic/parent only if legal under current model. No hidden invalid parent assignment. Current default issue type `Task`, priority `Medium`, status `Backlog` outside board context. Do not add a new backend workflow solely for this.
+**Context:** Status inherits the exact Kanban column or focused Sheet/Gantt issue; parent choices remain legal under the existing model. No hidden invalid assignment. Default type is Task, priority Medium and status Backlog without context. Selected Epic context uses a restrained marker instead of a prominent Task context pill; keyboard focus rings remain clear. No backend/schema changes.
+
+**Start date:** Default new Tasks, Stories and Bugs to today across creation surfaces; do not require extra input or add prominent controls. Respect explicit date changes/clearing and leave existing work untouched. New Epic-to-task switches receive the same default; returning through Epic preserves a date the user already changed. Epics retain derived schedules. Plain creation includes weekends; smart working-day durations retain their Monday adjustment.
+
+**Details access:** Double-click task titles or Epic headings in Sheet, Kanban and Gantt to open the issue editor. Sheet row/grip double-click also opens details. Preserve single-click Epic context, explicit expansion controls, Kanban card opening, keyboard access and inline property editing. Modifier-assisted selection and action controls must not trigger details accidentally.
+
+**Smart entry (FR-02A):** Single-title capture recognizes optional `@assignee`, `!priority`, positive `d`/`w` workday durations and explicit `due:` tokens. Quiet chips preview resolved values and offer **Keep as title text**; retain the user's raw text and caret while typing. Duration uses Monday–Friday inclusively, shifting weekend starts to Monday, with no holidays. Preview the actual start/end dates. Explicit deadlines are calendar dates; conflicting duration/deadline values block creation without losing input.
+
+Assignee suggestions use existing names, support arrows and Tab/Enter, and remain reachable above sticky content. Enter accepts an open suggestion before creating. Escape dismisses suggestions before closing capture. Unknown tokens remain title text; use a backslash to force literal recognized syntax. Details carries the parsed title and fields, whereas multiline paste remains literal. Resolve values once before persisting the queue so retries cannot change the schedule.
 
 ### 5.2 Compact Quick Create — secondary
 
@@ -113,6 +121,8 @@ Backlog (8)                       To Do (3)
 3. **Planning:** start/due, sprint, labels, dependencies.
 4. **Effort:** estimate, time spent, progress.
 5. **Metadata:** reporter, timestamps and remaining existing fields.
+
+Activity type is optional: include **No activity type** in the Metadata and bulk-edit selectors. Explicitly unclassified work has no activity badge in any view; keep its issue-kind icon. Do not reinterpret existing missing values or change the configured creation default.
 
 Collapse secondary sections where practical. Autosave on safe property changes; debounce long text. Clear draft/pending/failed/conflict states. Avoid surprise close, focus loss or auto-overwrite after concurrent edit. Keep child navigation intact. Delete requires explicit confirmation and existing reference checks.
 
@@ -154,6 +164,15 @@ Collapse secondary sections where practical. Autosave on safe property changes; 
 - Save feedback can be per-cell/row and in global status, but a failed save **must not silently revert the cell**. Focus/selection should survive unrelated updates.
 - Default Comfortable rows; Compact is a preference, never required to see sufficient tasks.
 
+### Multi-item selection and actions
+
+Use the same selection model in Sheet rows, Kanban cards and Gantt labels. Shift+click extends from the selection anchor through the current visible order, excluding collapsed/filtered work and pending placeholders. Individual selection controls remain available without modifiers; X toggles the focused item. Keep ordinary field editing, collapse and drag gestures independent.
+
+A quiet selection bar appears only while items are selected: count, **Edit selected**, **Delete selected**, **Clear selection**. Bulk editing uses the existing supported fields and validates the full bounded selection before saving. Show failed/conflict feedback without discarding entered values.
+
+Delete opens an accessible confirmation with the selected count and a no-Undo warning. It never selects hidden descendants automatically. Unselected parent/dependency references or stale revisions block the whole operation; selected linked items can be removed together. Keep rows visible until acknowledged, prevent duplicate submission and retain the operation identity for uncertain-result retry.
+
+
 ## 8. Gantt specification
 
 - Preserve existing day/week zoom, bar drag and resize, current date, progress, dependency lines, unscheduled issues and saved dates.
@@ -179,7 +198,7 @@ Collapse secondary sections where practical. Autosave on safe property changes; 
 
 **Command palette:** simple search and executable actions: New task, open issue by ID/title, switch view, focus search, optionally status/priority on selected task. One palette, not a mini-IDE. If it cannot be implemented reliably within P1, leave out incomplete commands rather than adding dead items.
 
-Shortcuts never hijack text editing, IME composition or modal content, and must respect platform/browser conventions. Keyboard Help starts with contextual creation and the most frequent actions, then navigation; view-specific and advanced controls remain collapsed. Visible focus is required on every interactive card, icon and toolbar control.
+Shortcuts never hijack text editing, IME composition or modal content, and must respect platform/browser conventions. Keyboard Help initially shows exactly five capture actions: T task, S story, Enter create, Shift+Enter create another, and Esc back. Navigate and find, Edit focused work, view-specific controls, and Full reference and preferences expand on demand; retain all shortcuts and the single-key preference. Visible focus is required on every interactive card, icon and toolbar control.
 
 ## 10. Persistence and feedback design
 
@@ -211,7 +230,7 @@ Aim for **WCAG 2.2 AA** on applicable UI. Verify keyboard tab order, visible foc
 
 ## 13. UX scenarios to verify
 
-1. **Repeated capture:** Create three titles using Enter and T/S; each acknowledged item receives focus, context is correct, save state is visible, and retry creates no duplicate.
+1. **Capture:** Enter creates three titles consecutively in all three views with the composer open and focused each time, including after acknowledgement. Esc closes capture and retains any unfinished draft. Context and filters remain correct, drafts survive, and retry creates no duplicate.
 2. **One-click editing:** Change a card priority and assignee without leaving board; use keyboard equivalents.
 3. **Deep edit:** Expand More options, change description and dependency, confirm validation and persistence.
 4. **Keyboard-only:** Switch views, focus search, create, edit, close, and return focus correctly.
