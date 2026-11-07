@@ -27,44 +27,48 @@ const row = (page, id) => page.locator(`[data-gantt-row-id="${id}"]`);
 const storedProject = page => page.evaluate(() => localStorage.getItem('sheetflow.project.v1'));
 
 for (const grouped of [false, true]) {
-  test(`expand and go back restore a mixed Epic layout in ${grouped ? 'grouped' : 'flat'} Gantt`, async ({ page }) => {
+  test(`every Epic and both bulk controls fold independently in ${grouped ? 'grouped' : 'flat'} Gantt`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openGantt(page, { swimlanes: grouped, collapsedEpics: { 'PRJ-2': true, __no_epic__: true }, collapsedGanttStories: { 'PRJ-3': true } });
     const originalProject = await storedProject(page);
-    const all = page.locator('#gantt-epic-view');
+    const expand = page.locator('#gantt-expand-all');
+    const collapse = page.locator('#gantt-collapse-all');
     await expect(branch(page, 'PRJ-1')).toHaveAttribute('aria-expanded', 'true');
     await expect(branch(page, 'PRJ-2')).toHaveAttribute('aria-expanded', 'false');
     await expect(row(page, 'PRJ-5')).toHaveCount(0);
-    const sign = grouped ? branch(page, 'PRJ-2').locator('.swimlane-toggle') : branch(page, 'PRJ-2');
-    await expect(sign).toHaveText('+');
-    await expect(sign).toBeInViewport({ ratio: 1 });
-    await expect(row(page, 'PRJ-2').getByRole('button', { name: 'Add work under PRJ-2' })).toHaveText('Add');
+    await expect(expand).toBeInViewport({ ratio: 1 });
+    await expect(collapse).toBeInViewport({ ratio: 1 });
+    await expect(expand).toBeEnabled();
+    await expect(collapse).toBeEnabled();
 
     await page.locator('.gantt-viewport').evaluate(el => { el.scrollLeft = 130; });
-    await expect(all).toHaveText('Expand all epics');
-    await all.press('Enter');
-    await expect(all).toHaveText('Go back');
-    await expect(all).toBeFocused();
-    await expect(sign).toHaveText('−');
+    await expand.press('Enter');
+    await expect(expand).toBeDisabled();
+    await expect(collapse).toBeFocused();
     await expect(row(page, 'PRJ-5')).toBeVisible();
     await expect(row(page, 'PRJ-4')).toHaveCount(0);
     expect(await page.locator('.gantt-viewport').evaluate(el => el.scrollLeft)).toBe(130);
     if (grouped) await expect(branch(page, '__no_epic__')).toHaveAttribute('aria-expanded', 'false');
 
-    // An individual adjustment during the expanded view must not change its return point.
     await branch(page, 'PRJ-1').press('Space');
     await expect(branch(page, 'PRJ-1')).toHaveAttribute('aria-expanded', 'false');
-    await expect(branch(page, 'PRJ-1')).toBeFocused();
-    await expect(page.locator('#issue-dialog')).toBeHidden();
-    await page.reload();
-    await expect(all).toHaveText('Go back');
-    await all.click();
-    await expect(branch(page, 'PRJ-1')).toHaveAttribute('aria-expanded', 'true');
+    await expect(branch(page, 'PRJ-2')).toHaveAttribute('aria-expanded', 'true');
+    await branch(page, 'PRJ-2').press('Space');
     await expect(branch(page, 'PRJ-2')).toHaveAttribute('aria-expanded', 'false');
-    await expect(row(page, 'PRJ-3')).toBeVisible();
-    await expect(row(page, 'PRJ-4')).toHaveCount(0);
-    await expect(row(page, 'PRJ-5')).toHaveCount(0);
-    await expect(all).toHaveText('Expand all epics');
+    await expect(branch(page, 'PRJ-2')).toBeFocused();
+    await expect(page.locator('#issue-dialog')).toBeHidden();
+
+    await collapse.click();
+    await expect(collapse).toBeDisabled();
+    await expect(expand).toBeFocused();
+    await expect(row(page, 'PRJ-8')).toHaveCount(0);
+    await expand.click();
+    await expect(expand).toBeDisabled();
+    await expect(collapse).toBeFocused();
+    await expect(row(page, 'PRJ-5')).toBeVisible();
+    await page.reload();
+    await expect(branch(page, 'PRJ-1')).toHaveAttribute('aria-expanded', 'true');
+    await expect(branch(page, 'PRJ-2')).toHaveAttribute('aria-expanded', 'true');
     expect(await storedProject(page)).toBe(originalProject);
   });
 }
@@ -76,22 +80,35 @@ test('bulk folding follows visible Epic ancestors through filters and preserves 
   await page.locator('#workspace-filters > summary').click();
   await expect(row(page, 'PRJ-3')).toHaveCount(0);
   await expect(row(page, 'PRJ-4')).toBeVisible();
-  const all = page.locator('#gantt-epic-view');
-  await expect(all).toHaveText('Collapse all epics');
-  await all.click();
+  const expand = page.locator('#gantt-expand-all');
+  const collapse = page.locator('#gantt-collapse-all');
+  await collapse.click();
   await expect(row(page, 'PRJ-4')).toHaveCount(0);
   await expect(row(page, 'PRJ-5')).toHaveCount(0);
   await expect(row(page, 'PRJ-6')).toBeVisible();
-  await all.click();
+  await expand.click();
   await expect(row(page, 'PRJ-4')).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.ui.v1')).collapsedEpics['PRJ-7'])).toBe(true);
-  await all.click();
+  await collapse.click();
   await page.locator('#search').fill('Independent task');
   await expect(row(page, 'PRJ-6')).toBeVisible();
-  await expect(all).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Epic display' })).toBeVisible();
+  await expect(expand).toBeDisabled();
+  await expect(collapse).toBeDisabled();
 });
 
-for (const view of ['sheet', 'gantt']) {
+test('an individual Gantt Epic toggle closes its empty capture before folding', async ({ page }) => {
+  await openGantt(page, { swimlanes: true, collapsedEpics: {} });
+  await page.locator('[data-select-lane="PRJ-2"]').click();
+  await page.keyboard.press('t');
+  await page.locator('#quick-title').fill('   ');
+  await branch(page, 'PRJ-2').click();
+  await expect(page.locator('.quick-entry')).toBeHidden();
+  await expect(branch(page, 'PRJ-2')).toHaveAttribute('aria-expanded', 'false');
+  await expect(row(page, 'PRJ-5')).toHaveCount(0);
+});
+
+for (const view of ['sheet', 'kanban', 'gantt']) {
   test(`${view}: Collapse all closes empty capture and actually folds its Epic`, async ({ page }) => {
     await openGantt(page, { swimlanes: true, collapsedEpics: {} });
     await page.locator(`[data-view="${view}"]`).first().click();
@@ -99,7 +116,7 @@ for (const view of ['sheet', 'gantt']) {
     await page.keyboard.press('t');
     await page.locator('#quick-title').fill('   ');
     const before = await storedProject(page);
-    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : '#gantt-epic-view').click();
+    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : view === 'kanban' ? '#kanban-collapse-all' : '#gantt-collapse-all').click();
     await expect(page.locator('.quick-entry')).toBeHidden();
     await expect(page.locator('[data-toggle-lane="PRJ-1"]')).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('[data-issue-select="PRJ-3"]')).toHaveCount(0);
@@ -122,7 +139,7 @@ for (const view of ['sheet', 'gantt']) {
       input.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
     });
     const before = await storedProject(page);
-    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : '#gantt-epic-view').click();
+    await page.locator(view === 'sheet' ? '[data-sheet-lanes="collapse"]' : view === 'kanban' ? '#kanban-collapse-all' : '#gantt-collapse-all').click();
     await expect(page.locator('.quick-entry')).toBeVisible();
     await expect(page.locator(draft === 'title' ? '#quick-title' : '#quick-batch-input')).toHaveValue(draft === 'title' ? 'Keep this draft 5d' : 'First draft\nSecond draft');
     expect(await storedProject(page)).toBe(before);

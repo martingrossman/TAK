@@ -70,7 +70,7 @@
     if (!order.includes('summary')) order.unshift('summary');
     return order;
   }
-  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -92,9 +92,6 @@
     const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}');
     state.singleKeyShortcuts = ui.singleKeyShortcuts !== false;
     state.collapsedEpics = ui.collapsedEpics || {};
-    if (ui.previousGanttEpics && typeof ui.previousGanttEpics === 'object' && !Array.isArray(ui.previousGanttEpics)) {
-      state.previousGanttEpics = ui.previousGanttEpics;
-    }
     state.collapsedGanttStories = ui.collapsedGanttStories || {};
     state.collapsedSheetParents = ui.collapsedSheetParents || {};
     state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
@@ -103,7 +100,6 @@
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
     state.collapsedEpics = {};
-    state.previousGanttEpics = null;
     state.collapsedGanttStories = {};
     state.collapsedSheetParents = {};
     state.visibleColumns = defaultSheetColumnOrder.slice();
@@ -568,7 +564,7 @@
     event.preventDefault(); if (destination) focusNavigation(destination, true);
   }
 
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
     return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
@@ -596,7 +592,6 @@
     state.sheetColumnWidths = normalizeSheetWidths(view.sheetColumnWidths);
     state.swimlanes = view.swimlanes === true;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
-    state.previousGanttEpics = null;
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
     state.ganttLabelWidth = clampGanttLabelWidth(view.ganttLabelWidth || 260); state.zoom = ['days', 'weeks', 'twoWeeks', 'months'].includes(view.zoom) ? view.zoom : 'weeks';
@@ -1815,10 +1810,12 @@
       return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.filter(issue => !issue.composer).length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(issue => issue.composer ? '<div class="composer-card" data-composer-slot></div>' : issue.draftKey ? pendingQuickCard(issue) : card(issue)).join('')}${!cards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task · T</button></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(displayIssues)}</div>`; return; }
-    $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(displayIssues, true).map(lane => {
+    const lanes = epicLanes(displayIssues, true);
+    $('#view-content').innerHTML = `<div class="kanban-tools"><div class="left"></div></div><div class="swimlanes">${lanes.map(lane => {
       const collapsed = laneCollapsed(lane);
       return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items)}</div>`}</section>`;
     }).join('')}</div>`;
+    addEpicViewControls('kanban', lanes.filter(lane => lane.id).map(lane => lane.id), $('#view-content .kanban-tools .left'));
   }
   function inEpicWithin(issue, epicId) {
     let current = issue, seen = new Set();
@@ -2289,33 +2286,33 @@
     if (grid) grid.style.setProperty('--label-width', `${state.ganttLabelWidth}px`);
     if (resizer) { const max = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
   }
-  function addGanttEpicViewButton(epicIds) {
-    const previous = state.previousGanttEpics;
-    if (!epicIds.length && !previous) return;
-    const expand = epicIds.some(id => state.collapsedEpics[id]);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.id = 'gantt-epic-view';
-    button.className = 'button secondary';
-    button.textContent = expand ? 'Expand all epics' : 'Collapse all epics';
-    button.title = button.textContent + ' shown on this timeline';
-    if (previous) {
-      button.textContent = 'Go back';
-      button.title = 'Restore the Epics you had open before expanding all';
-    }
-    button.addEventListener('click', () => {
-      if (previous) {
-        state.previousGanttEpics = null;
-        setEpicCollapseStates(previous);
-      } else {
-        if (!expand) closeEmptyQuickEntry();
-        if (expand) state.previousGanttEpics = Object.fromEntries(epicIds.map(id => [id, Boolean(state.collapsedEpics[id])]));
-        setEpicCollapseStates(Object.fromEntries(epicIds.map(id => [id, !expand])));
-      }
-      render();
-      $('#gantt-epic-view')?.focus({ preventScroll: true });
+  function addEpicViewControls(view, epicIds, mount) {
+    const ids = [...new Set(epicIds)];
+    const group = document.createElement('div');
+    group.className = `epic-fold-controls ${view}-epic-controls`;
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', `${view === 'gantt' ? 'Gantt' : 'Kanban'} Epic display`);
+    group.insertAdjacentHTML('beforeend', '<span class="epic-fold-label">Epics</span>');
+    [
+      { action: 'expand', label: 'Expand all', collapsed: false, disabled: !ids.length || !ids.some(id => state.collapsedEpics[id]) },
+      { action: 'collapse', label: 'Collapse all', collapsed: true, disabled: !ids.length || ids.every(id => state.collapsedEpics[id]) }
+    ].forEach(control => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = `${view}-${control.action}-all`;
+      button.className = 'button secondary';
+      button.textContent = control.label;
+      button.title = ids.length ? `${control.label} Epics shown in this view` : 'No Epics shown in this view';
+      button.disabled = control.disabled;
+      button.addEventListener('click', () => {
+        if (control.collapsed) closeEmptyQuickEntry();
+        setEpicCollapseStates(Object.fromEntries(ids.map(id => [id, control.collapsed])));
+        render();
+        $(`#${view}-${control.collapsed ? 'expand' : 'collapse'}-all`)?.focus({ preventScroll: true });
+      });
+      group.append(button);
     });
-    $('#view-content .gantt-tools .left').append(button);
+    mount.prepend(group);
   }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
@@ -2453,7 +2450,7 @@
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
     $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
-    addGanttEpicViewButton(epicIds);
+    addEpicViewControls('gantt', epicIds, $('#view-content .gantt-tools .left'));
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
   }
@@ -3080,8 +3077,9 @@
       target.focus({ preventScroll: true });
     }
     else if (target.hasAttribute('data-toggle-lane')) {
-      const id = target.dataset.toggleLane;
-      setEpicCollapseStates({ [id]: !state.collapsedEpics[id] });
+      const id = target.dataset.toggleLane, collapse = !state.collapsedEpics[id];
+      if (collapse) closeEmptyQuickEntry();
+      setEpicCollapseStates({ [id]: collapse });
       render();
       $('#view-content [data-toggle-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
     }

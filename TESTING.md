@@ -139,3 +139,15 @@ Comments for saved issues remain visible in compact mode, including Add, Save, l
 New work with a start date and no due date renders as a compact Gantt bar. Dragging preserves the blank due date; resizing establishes one and restores the normal bar. Clearing the due date, reloading, and moving the timeline restore or replace the compact bar correctly. Start-only bars do not render progress or dependency endpoints and stay inside the timeline boundary.
 
 Local Edge smoke moved `2026-11-07` to `2026-11-09` while preserving an empty due date, then resized it to save `2026-11-10`. `npm.cmd run check` passed all 194 Node tests. The full Gantt Epic/quick-create run passed all 17 browser cases; the final lifecycle case separately covers drag, resize, clear, reload and outside-window presentation. Live Apps Script was not exercised.
+
+## Gantt Epic folding controls
+
+Gantt keeps a fixed **Epics** group at the start of its toolbar with separate **Expand all** and **Collapse all** controls. The group remains visible with disabled controls when a filter has no collapsible Epics. Each Epic's own +/− control remains independent; collapsing an Epic first dismisses an empty capture in that Epic so the draft row cannot hold it open. Nonempty capture drafts remain protected. Filtered-out Epic states are unchanged.
+
+`npm.cmd run check` passed all 194 Node tests. `npx.cmd playwright test e2e/gantt-epic-view.spec.mjs --workers=1 --retries=0 --reporter=line` passed all 11 browser cases, covering persistent toolbar visibility, both controls, independent first/second Epic folding, flat/grouped layouts, filters, persistence and capture safety. Local Edge smoke confirmed the **Epics** group is first in the toolbar at 1280×800 and remains fully visible after wrapping at 390×844; its measured narrow box was 221 px inside the 390 px viewport. Live Apps Script was not exercised.
+
+## Grouped Kanban Epic folding controls
+
+Grouped Kanban now shows a fixed **Epics · Expand all · Collapse all** group above its lanes. Bulk actions affect only displayed Epic lanes, preserve filtered-out Epic preferences, leave **No epic** unchanged, close empty capture before folding, and retain nonempty title or pasted-list drafts.
+
+All 14 `e2e/gantt-epic-view.spec.mjs` cases passed with Kanban added to the shared empty/title/batch capture-safety matrix. Both `e2e/swimlane-progress.spec.mjs` cases passed, covering visible controls, first/second Epic states, filtering, keyboard focus and a 390px viewport. Local Edge at 390×844 measured the complete control group at 241 px inside the 390 px viewport; both bulk actions and empty-capture folding worked. Live Apps Script was not exercised.
