@@ -55,22 +55,29 @@
         <span id="issue-count" class="issue-count"></span>
       </div>
       <div class="workspace-controls">
-        <div class="quick-entry" role="group" aria-label="Quick create work item">
-          <div class="quick-entry-line">
-            <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… T / S" aria-label="New task title" aria-describedby="quick-context">
-            <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
-            <button id="quick-details" type="button" class="entry-extra">Details</button>
-            <button id="quick-clear" type="button" class="entry-extra">Clear</button>
-          </div>
-          <div class="quick-entry-context entry-extra">
-            <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
-            <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
-              <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
-              <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
-              <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
-            </div></div>
-            <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
-            <span id="quick-context" role="status">No parent</span>
+        <div id="quick-entry-home" hidden>
+          <div class="quick-entry ghost-entry" role="group" aria-label="Contextual quick create work item" hidden>
+            <div class="quick-entry-line">
+              <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… Enter to save" aria-label="New task title" aria-describedby="quick-context">
+              <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
+              <button id="quick-details" type="button" class="entry-extra">Details</button>
+              <button id="quick-clear" type="button" class="entry-extra">Clear</button>
+            </div>
+            <div class="quick-entry-context entry-extra">
+              <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+              <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
+                <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
+                <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
+                <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
+              </div></div>
+              <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+              <span id="quick-context" role="status">No parent</span>
+            </div>
+            <div id="quick-batch" class="quick-batch" hidden>
+              <label for="quick-batch-input">Pasted titles</label>
+              <textarea id="quick-batch-input" rows="6" maxlength="30000" aria-describedby="quick-batch-status"></textarea>
+              <div class="quick-batch-actions"><span id="quick-batch-status" role="status" aria-live="polite"></span><button id="quick-batch-cancel" type="button" class="button secondary">Back</button><button id="quick-batch-submit" type="button" class="button primary">Create tasks</button></div>
+            </div>
           </div>
         </div>
 
@@ -164,6 +171,10 @@
     <div class="dialog-header"><h2 id="command-title">Go to or open</h2><button id="command-close" type="button" class="icon-button" aria-label="Close commands">×</button></div>
     <div class="command-body"><label for="command-query">Search issues and actions</label><input id="command-query" type="search" autocomplete="off" aria-controls="command-results" placeholder="Issue title or ID…"><div id="command-results" class="command-results" aria-live="polite"></div></div>
   </dialog>
+  <div id="triage-popover" class="triage-popover" role="dialog" aria-modal="false" aria-labelledby="triage-title" hidden>
+    <div class="triage-heading"><strong id="triage-title">Edit issue</strong><button id="triage-close" type="button" class="icon-button" aria-label="Close quick edit">×</button></div>
+    <div id="triage-control"></div>
+  </div>
   <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
     <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
     <div class="help-body">
@@ -185,7 +196,9 @@
         <dl class="shortcut-list">
           <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In shared quick entry: return to the originating item and keep unsent text. Clear discards it. In column entry: clear the unsent title and leave.</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In Ghost Capture: return to the originating item and keep unsent text. Clear discards it.</dd></div>
+          <div><dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt><dd>On a focused issue: edit priority, assignee, status, or due date</dd></div>
+          <div><dt><kbd>E</kbd> / <kbd>X</kbd></dt><dd>On a focused issue: open its editor or toggle selection</dd></div>
         </dl>
       </details>
       <details class="shortcut-group"><summary>Sheet</summary>

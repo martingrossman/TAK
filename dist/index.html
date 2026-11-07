@@ -62,7 +62,6 @@
 
 <style>.swimlanes{display:grid;gap:18px}.swimlane{border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--canvas);padding:0 10px 10px}.swimlane-header{width:100%;display:flex;align-items:center;gap:8px;padding:11px 5px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:var(--text-meta);text-align:left;cursor:pointer}.swimlane-header:focus-visible{outline:2px solid var(--primary);outline-offset:1px;border-radius:var(--radius-control)}.swimlane-progress{margin-left:auto;color:var(--muted);font-size:var(--text-meta)}.swimlane-toggle{display:inline-flex;flex:0 0 24px;align-items:center;justify-content:center;width:24px;height:24px;border:1px solid var(--line);border-radius:var(--radius-control);color:var(--muted);background:var(--surface);font-size:16px;line-height:1}.swimlane-header:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary)}.swimlane .board{min-height:0;padding-bottom:0}.swimlane.collapsed{padding-bottom:0}.swimlane.collapsed .swimlane-header{padding-bottom:13px}</style>
 <style>.comments-section{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}.comment-item{border-bottom:1px solid var(--line);padding:9px 0}.comment-item small{display:block;color:var(--muted);font-size:var(--text-meta);margin-bottom:5px}.comment-item textarea,#new-comment{display:block;width:100%;min-height:54px;border:1px solid var(--line);border-radius:var(--radius-control);padding:7px;font-size:var(--text-meta);resize:vertical;margin-bottom:5px}.comment-item .button{height:26px;font-size:var(--text-meta);padding:0 9px}</style>
-<style>.column-quick-add{display:flex;gap:5px;margin-top:4px}.column-quick-add select{width:67px;border:1px solid transparent;border-radius:var(--radius-control);background:transparent;padding:0 2px;font-size:var(--text-meta);color:var(--muted)}.column-quick-add select:focus,.column-quick-add select:hover{border-color:var(--line);background:var(--surface);outline:none}.column-quick-add input{flex:1;min-width:0;border:1px solid transparent;border-radius:var(--radius-control);background:transparent;padding:7px 6px;font-size:var(--text-meta)}.column-quick-add input:hover,.column-quick-add input:focus{border-color:var(--line);background:var(--surface);outline:none}.column-quick-add button{width:28px;border-radius:var(--radius-control);color:var(--muted);font-size:16px}.column-quick-add button:hover{background:var(--surface-muted);color:var(--primary)}</style>
 <style>.quick-entry{display:flex;gap:8px;margin:18px 0 4px;padding:10px;background:var(--surface-muted);border:1px solid var(--line);border-radius:var(--radius-control)}.quick-entry input{flex:1;min-width:0;border:1px solid var(--line);border-radius:var(--radius-control);padding:0 11px;height:34px;background:var(--surface);font-size:var(--text-meta)}.quick-entry input:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}.quick-entry .button{height:34px;font-size:var(--text-meta)}</style>
 
 <style>
@@ -72,9 +71,11 @@
 .gantt-swimlane{width:max-content;min-width:100%}
 .gantt-lane-title{width:100%;padding:0;font-size:var(--text-meta)}
 .swimlane-header{box-sizing:border-box;min-width:0;cursor:default}
+.swimlane-toggle-button{box-sizing:border-box;flex:0 0 32px;display:flex;align-items:center;justify-content:center;align-self:stretch;margin:0;padding:0 4px;border:0;background:transparent;color:inherit;cursor:pointer}
+.swimlane-toggle-button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;border-radius:var(--radius-control)}
+.swimlane-toggle-button:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary);border-color:var(--primary)}
 .swimlane-collapse{box-sizing:border-box;width:auto;min-width:0;flex:1 1 auto;display:flex;align-items:center;gap:8px;padding:11px 5px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:var(--text-meta);text-align:left;cursor:pointer}
 .swimlane-collapse:focus-visible{outline:2px solid var(--primary);outline-offset:1px;border-radius:var(--radius-control)}
-.swimlane-collapse:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary)}
 .swimlane-epic-id{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:var(--text-meta);white-space:nowrap}
 .swimlane-edit{flex:0 0 auto;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--muted);padding:5px 8px;font-size:var(--text-meta)}
 .swimlane-edit:hover{background:var(--primary-soft);color:var(--primary)}
@@ -91,7 +92,7 @@
 .field .derived-date-note{font-size:var(--text-meta);color:var(--muted);font-weight:400}
 .task-type-badge{flex:0 0 18px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--task-type-color) 24%,white);border-radius:var(--radius-control);background:color-mix(in srgb,var(--task-type-color) 11%,white);color:var(--task-type-color);font-size:var(--text-meta);font-weight:700;line-height:1}
 .gantt-grid{--label-width:260px}.gantt-label-head{box-sizing:border-box;width:calc(var(--label-width) - 8px);min-width:calc(var(--label-width) - 8px);flex:0 0 calc(var(--label-width) - 8px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.gantt-row-label{box-sizing:border-box;width:calc(var(--label-width) - 8px)!important;min-width:calc(var(--label-width) - 8px)!important;flex:0 0 calc(var(--label-width) - 8px);padding:0 5px!important;gap:2px;overflow:hidden}.gantt-resize-gutter{box-sizing:border-box;width:8px;min-width:8px;flex:0 0 8px;background:var(--surface-muted);border-right:1px solid var(--line);position:sticky;left:calc(var(--label-width) - 8px);z-index:4}.gantt-resizer{position:sticky;left:calc(var(--label-width) - 8px);cursor:col-resize;touch-action:none;background:linear-gradient(90deg,var(--surface-muted) 3px,var(--line) 3px 4px,var(--surface-muted) 4px);z-index:7}.gantt-resizer:hover,.gantt-resizer:focus-visible{background:linear-gradient(90deg,var(--surface-muted) 2px,var(--primary) 2px 5px,var(--surface-muted) 5px);outline:none}.gantt-row-label .gantt-label-hit{min-width:0;flex:1;display:flex;align-items:center;gap:5px;overflow:hidden;text-align:left;padding:0 0 0 calc(4px + var(--row-depth,0)*12px);font-size:var(--text-meta)}.gantt-label-copy{display:flex;flex-direction:column;min-width:0;flex:1;overflow:hidden}.gantt-label-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-label-summary{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-row-label>.task-type-badge{width:16px;height:16px;flex-basis:16px;font-size:var(--text-meta)}.gantt-add-button{min-width:32px;min-height:26px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--primary-dark);font-size:var(--text-meta);line-height:1;padding:0 4px;z-index:8}.gantt-add-button:hover,.gantt-add-button:focus-visible{color:var(--primary);border-color:var(--primary);outline:none}.gantt-epic-label{display:flex;align-items:center}.gantt-epic-label .swimlane-header{min-width:0;flex:1;overflow:hidden}.gantt-epic-label .swimlane-collapse{min-width:0;overflow:hidden;gap:4px}.gantt-epic-label .swimlane-collapse strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.gantt-epic-label .swimlane-progress,.gantt-epic-label .swimlane-dates{display:none}.gantt-epic-label .swimlane-edit{padding:3px 5px;font-size:var(--text-meta)}.gantt-epic-row .gantt-track{flex:0 0 auto}.timeline-links{left:var(--label-width,260px)}.gantt-bar{max-width:100%}.epic-summary-bar{cursor:pointer;pointer-events:auto}.epic-summary-bar:focus-visible,.gantt-label-hit:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}.gantt-quick-anchor{position:relative;flex:0 0 auto}.gantt-quick-popover{position:absolute;top:25px;right:0;z-index:12;width:230px;padding:9px;display:grid;gap:7px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);box-shadow:0 8px 25px #0F172A24}.gantt-quick-popover input,.gantt-quick-popover select{width:100%;min-width:0;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);padding:7px;font-size:var(--text-meta)}.gantt-quick-popover button{padding:6px 9px;border-radius:var(--radius-control);background:var(--primary);color:var(--surface);font-size:var(--text-meta)}.gantt-comment-preview{position:fixed;z-index:30;width:min(300px,calc(100vw - 24px));max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-panel);background:var(--surface);box-shadow:0 8px 28px #0F172A26;padding:10px;color:var(--ink);font-size:var(--text-meta);pointer-events:auto}.gantt-comment-preview h4{font-size:var(--text-meta);margin:0 0 7px}.gantt-comment-item{border-top:1px solid var(--line);padding:7px 0 2px}.gantt-comment-meta{font-size:var(--text-meta);color:var(--muted);margin-bottom:4px}.gantt-comment-body{white-space:pre-wrap;overflow-wrap:anywhere;max-height:80px;overflow:auto;line-height:1.45}
-.gantt-row-label{overflow:visible!important}.gantt-quick-popover{position:fixed;left:0;right:auto;top:auto;z-index:50;max-width:calc(100vw - 24px)}.busy .gantt-quick-popover{pointer-events:none;opacity:.65}
+.gantt-row-label{overflow:visible!important}
 .gantt-label-hit[draggable=true],.swimlane-collapse[data-gantt-drag-id]{cursor:grab}.gantt-label-hit[draggable=true]:active,.swimlane-collapse[data-gantt-drag-id]:active{cursor:grabbing}.gantt-label-hit[draggable=true]::before,.swimlane-collapse[data-gantt-drag-id]::before{content:'⠿';flex:0 0 auto;color:var(--muted);font-size:var(--text-meta);line-height:1}.gantt-row.gantt-drop-before{box-shadow:inset 0 2px var(--primary)}.gantt-row.gantt-drop-after{box-shadow:inset 0 -2px var(--primary)}.gantt-row.gantt-drop-parent .gantt-row-label{outline:2px dashed var(--primary);outline-offset:-3px;background:var(--primary-soft)!important}.gantt-row.gantt-drop-invalid .gantt-row-label{outline:2px dashed var(--red);outline-offset:-3px}.gantt-unparent-drop{border:1px dashed var(--line)!important;border-radius:var(--radius-control);background:var(--surface)!important;color:var(--muted)!important;font-size:var(--text-meta)!important;white-space:nowrap}.gantt-unparent-drop.gantt-drop-unparent{border-color:var(--primary)!important;background:var(--primary-soft)!important;color:var(--primary)!important}.gantt-unparent-drop.gantt-drop-invalid{border-color:var(--red)!important;color:var(--red)!important}.gantt-drag-help{font-size:var(--text-meta);color:var(--muted)}
 .gantt-tree-toggle:hover,.gantt-tree-toggle:focus-visible{border-color:var(--primary);background:var(--primary-soft);color:var(--primary);outline:none}.gantt-row-label.has-story-toggle .gantt-label-hit{padding-left:var(--row-label-indent,0px)}
 .gantt-comment-preview{pointer-events:none}
@@ -119,18 +120,14 @@
 <style>
 /* P1.1: shared legibility and focus rules; fixed Gantt geometry is unchanged. */
 .button,.field input,.field select,.field textarea,.cell-input,.quick-entry input,
-.quick-entry .button,.quick-entry #bulk-create-open,.column-quick-add input,
-.column-quick-add select,.filters select,.search input{font-size:var(--text-control)}
+.quick-entry .button,.quick-entry #bulk-create-open,
+.filters select,.search input{font-size:var(--text-control)}
 .card-title{font-size:var(--text-body);line-height:1.5}
 .card{padding:var(--space-3);border-radius:var(--radius-panel)}
 .card-top,.card-footer{gap:var(--space-2);flex-wrap:wrap}
 .card-id,.card-parent,.card-due,.priority,.label-tag{font-size:var(--text-meta)}
 .type-icon{width:16px;height:16px;font-size:var(--text-meta);line-height:1}
 .avatar{width:28px;height:28px;font-size:var(--text-meta)}
-.column-quick-add{flex-wrap:wrap;gap:var(--space-1)}
-.column-quick-add select{width:84px;min-height:36px}
-.column-quick-add input{min-width:90px;min-height:36px}
-.column-quick-add button{width:32px;min-height:36px}
 .column-header{font-size:var(--text-control)}
 .field,.workspace strong,.view-nav button,.epic-nav button{font-size:var(--text-control)}
 .field input,.field select,.field textarea,.filters select,.filters input[type=date],
@@ -240,10 +237,6 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .card-list{flex:1;padding:10px;min-width:0}
 .card:last-child{margin-bottom:0}
 .column-empty{margin:0;border:0;padding:20px 8px}
-.column-quick-add{flex-wrap:nowrap;gap:4px;margin:0;padding:8px}
-.column-quick-add select{width:64px;min-width:0;padding:0 2px}
-.column-quick-add input{min-width:65px;padding:6px}
-.column-quick-add button{width:28px;flex-shrink:0}
 .swimlane .column{min-height:0}
 .table-wrap,.gantt-viewport{border-radius:8px;box-shadow:0 1px 3px #091e420a}
 .issue-table th{padding-block:8px;background:var(--canvas);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
@@ -288,7 +281,6 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   .workspace-options>.workspace-panel{left:0;right:auto}
   .tool-menu>summary,.view-toggle,.epic-caption .button,.workspace-panel .epic-nav button,.workspace-filters .filters select,.workspace-filters .filters input[type=date]{min-height:44px}
   .board{grid-template-columns:repeat(5,minmax(255px,78vw));gap:10px}
-  .column-quick-add input,.column-quick-add select,.column-quick-add button{min-height:44px}
 }
 @media(max-width:400px){
   .view-nav button{padding-inline:8px}
@@ -423,7 +415,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .card{box-shadow:none}.swimlane{border:1px solid var(--line)}.swimlane>.swimlane-header{border-color:var(--line);box-shadow:inset 3px 0 var(--epic-lane-accent)}
 .sheet-tree-toggle,.sheet-tree-spacer,.gantt-tree-toggle,.swimlane-toggle,.gantt-lane-title .swimlane-toggle{box-sizing:border-box;flex:0 0 24px;width:24px;min-width:24px;height:24px;min-height:24px;padding:0;border-radius:4px;font-size:14px;font-weight:500;line-height:1}
 .sheet-tree-toggle,.gantt-tree-toggle,.swimlane-toggle,.gantt-lane-title .swimlane-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
-.sheet-tree-toggle:hover,.gantt-tree-toggle:hover,.swimlane-collapse:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary);border-color:var(--primary)}
+.sheet-tree-toggle:hover,.gantt-tree-toggle:hover,.swimlane-toggle-button:hover .swimlane-toggle{background:var(--primary-soft);color:var(--primary);border-color:var(--primary)}
 .gantt-status-dot{flex:0 0 7px!important;width:7px;min-width:7px!important;height:7px;padding:0!important;border:0;border-radius:50%;background:var(--status-color);font-size:0;overflow:hidden}.gantt-epic-label .swimlane-edit{width:24px;height:26px;min-height:26px;padding:0;font-size:16px}
 .issue-table{table-layout:fixed;font-size:13px}.issue-table th{position:sticky;overflow:visible;height:36px;padding:6px 20px 6px 22px;text-transform:none;letter-spacing:0}.issue-table td{height:44px;padding:5px 6px;overflow:hidden;text-overflow:ellipsis}.issue-table td[data-column-key="id"]{padding-inline:6px}.issue-table th[data-column-key="id"]{padding-left:20px}.issue-table.id-pinned [data-column-key="id"]{box-sizing:border-box}.issue-table col{position:static!important}
 .issue-table .cell-input{min-width:0;width:100%;font-size:13px}.issue-table .cell-readonly{max-width:none}.sheet-id-text{display:flex;min-width:0;flex:1}.sheet-id-text .issue-link{overflow:hidden;text-overflow:ellipsis;font-size:12px;gap:4px}.sheet-id-cell{min-width:0;gap:4px}.sheet-id-cell .type-icon{flex-shrink:0}
@@ -467,8 +459,33 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .quick-parent-option[aria-selected="true"]{font-weight:600}
 .quick-parent-option small,.quick-parent-empty{font-size:var(--text-meta);color:var(--muted)}
 .quick-parent-empty{padding:8px}
-.sheet-row-grip:focus-visible,.card:focus-visible,.gantt-label-hit:focus-visible,.swimlane-collapse:focus-visible,.column-header:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;box-shadow:inset 0 0 0 3px var(--surface)}
+.sheet-row-grip:focus-visible,.card:focus-visible,.gantt-label-hit:focus-visible,.swimlane-collapse:focus-visible,.swimlane-toggle-button:focus-visible,.column-header:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;box-shadow:inset 0 0 0 3px var(--surface)}
 @media(max-width:700px){.workspace-controls:has(.entry-active){flex-wrap:wrap}.workspace-controls .quick-entry.entry-active{flex:1 1 100%}.workspace-bar .quick-entry{max-width:none}.entry-active .quick-entry-line{flex-wrap:wrap}.entry-active .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-entry button{min-height:40px}.quick-entry-context input,.quick-entry-context select{font-size:16px;height:36px}.quick-entry-context .quick-parent-field{order:2;flex-basis:100%}.quick-entry #quick-parent-toggle{min-width:40px;min-height:36px}#quick-context{order:3}.quick-entry-context label{flex-wrap:wrap}}
+.ghost-entry{position:fixed;z-index:80;display:flex;flex-direction:column;max-width:calc(100vw - 24px);min-width:0;margin:0;padding:0;overflow:visible;border:1px solid var(--primary);border-radius:var(--radius-panel);background:var(--surface);box-shadow:0 10px 32px #172b4d2b}
+.ghost-entry[hidden],.quick-batch[hidden],.triage-popover[hidden]{display:none!important}
+.ghost-entry .quick-entry-line{display:flex;align-items:center;min-width:0;padding:4px}
+.ghost-entry #quick-title{flex:1 1 auto;width:0;min-width:0;height:38px;padding:0 10px;border:0;background:transparent;font-size:var(--text-control)}
+.ghost-entry #quick-title:focus{outline:0}
+.ghost-entry.batch-active .quick-entry-line,.ghost-entry.batch-active .quick-entry-context{display:none}
+.quick-batch{display:grid;gap:8px;padding:10px}
+.quick-batch>label{font-weight:600;font-size:var(--text-control)}
+.quick-batch textarea{width:100%;min-height:120px;resize:vertical;padding:8px;border:1px solid var(--control-border);border-radius:var(--radius-control);font:inherit}
+.quick-batch-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+#quick-batch-status{margin-right:auto;color:var(--muted);font-size:var(--text-meta)}
+.ghost-add{width:calc(100% - 16px);min-height:36px;margin:4px 8px 8px;padding:6px 10px;border:1px dashed transparent;border-radius:var(--radius-control);color:var(--muted);text-align:left}
+.ghost-add:hover,.ghost-add:focus-visible{border-color:var(--primary);background:var(--primary-soft);color:var(--primary)}
+.sheet-ghost-add{width:auto;min-width:160px;margin:8px 0}
+.triage-popover{position:fixed;z-index:90;width:min(320px,calc(100vw - 24px));padding:10px;border:1px solid var(--control-border);border-radius:var(--radius-panel);background:var(--surface);box-shadow:0 10px 32px #172b4d2b}
+.triage-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+#triage-form{display:grid;gap:8px}
+#triage-form label{display:grid;gap:4px;font-size:var(--text-control);font-weight:600}
+#triage-form input,#triage-form select{width:100%;min-height:38px;padding:6px 8px;border:1px solid var(--control-border);border-radius:var(--radius-control);font:inherit}
+#triage-form .button{justify-self:end}
+.swimlane-header.context-active{box-shadow:inset 4px 0 var(--primary);background:var(--primary-soft)}
+.task-context-badge{flex:0 0 auto;padding:2px 6px;border-radius:999px;background:var(--primary);color:var(--surface);font-size:var(--text-meta);font-weight:600;white-space:nowrap}
+.swimlane-add{flex:0 0 auto;min-height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--primary);font-size:var(--text-meta);font-weight:600}
+.swimlane-add:hover,.swimlane-add:focus-visible{border-color:var(--primary);background:var(--primary-soft);outline:2px solid transparent}
+@media(max-width:700px){.ghost-entry{max-height:calc(100dvh - 16px);overflow-y:auto}.ghost-entry .quick-entry-line{flex-wrap:wrap}.ghost-entry .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-batch-actions{flex-wrap:wrap}.quick-batch-actions #quick-batch-status{flex-basis:100%}}
 </style>
 
 </head>
@@ -520,22 +537,29 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
         <span id="issue-count" class="issue-count"></span>
       </div>
       <div class="workspace-controls">
-        <div class="quick-entry" role="group" aria-label="Quick create work item">
-          <div class="quick-entry-line">
-            <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… T / S" aria-label="New task title" aria-describedby="quick-context">
-            <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
-            <button id="quick-details" type="button" class="entry-extra">Details</button>
-            <button id="quick-clear" type="button" class="entry-extra">Clear</button>
-          </div>
-          <div class="quick-entry-context entry-extra">
-            <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
-            <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
-              <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
-              <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
-              <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
-            </div></div>
-            <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
-            <span id="quick-context" role="status">No parent</span>
+        <div id="quick-entry-home" hidden>
+          <div class="quick-entry ghost-entry" role="group" aria-label="Contextual quick create work item" hidden>
+            <div class="quick-entry-line">
+              <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… Enter to save" aria-label="New task title" aria-describedby="quick-context">
+              <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
+              <button id="quick-details" type="button" class="entry-extra">Details</button>
+              <button id="quick-clear" type="button" class="entry-extra">Clear</button>
+            </div>
+            <div class="quick-entry-context entry-extra">
+              <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+              <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
+                <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
+                <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
+                <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
+              </div></div>
+              <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+              <span id="quick-context" role="status">No parent</span>
+            </div>
+            <div id="quick-batch" class="quick-batch" hidden>
+              <label for="quick-batch-input">Pasted titles</label>
+              <textarea id="quick-batch-input" rows="6" maxlength="30000" aria-describedby="quick-batch-status"></textarea>
+              <div class="quick-batch-actions"><span id="quick-batch-status" role="status" aria-live="polite"></span><button id="quick-batch-cancel" type="button" class="button secondary">Back</button><button id="quick-batch-submit" type="button" class="button primary">Create tasks</button></div>
+            </div>
           </div>
         </div>
 
@@ -629,6 +653,10 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
     <div class="dialog-header"><h2 id="command-title">Go to or open</h2><button id="command-close" type="button" class="icon-button" aria-label="Close commands">×</button></div>
     <div class="command-body"><label for="command-query">Search issues and actions</label><input id="command-query" type="search" autocomplete="off" aria-controls="command-results" placeholder="Issue title or ID…"><div id="command-results" class="command-results" aria-live="polite"></div></div>
   </dialog>
+  <div id="triage-popover" class="triage-popover" role="dialog" aria-modal="false" aria-labelledby="triage-title" hidden>
+    <div class="triage-heading"><strong id="triage-title">Edit issue</strong><button id="triage-close" type="button" class="icon-button" aria-label="Close quick edit">×</button></div>
+    <div id="triage-control"></div>
+  </div>
   <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
     <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
     <div class="help-body">
@@ -650,7 +678,9 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
         <dl class="shortcut-list">
           <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In shared quick entry: return to the originating item and keep unsent text. Clear discards it. In column entry: clear the unsent title and leave.</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In Ghost Capture: return to the originating item and keep unsent text. Clear discards it.</dd></div>
+          <div><dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt><dd>On a focused issue: edit priority, assignee, status, or due date</dd></div>
+          <div><dt><kbd>E</kbd> / <kbd>X</kbd></dt><dd>On a focused issue: open its editor or toggle selection</dd></div>
         </dl>
       </details>
       <details class="shortcut-group"><summary>Sheet</summary>
@@ -1048,7 +1078,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   let leafProgressCache = { issues: null, counts: null };
   const scrollByView = {}, renderedView = { current: '' };
   let pendingSheetFocus = null;
-  let edited = null, initialForm = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
+  let edited = null, initialForm = '', formInitialParentId = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
   let createStarted = false, issueReturnFocus = null, newFormDraftKey = '';
   try { state.drafts = JSON.parse(localStorage.getItem(draftStorageKey) || '{}') || {}; } catch (ignore) { state.drafts = {}; }
@@ -1079,14 +1109,14 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
   // Navigation context is independent of checkbox selection and never follows hover.
-  let activeIssueId = '', entrySession = null, entryOrigin = null;
+  let activeIssueId = '', entrySession = null, entryOrigin = null, entryAnchor = null, entryVisible = false;
   const navigationSelector = '.sheet-row-grip, .card[data-issue], .gantt-label-hit, .swimlane-collapse, .column-header';
   function issueIdFor(element) {
     const row = element?.closest('[data-sheet-row-id], .card[data-issue], [data-gantt-row-id]');
     if (row) return row.dataset.sheetRowId || row.dataset.issue || row.dataset.ganttRowId || '';
     if (element?.matches('.column-header')) return element.closest('[data-epic-lane]')?.dataset.epicLane || '';
     const heading = element?.closest('.swimlane-collapse');
-    return heading && issueById(heading.dataset.toggleLane) ? heading.dataset.toggleLane : '';
+    return heading && issueById(heading.dataset.selectLane) ? heading.dataset.selectLane : '';
   }
   function navigationTargets() {
     return Array.from(document.querySelectorAll('#view-content ' + navigationSelector.split(', ').join(', #view-content '))).filter(el => el.getClientRects().length && !el.disabled);
@@ -1098,42 +1128,112 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function findNavigationTarget(snapshot) {
     if (!snapshot) return null;
     const targets = navigationTargets();
-    return targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.toggleLane === '__no_epic__');
+    return targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.selectLane === '__no_epic__');
+  }
+  function findParentContextTarget(parentId) {
+    const epicId = containingEpic(parentId);
+    let epicTarget = null;
+    for (const target of navigationTargets()) {
+      const id = issueIdFor(target);
+      if (id === parentId) return target;
+      if (!epicTarget && id === epicId) epicTarget = target;
+    }
+    return epicTarget;
+  }
+  function addParentScrollRoom(element) {
+    $('.parent-context-scroll-room')?.remove();
+    let host = null;
+    for (let viewport = element?.parentElement; viewport && viewport !== $('#view-content'); viewport = viewport.parentElement) {
+      const style = getComputedStyle(viewport);
+      if (/(auto|scroll)/.test(style.overflow + style.overflowY) && viewport.scrollHeight > viewport.clientHeight) { host = viewport; break; }
+    }
+    host ||= $('#view-content');
+    const spacer = document.createElement('div');
+    spacer.className = 'parent-context-scroll-room';
+    spacer.style.cssText = `height:${Math.min(240, Math.max(120, $('.quick-entry').getBoundingClientRect().height + 24))}px;pointer-events:none`;
+    spacer.setAttribute('aria-hidden', 'true');
+    host.append(spacer);
+  }
+  function revealNavigation(element, includePage = false, alignContext = false) {
+    if (!element) return;
+    const cell = element.closest('td');
+    if (cell) {
+      revealSheetCell(cell);
+      if (alignContext) {
+        const viewport = cell.closest('.table-wrap'), bounds = viewport?.getBoundingClientRect(), header = viewport?.querySelector('thead th')?.getBoundingClientRect();
+        if (viewport && bounds) viewport.scrollTop += cell.getBoundingClientRect().top - Math.max(bounds.top, header?.bottom || bounds.top) - 12;
+      }
+    } else {
+      for (let viewport = element.parentElement; viewport && viewport !== $('#view-content'); viewport = viewport.parentElement) {
+        if (!/(auto|scroll)/.test(getComputedStyle(viewport).overflow + getComputedStyle(viewport).overflowY + getComputedStyle(viewport).overflowX)) continue;
+        const bounds = viewport.getBoundingClientRect(), rect = element.getBoundingClientRect();
+        const header = viewport.matches('.gantt-viewport') ? viewport.querySelector('.gantt-header')?.getBoundingClientRect().height || 0 : 0;
+        const top = bounds.top + header;
+        if (alignContext && viewport.scrollHeight > viewport.clientHeight) viewport.scrollTop += rect.top - top - 12;
+        else if (rect.top < top) viewport.scrollTop -= top - rect.top;
+        else if (rect.bottom > bounds.bottom) viewport.scrollTop += rect.bottom - bounds.bottom;
+        if (rect.left < bounds.left) viewport.scrollLeft -= bounds.left - rect.left;
+        else if (rect.right > bounds.right) viewport.scrollLeft += rect.right - bounds.right;
+      }
+    }
+    if (includePage) {
+      const rect = element.getBoundingClientRect();
+      if (alignContext) window.scrollBy({ top: rect.top - Math.min(96, window.innerHeight * 0.2), behavior: 'instant' });
+      else if (rect.top < 0 || rect.bottom > window.innerHeight || rect.left < 0 || rect.right > window.innerWidth) element.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
   }
   function focusNavigation(element, reveal = false) {
     if (!element) return;
     element.focus({ preventScroll: true });
-    if (reveal) {
-      const cell = element.closest('td');
-      if (cell) revealSheetCell(cell);
-      else {
-        // Scroll only the containing view, never the page or the quick-entry bar.
-        for (let viewport = element.parentElement; viewport && viewport !== $('#view-content'); viewport = viewport.parentElement) {
-          if (!/(auto|scroll)/.test(getComputedStyle(viewport).overflow + getComputedStyle(viewport).overflowY + getComputedStyle(viewport).overflowX)) continue;
-          const bounds = viewport.getBoundingClientRect(), rect = element.getBoundingClientRect();
-          const header = viewport.matches('.gantt-viewport') ? viewport.querySelector('.gantt-header')?.getBoundingClientRect().height || 0 : 0;
-          const top = bounds.top + header;
-          if (rect.top < top) viewport.scrollTop -= top - rect.top;
-          else if (rect.bottom > bounds.bottom) viewport.scrollTop += rect.bottom - bounds.bottom;
-          if (rect.left < bounds.left) viewport.scrollLeft -= bounds.left - rect.left;
-          else if (rect.right > bounds.right) viewport.scrollLeft += rect.right - bounds.right;
-        }
-      }
-    }
+    if (reveal) revealNavigation(element);
   }
   function containingEpic(id) {
     let issue = issueById(id); const seen = new Set();
     while (issue && !seen.has(issue.id)) { if (issue.type === 'Epic') return issue.id; seen.add(issue.id); issue = issueById(issue.parentId); }
     return '';
   }
+  function revealParentContext(id) {
+    let issue = issueById(id), epicId = '', changed = false;
+    const seen = new Set();
+    while (issue && !seen.has(issue.id)) {
+      seen.add(issue.id);
+      if (issue.type === 'Epic') {
+        epicId = issue.id;
+        if (state.collapsedEpics[issue.id]) { delete state.collapsedEpics[issue.id]; changed = true; }
+      } else if (issue.type === 'Story') {
+        if (state.collapsedSheetParents[issue.id]) { delete state.collapsedSheetParents[issue.id]; changed = true; }
+        if (state.collapsedGanttStories[issue.id]) { delete state.collapsedGanttStories[issue.id]; changed = true; }
+      }
+      issue = issueById(issue.parentId);
+    }
+    if (changed) saveUiState();
+    return epicId;
+  }
+  function creationRank(context, parentId, status) {
+    const sameScope = issue => (issue.parentId || '') === (parentId || '') && (state.view !== 'kanban' || issue.status === status);
+    const siblings = C.sorted(state.issues.filter(sameScope));
+    const contextIndex = context && (context.parentId || '') === (parentId || '') ? siblings.findIndex(issue => issue.id === context.id) : -1;
+    if (contextIndex >= 0) {
+      const left = Number(siblings[contextIndex].rank) || 0, right = Number(siblings[contextIndex + 1]?.rank);
+      const step = Number.isFinite(right) && right > left ? (right - left) / 101 : 1000;
+      return { rank: left + step, rankStep: step };
+    }
+    const left = siblings.reduce((max, issue) => Math.max(max, Number(issue.rank) || 0), 0);
+    return { rank: left + 1000, rankStep: 1000 };
+  }
   function creationDefaults(type = 'Task') {
     const visible = new Set(navigationTargets().map(issueIdFor).filter(Boolean));
-    const focused = issueById(issueIdFor(document.activeElement));
+    const focusedElement = document.activeElement;
+    const focused = issueById(issueIdFor(focusedElement));
     const selected = state.selectedIssueIds.length === 1 && visible.has(state.selectedIssueIds[0]) ? issueById(state.selectedIssueIds[0]) : null;
     const context = focused || (visible.has(activeIssueId) ? issueById(activeIssueId) : null) || selected;
-    let parentId = issueById(state.epic)?.type === 'Epic' ? state.epic : '';
+    const laneId = focusedElement?.closest('[data-epic-lane]')?.dataset.epicLane || '';
+    const explicitParentId = focusedElement?.closest('[data-ghost-parent-id]')?.dataset.ghostParentId || '';
+    let parentId = issueById(explicitParentId)?.type === 'Epic' ? explicitParentId : issueById(state.epic)?.type === 'Epic' ? state.epic : issueById(laneId)?.type === 'Epic' ? laneId : '';
     if (context) parentId = type === 'Story' ? containingEpic(context.id) : ['Epic', 'Story'].includes(context.type) ? context.id : context.parentId || '';
-    return { type, parentId: type === 'Epic' ? '' : parentId, status: 'Backlog', priority: 'Medium', assignee: '', dueDate: '', startDate: type === 'Epic' ? '' : today(), taskTypeId: defaultTaskTypeId() };
+    if (type === 'Epic') parentId = '';
+    const status = focusedElement?.closest('.column')?.dataset.status || context?.status || 'Backlog';
+    return { type, parentId, status, priority: 'Medium', assignee: '', dueDate: '', startDate: type === 'Epic' ? '' : today(), taskTypeId: defaultTaskTypeId(), ...creationRank(context, parentId, status), createdCount: 0 };
   }
   let parentPickerOpen = false, parentPickerQuery = '', parentPickerIndex = -1;
   function quickParentLabel(id) {
@@ -1178,8 +1278,19 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function chooseQuickParent(id) {
     if (!entrySession || !quickParentCandidates().some(item => item.id === id)) return false;
-    entrySession.parentId = id; $('#quick-parent').setCustomValidity('');
-    closeQuickParentPicker(); renderQuickEntryContext(); return true;
+    entrySession.parentId = id;
+    Object.assign(entrySession, creationRank(null, id, entrySession.status));
+    entrySession.createdCount = 0;
+    activeIssueId = revealParentContext(id);
+    $('#quick-parent').setCustomValidity('');
+    closeQuickParentPicker(); renderQuickEntryContext(); render();
+    if (activeIssueId) {
+      entryAnchor = findParentContextTarget(id) || entryAnchor;
+      addParentScrollRoom(entryAnchor);
+      revealNavigation(entryAnchor, true, true);
+      positionGhostEntry();
+    }
+    return true;
   }
   function renderQuickEntryContext() {
     const session = entrySession;
@@ -1195,14 +1306,33 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     renderQuickParentResults();
   }
 
-  function beginQuickEntry(type = 'Task', compact = false) {
+  function positionGhostEntry() {
+    if (!entrySession || !entryVisible) return;
+    const entry = $('.quick-entry');
+    entry.hidden = false;
+    entry.classList.add('entry-active');
+    if (entry.parentElement !== document.body) document.body.append(entry);
+    const anchor = entryAnchor?.isConnected ? entryAnchor : findNavigationTarget(entryOrigin);
+    const rect = anchor?.getBoundingClientRect();
+    const width = Math.min(760, Math.max(360, window.innerWidth * 0.64), window.innerWidth - 24);
+    entry.style.width = `${width}px`;
+    const measured = entry.getBoundingClientRect();
+    const left = Math.max(12, Math.min(window.innerWidth - width - 12, rect?.left ?? 12));
+    const below = (rect?.bottom ?? 72) + 6;
+    const preferredTop = below + measured.height <= window.innerHeight - 8 ? below : (rect?.top ?? 72) - measured.height - 6;
+    const top = Math.max(8, Math.min(Math.max(8, window.innerHeight - measured.height - 8), preferredTop));
+    entry.style.left = `${left}px`; entry.style.top = `${top}px`;
+  }
+  function beginQuickEntry(type = 'Task', compact = false, anchor = document.activeElement) {
     if (!state.ready || state.busy) return;
     if (!entrySession || !$('#quick-title').value.trim()) {
-      entryOrigin = navigationSnapshot() || findOriginForActiveItem();
+      entryOrigin = navigationSnapshot(anchor) || findOriginForActiveItem();
+      entryAnchor = anchor;
       entrySession = creationDefaults(type);
     }
-    $('.quick-entry').classList.add('entry-active');
+    entryVisible = true;
     renderQuickEntryContext();
+    positionGhostEntry();
     if (compact) { openQuickEntryDetails(); return; }
     $('#quick-title').focus({ preventScroll: true });
   }
@@ -1210,11 +1340,13 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     return navigationSnapshot(navigationTargets().find(el => issueIdFor(el) === activeIssueId));
   }
   function leaveQuickEntry() {
-    closeQuickParentPicker();
-    $('.quick-entry').classList.remove('entry-active');
-    const destination = findNavigationTarget(entryOrigin) || navigationTargets()[0] || $('#create-issue');
-    if (!$('#quick-title').value.trim()) entrySession = null;
-    focusNavigation(destination);
+    entryVisible = false; closeQuickParentPicker();
+    const entry = $('.quick-entry'), home = $('#quick-entry-home');
+    entry.classList.remove('entry-active'); entry.hidden = true; entry.removeAttribute('style'); home.append(entry);
+    $('.parent-context-scroll-room')?.remove();
+    const destination = findNavigationTarget(entryOrigin) || entryAnchor?.isConnected && entryAnchor || navigationTargets()[0] || $('#create-issue');
+    if (!$('#quick-title').value.trim() && $('#quick-batch').hidden) { entrySession = null; entryAnchor = null; }
+    focusNavigation(destination, true);
   }
   function applyQuickParent() {
     if (!entrySession) return false;
@@ -1230,10 +1362,50 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function openQuickEntryDetails() {
     if (!entrySession || !applyQuickParent()) return;
     if (state.drafts.__new__) { notify('Recover or discard the existing new-issue draft first.', true); return; }
-    const defaults = { ...entrySession, summary: $('#quick-title').value, startDate: today() };
-    issueReturnFocus = findNavigationTarget(entryOrigin) || $('#quick-title');
-    openIssue('', defaults);
-    if (dialog.open) { $('#quick-title').value = ''; entrySession = null; $('.quick-entry').classList.remove('entry-active'); }
+    const { rankStep, createdCount, ...defaults } = entrySession;
+    issueReturnFocus = findNavigationTarget(entryOrigin) || entryAnchor || $('#create-issue');
+    openIssue('', { ...defaults, rank: entrySession.rank + entrySession.rankStep * entrySession.createdCount, summary: $('#quick-title').value });
+    if (dialog.open) { $('#quick-title').value = ''; entrySession = null; entryAnchor = null; leaveQuickEntry(); }
+  }
+  function quickBatchTitles() {
+    return $('#quick-batch-input').value.split(/\r?\n/).map(title => title.trim()).filter(Boolean);
+  }
+  function renderQuickBatch() {
+    const titles = quickBatchTitles(), invalid = titles.length > 100 || titles.some(title => title.length > 250);
+    $('#quick-batch-status').textContent = titles.length > 100 ? 'Maximum 100 non-empty lines.' : titles.some(title => title.length > 250) ? 'Each title must be 250 characters or fewer.' : `${titles.length} ${titles.length === 1 ? 'task' : 'tasks'} · ${entrySession?.status || 'Backlog'} · ${quickParentLabel(entrySession?.parentId || '')}`;
+    $('#quick-batch-submit').disabled = !titles.length || invalid;
+    $('#quick-batch-submit').textContent = titles.length ? `Create ${titles.length} ${titles.length === 1 ? 'task' : 'tasks'}` : 'Create tasks';
+    positionGhostEntry();
+  }
+  function openQuickBatch(text) {
+    $('#quick-batch-input').value = text;
+    $('#quick-batch').hidden = false;
+    $('.quick-entry').classList.add('batch-active');
+    renderQuickBatch();
+    $('#quick-batch-input').focus({ preventScroll: true });
+  }
+  function closeQuickBatch(clear = false) {
+    if (clear) $('#quick-batch-input').value = '';
+    $('#quick-batch').hidden = true;
+    $('.quick-entry').classList.remove('batch-active');
+    positionGhostEntry();
+  }
+  function submitQuickBatch() {
+    const titles = quickBatchTitles();
+    if (!entrySession || !applyQuickParent() || !titles.length || titles.length > 100 || titles.some(title => title.length > 250)) { renderQuickBatch(); return; }
+    try {
+      const { rankStep, createdCount, ...base } = entrySession;
+      const queued = titles.map((title, index) => {
+        const draftKey = 'quick-' + newOperationId(), input = { ...base, rank: entrySession.rank + entrySession.rankStep * (entrySession.createdCount + index), summary: title };
+        C.validate(C.prepare(input, null, today(), new Date().toISOString()), state.issues);
+        return { title, status: input.status, kind: input.type, parentId: input.parentId, draftKey, operationId: draftKey, input };
+      });
+      const next = [...state.quickQueue, ...queued];
+      localStorage.setItem(quickQueueStorageKey, JSON.stringify(next));
+      state.quickQueue = next; entrySession.createdCount += queued.length;
+      closeQuickBatch(true); render(); syncText(`${queued.length} work items queued…`); queueMicrotask(drainQuickQueue);
+      $('#quick-title').focus({ preventScroll: true });
+    } catch (error) { showError(error); }
   }
   function quickEntryPayload(item) {
     return item.input || { summary: item.title, type: item.kind, taskTypeId: defaultTaskTypeId(), status: item.status, priority: 'Medium', parentId: item.parentId || '' };
@@ -2008,7 +2180,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
           failedDraft.status = /changed elsewhere|conflict|stale|revision/i.test(failedDraft.error) ? 'conflict' : /timed out|acknowledgement lost|unconfirmed/i.test(failedDraft.error) ? 'unconfirmed' : 'failed';
           localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
         }
-        if (quickCreate) render();
+        if (quickCreate) { render(); if (entryVisible) leaveQuickEntry(); }
         renderDraftRecovery();
         throw error;
       }
@@ -2034,7 +2206,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (shared && !entrySession) beginQuickEntry();
     if (shared && !applyQuickParent()) return;
     const kind = shared ? entrySession.type : input.dataset.quickKind || 'Task';
-    const defaults = shared ? { ...entrySession, startDate: today() } : { ...creationDefaults(kind), parentId: kind === 'Epic' ? '' : input.dataset.quickParentId ?? creationDefaults(kind).parentId, status: typeof status === 'string' ? status : 'Backlog' };
+    const inferred = shared ? entrySession : creationDefaults(kind);
+    const { rankStep, createdCount, ...base } = inferred;
+    const contextualRank = Number.isFinite(Number(inferred.rank)) ? Number(inferred.rank) + (Number(inferred.rankStep) || 1000) * (Number(inferred.createdCount) || 0) : null;
+    const defaults = shared
+      ? { ...base, ...(contextualRank === null ? {} : { rank: contextualRank }) }
+      : { ...base, parentId: kind === 'Epic' ? '' : input.dataset.quickParentId ?? inferred.parentId, status: typeof status === 'string' ? status : 'Backlog' };
     const draftKey = input.dataset.quickDraftKey || 'quick-' + newOperationId();
     const operationId = state.drafts[draftKey]?.operationId || input.dataset.quickOperationId || draftKey;
     try {
@@ -2042,6 +2219,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       C.validate(C.prepare(payload, null, today(), new Date().toISOString()), state.issues);
       const next = [...state.quickQueue, { title, status: defaults.status, kind, parentId: defaults.parentId, draftKey, operationId, input: payload }];
       localStorage.setItem(quickQueueStorageKey, JSON.stringify(next)); state.quickQueue = next;
+      if (shared) entrySession.createdCount = (Number(entrySession.createdCount) || 0) + 1;
       input.value = ''; delete input.dataset.quickDraftKey; delete input.dataset.quickOperationId;
       render(); syncText('Work item queued…'); queueMicrotask(drainQuickQueue);
     } catch (error) { showError(error); }
@@ -2208,11 +2386,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const navigationFocus = navigationSnapshot();
     renderDraftRecovery();
     renderQuickEntryPending();
-    const quickEntryState = state.view === 'kanban' ? captureBoardQuickEntries() : null;
-    const ganttEntryState = state.view === 'gantt' ? captureGanttQuickEntry() : null;
     const sheetFocus = state.view === 'sheet' ? (pendingSheetFocus || captureSheetCellFocus()) : null;
     pendingSheetFocus = null;
-    if (state.view !== 'gantt') closeGanttQuickPopover();
     renderSavedViews();
     renderFilters();
     $$('[data-view]').forEach(el => { const active = el.dataset.view === state.view; el.classList.toggle('active', active); if (active) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); if (el.getAttribute('role') === 'tab') { el.setAttribute('aria-selected', String(active)); el.setAttribute('aria-controls', 'view-content'); } });
@@ -2230,8 +2405,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
     const hasPendingRows = pendingQuickTasks().length;
-    if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; return; }
-    if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; return; }
+    if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; if (entryVisible) queueMicrotask(positionGhostEntry); return; }
+    if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; if (entryVisible) queueMicrotask(positionGhostEntry); return; }
     if (state.view === 'kanban') renderBoard(issues);
     $$('[data-sheet-manual]').forEach(el=>el.remove());
     sheetViewportObserver?.disconnect();
@@ -2241,13 +2416,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     arrangeWorkspaceTools();
     const nextScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
     if (restoreScroll && nextScroll) { nextScroll.scrollLeft = restoreScroll.left; nextScroll.scrollTop = restoreScroll.top; }
-    if (quickEntryState) restoreBoardQuickEntries(quickEntryState);
-    if (ganttEntryState) restoreGanttQuickEntry(ganttEntryState);
     if (sheetFocus) restoreSheetCellFocus(sheetFocus);
     else if (navigationFocus && (document.activeElement === document.body || !document.activeElement?.isConnected)) focusNavigation(findNavigationTarget(navigationFocus));
     const visibleNavigation = navigationTargets();
     if (activeIssueId && !visibleNavigation.some(el => issueIdFor(el) === activeIssueId)) activeIssueId = '';
-    if (entrySession && document.activeElement !== $('#quick-parent')) renderQuickEntryContext();
+    if (entryVisible && document.activeElement !== $('#quick-parent')) { renderQuickEntryContext(); queueMicrotask(positionGhostEntry); }
   }
   function captureSheetCellFocus() {
     const active = document.activeElement;
@@ -2277,34 +2450,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (target.right > right) viewport.scrollLeft += Math.min(target.right - right, target.left - left);
     if (target.top < top) viewport.scrollTop += target.top - top;
     else if (target.bottom > bottom) viewport.scrollTop += Math.min(target.bottom - bottom, target.top - top);
-  }
-  function boardQuickEntryKey(element) { return JSON.stringify([element.closest('.swimlane')?.dataset.epicLane || '', element.closest('.column')?.dataset.status || '']); }
-  function captureBoardQuickEntries() {
-    const active = document.activeElement, activeForm = active?.closest('.column-quick-add');
-    return {
-      entries: $$('.column-quick-add').map(form => ({ key: boardQuickEntryKey(form), title: form.querySelector('input').value, kind: form.querySelector('select').value })),
-      boards: $$('.board').map(board => ({ lane: board.closest('.swimlane')?.dataset.epicLane || '', left: board.scrollLeft, top: board.scrollTop })),
-      focus: activeForm ? { key: boardQuickEntryKey(activeForm), tag: active.tagName === 'SELECT' ? 'select' : 'input', start: active.selectionStart, end: active.selectionEnd, top: activeForm.querySelector('input').getBoundingClientRect().top } : null
-    };
-  }
-  function restoreBoardQuickEntries(snapshot) {
-    const forms = $$('.column-quick-add');
-    snapshot.entries.forEach(entry => {
-      const form = forms.find(form => boardQuickEntryKey(form) === entry.key);
-      if (form) { form.querySelector('input').value = entry.title; form.querySelector('select').value = entry.kind; }
-    });
-    snapshot.boards.forEach(saved => {
-      const board = $$('.board').find(board => (board.closest('.swimlane')?.dataset.epicLane || '') === saved.lane);
-      if (board) { board.scrollLeft = saved.left; board.scrollTop = saved.top; }
-    });
-    if (!snapshot.focus) return;
-    const form = forms.find(form => boardQuickEntryKey(form) === snapshot.focus.key), input = form?.querySelector(snapshot.focus.tag);
-    if (!input) return;
-    input.focus({ preventScroll: true });
-    if (input.tagName === 'INPUT' && Number.isInteger(snapshot.focus.start)) input.setSelectionRange(snapshot.focus.start, snapshot.focus.end);
-    // Keep quick-add at the same viewport position when cards grow above it.
-    const delta = form.querySelector('input').getBoundingClientRect().top - snapshot.focus.top;
-    if (delta) window.scrollBy(0, delta);
   }
   function pendingQuickTasks() {
     const firstRank = state.issues.reduce((max, issue) => Math.max(max, Number(issue.rank) || 0), 0) + 1000;
@@ -2362,7 +2507,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const pending = pendingQuickTasks();
     const renderColumns = (items, pendingItems = pending) => C.statuses.map((status, index) => {
       const cards = items.filter(i => i.status === status), pendingCards = pendingItems.filter(i => i.status === status);
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a title…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task</button></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(issues)}</div>`; return; }
     $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(issues, true).map(lane => {
@@ -2423,7 +2568,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const dates = epic ? effectiveDates(epic) : null;
     const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
-    const inGantt = extraClass === 'gantt-lane-title';
+    const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
     const identity = epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
     const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
     const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
@@ -2432,11 +2577,14 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       : `${identity}${name}${statusBadge}`;
     const draggable = epic && inGantt ? `draggable="true" data-gantt-drag-id="${escape(epic.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"` : '';
     const action = collapsed ? 'Expand' : 'Collapse';
-    return `<div class="swimlane-header ${extraClass}">
-      <button type="button" class="swimlane-collapse" data-toggle-lane="${escape(key)}" ${draggable} aria-expanded="${!collapsed}" aria-label="${action} ${escape(lane.label)}${draggable ? '. Drag to reorder.' : ''}">
+    return `<div class="swimlane-header ${extraClass}${epic && activeIssueId === epic.id ? ' context-active' : ''}">
+      <button type="button" class="swimlane-toggle-button" data-toggle-lane="${escape(key)}" aria-expanded="${!collapsed}" aria-label="${action} ${escape(lane.label)}" title="${action} ${escape(lane.label)}">
         <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
-        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>
       </button>
+      <button type="button" class="swimlane-collapse" data-select-lane="${escape(key)}" ${draggable} aria-pressed="${Boolean(epic && activeIssueId === epic.id)}" aria-label="Select ${escape(lane.label)} as task creation context${draggable ? '. Drag to reorder.' : ''}">
+        ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>${epic && activeIssueId === epic.id ? '<span class="task-context-badge">Task context</span>' : ''}
+      </button>
+      ${inSheet && epic ? `<button type="button" class="swimlane-add" data-ghost-add data-ghost-kind="Task" data-ghost-parent-id="${escape(epic.id)}" aria-label="Add task under ${escape(epic.summary)}">+ Task</button>` : ''}
       ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">${inGantt ? '✎' : 'Edit'}</button>` : ''}
     </div>`;
   }
@@ -2459,7 +2607,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
     const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
-    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button><button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'id' ? 'id-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}<button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'id' ? 'id-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').insertAdjacentHTML('beforeend', '<button type="button" class="ghost-add sheet-ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task</button>');
     const viewport=$('.table-wrap');
     const sizeHeader=()=>viewport.style.setProperty('--sheet-content-width',viewport.clientWidth+'px');
     sizeHeader(); sheetViewportObserver=new ResizeObserver(sizeHeader); sheetViewportObserver.observe(viewport);
@@ -2812,25 +2961,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const replacement = $$('.card').find(element => element.dataset.issue === id);
     if (replacement) replacement.focus(); else source?.focus();
   }
-  async function createGanttQuickItem(formElement) {
-    const title = formElement.elements.summary.value.trim(), parentId = formElement.dataset.parentId, kind = formElement.elements.kind?.value || 'Task';
-    if (!title || !parentId || !state.ready || state.busy) return;
-    const source = document.createElement('input');
-    source.value = title; source.dataset.quickKind = kind; source.dataset.quickParentId = parentId;
-    const draftKey = `quick-${newOperationId()}`; source.dataset.quickDraftKey = draftKey;
-    formElement.elements.summary.value = ''; formElement.elements.summary.focus({ preventScroll: true });
-    let parent = issueById(parentId); const seen = new Set();
-    while (parent && !seen.has(parent.id)) {
-      seen.add(parent.id);
-      if (parent.type === 'Epic') delete state.collapsedEpics[parent.id];
-      if (parent.type === 'Story') delete state.collapsedGanttStories[parent.id];
-      parent = issueById(parent.parentId);
-    }
-    saveUiState();
-    const saving = createQuickTask('Backlog', source);
-    revealGanttPendingRow(draftKey);
-    await saving;
-  }
   function showGanttCommentPreview(target) {
     const id = target.dataset.previewId || target.dataset.open || target.dataset.bar, comments = (state.comments[id] || []).slice(-3).reverse();
     hideGanttCommentPreview(); if (!comments.length) return;
@@ -2844,28 +2974,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     card.addEventListener('pointerleave', hideGanttCommentPreview);
   }
   function hideGanttCommentPreview() { document.querySelector('.gantt-comment-preview')?.remove(); ganttPreviewTarget?.removeAttribute('aria-describedby'); ganttPreviewTarget = null; }
-  function closeGanttQuickPopover() { document.querySelectorAll('.gantt-quick-popover').forEach(popover => popover.remove()); }
-  function revealGanttPendingRow(draftKey) {
-    const viewport = $('.gantt-viewport'), row = $$('.gantt-pending-row').find(row => row.dataset.pendingQuick === draftKey);
-    if (!viewport || !row) return;
-    const box = viewport.getBoundingClientRect(), target = row.getBoundingClientRect(), header = $('.gantt-header')?.offsetHeight || 0;
-    if (target.bottom > box.bottom - 2) viewport.scrollTop += target.bottom - box.bottom + 2;
-    else if (target.top < box.top + header + 2) viewport.scrollTop += target.top - box.top - header - 2;
-  }
-  function captureGanttQuickEntry() {
-    const form = $('[data-gantt-quick-form]');
-    if (!form) return null;
-    const active = form.contains(document.activeElement) ? document.activeElement : null;
-    return { form, active, start: active?.selectionStart, end: active?.selectionEnd, x: window.scrollX, y: window.scrollY };
-  }
-  function restoreGanttQuickEntry(snapshot) {
-    if (!snapshot.form.isConnected) return;
-    if (snapshot.active?.isConnected) {
-      snapshot.active.focus({ preventScroll: true });
-      if (Number.isInteger(snapshot.start)) snapshot.active.setSelectionRange(snapshot.start, snapshot.end);
-    }
-    window.scrollTo(snapshot.x, snapshot.y);
-  }
   function applyGanttLabelWidth(width) {
     state.ganttLabelWidth = clampGanttLabelWidth(width);
     const grid = $('#view-content .gantt-grid'), resizer = $('#view-content .gantt-resizer');
@@ -3041,6 +3149,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const restoredDraft = state.drafts[id || '__new__'];
     const createDefaults = { ...creationDefaults(defaults.type || 'Task'), ...defaults };
     const issue = { ...C.blank(), ...(original || createDefaults), ...(restoredDraft ? issueValues(restoredDraft.input) : {}) };
+    formInitialParentId = original ? original.parentId || '' : createDefaults.parentId || '';
     createStarted = Boolean(id || restoredDraft);
     if (edited && restoredDraft) edited.version = restoredDraft.version;
     dialog.classList.add('create-dialog', 'quick-create');
@@ -3113,11 +3222,17 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       error.textContent = `${failure.message || String(failure)} Retry to safely check the same duplicate operation.`; error.hidden = false; $('#form-save-status').textContent = 'Duplicate status unknown';
     } finally { state.activeSaves = Math.max(0, state.activeSaves - 1); setBusy(false); button.disabled = false; syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); }
   }
+  function syncContextAfterParentSave(saved, previousParentId) {
+    if (!saved || String(saved.parentId || '') === String(previousParentId || '')) return;
+    activeIssueId = revealParentContext(saved.parentId);
+    render();
+    if (activeIssueId) queueMicrotask(() => revealNavigation(findParentContextTarget(saved.parentId), true, true));
+  }
   async function autosaveForm() {
     formSaveTimer = null;
     if (!dialog.open || state.busy || (!edited && !createStarted) || formSnapshot() === initialForm) return;
     if (!form.reportValidity()) { setFormSaveStatus('Complete required fields'); return; }
-    const data = formInput(), submittedSnapshot = formSnapshot(), session = formSession; initialForm = submittedSnapshot; setFormSaveStatus('Saving…');
+    const data = formInput(), submittedSnapshot = formSnapshot(), session = formSession, previousParentId = formInitialParentId; initialForm = submittedSnapshot; setFormSaveStatus('Saving…');
     try {
       const saved = await persist(data, edited?.version, 'Issue saved');
       if (!saved) return;
@@ -3131,6 +3246,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
           updateEpicDateFields(); initialForm = formSnapshot(); setFormSaveStatus('Saved');
         } else setFormSaveStatus('Unsaved changes');
       }
+      if (String(saved.parentId || '') !== String(previousParentId || '')) {
+        if (dialog.open && formSession === session) formInitialParentId = saved.parentId || '';
+        syncContextAfterParentSave(saved, previousParentId);
+      }
     } catch (error) { if (dialog.open && formSession === session) renderDraftRecovery(); }
   }
   function saveForm(event) {
@@ -3138,11 +3257,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!dialog.open || state.busy || !form.reportValidity()) return;
     if (formSaveTimer) clearTimeout(formSaveTimer);
     formSaveTimer = null;
+    const previousParentId = formInitialParentId;
     try {
       if (formSnapshot() === initialForm && (edited || createStarted)) {
         const draft = state.drafts[draftStorageKeyFor(edited?.id)];
         if (draft && !state.saveQueues[saveQueueKeyFor(edited?.id)]) {
-          persist(draft.input, draft.version, 'Issue saved', draft.mutation || 'saveIssue', { retry: true }).catch(showError);
+          persist(draft.input, draft.version, 'Issue saved', draft.mutation || 'saveIssue', { retry: true }).then(saved => syncContextAfterParentSave(saved, previousParentId)).catch(showError);
         }
       } else {
         const data = formInput();
@@ -3152,7 +3272,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
           if (!newFormDraftKey) newFormDraftKey = `quick-form-${newOperationId()}`;
           data._draftKey = newFormDraftKey;
         }
-        persist(data, edited?.version).catch(showError);
+        persist(data, edited?.version).then(saved => syncContextAfterParentSave(saved, previousParentId)).catch(showError);
       }
       // persist stores the draft synchronously. Validation and storage failures keep the form open.
       dialog.close();
@@ -3171,8 +3291,63 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     ['query', 'priority', 'tag', 'startAfter', 'dueBefore', 'assignee', 'status', 'sprint', 'epic'].forEach(key => state[key] = '');
     state.types = []; $('#search').value = ''; render();
   }
+  const triagePopover = $('#triage-popover'), triageControl = $('#triage-control');
+  let triageIssueId = '', triageReturnFocus = null;
+  function focusedIssueContext() {
+    const anchor = document.activeElement?.matches(navigationSelector) ? document.activeElement : navigationTargets().find(element => issueIdFor(element) === activeIssueId);
+    const issue = issueById(issueIdFor(anchor));
+    return issue ? { issue, anchor } : null;
+  }
+  function closeTriage(restore = true) {
+    triagePopover.hidden = true; triageControl.replaceChildren();
+    const issueId = triageIssueId, target = triageReturnFocus;
+    triageIssueId = ''; triageReturnFocus = null;
+    if (restore) focusNavigation(target?.isConnected ? target : navigationTargets().find(element => issueIdFor(element) === issueId));
+  }
+  function positionTriage(anchor) {
+    const rect = anchor?.getBoundingClientRect(), box = triagePopover.getBoundingClientRect();
+    const left = Math.max(12, Math.min(window.innerWidth - box.width - 12, rect?.left ?? 12));
+    const below = (rect?.bottom ?? 72) + 6, top = below + box.height < window.innerHeight ? below : Math.max(8, (rect?.top ?? 72) - box.height - 6);
+    triagePopover.style.left = `${left}px`; triagePopover.style.top = `${top}px`;
+  }
+  function openTriage(kind, issue, anchor) {
+    if (!issue || state.busy) return;
+    closeTriage(false); triageIssueId = issue.id; triageReturnFocus = anchor;
+    const fields = {
+      priority: ['Priority', `<select name="value" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select>`],
+      assignee: ['Assignee', `<input name="value" type="text" maxlength="120" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}">`],
+      status: ['Status', `<select name="value" aria-label="Status for ${escape(issue.id)}">${options(C.statuses, issue.status)}</select>`],
+      dueDate: ['Due date', `<input name="value" type="date" value="${escape(issue.dueDate || '')}" aria-label="Due date for ${escape(issue.id)}">`]
+    };
+    const [label, control] = fields[kind] || [];
+    if (!control) return;
+    $('#triage-title').textContent = `${label} · ${issue.id}`;
+    triageControl.innerHTML = `<form id="triage-form" data-triage-field="${kind}"><label>${label}${control}</label><div id="triage-error" class="field-error" role="alert"></div><button type="submit" class="button primary">Save</button></form>`;
+    triagePopover.hidden = false; positionTriage(anchor); triageControl.querySelector('[name="value"]').focus({ preventScroll: true });
+  }
+  async function saveTriage(event) {
+    event.preventDefault();
+    const formElement = event.target, issue = issueById(triageIssueId), field = formElement.dataset.triageField, control = formElement.elements.value;
+    if (!issue || !field || !control.checkValidity()) { control?.reportValidity(); return; }
+    const value = field === 'assignee' ? control.value.trim() : control.value;
+    if (String(issue[field] || '') === value) { closeTriage(); return; }
+    formElement.querySelector('button').disabled = true;
+    try { await persist({ id: issue.id, [field]: value }, issue.version, `${field === 'dueDate' ? 'Due date' : field[0].toUpperCase() + field.slice(1)} updated`); closeTriage(); }
+    catch (error) { $('#triage-error').textContent = error.message; formElement.querySelector('button').disabled = false; }
+  }
+  function toggleFocusedSelection(issue, anchor) {
+    const selected = new Set(state.selectedIssueIds);
+    if (selected.has(issue.id)) selected.delete(issue.id);
+    else if (selected.size < 100) selected.add(issue.id);
+    else { notify('Select up to 100 issues.', true); return; }
+    state.selectedIssueIds = [...selected]; render(); queueMicrotask(() => focusNavigation(findNavigationTarget(navigationSnapshot(anchor)) || navigationTargets().find(element => issueIdFor(element) === issue.id)));
+  }
+  triageControl.addEventListener('submit', saveTriage);
+  triagePopover.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); closeTriage(); } });
+  $('#triage-close').addEventListener('click', () => closeTriage());
+  document.addEventListener('pointerdown', event => { if (!triagePopover.hidden && !event.target.closest('#triage-popover')) closeTriage(); });
   const commandDialog = $('#command-dialog'), commandQuery = $('#command-query');
-  let commandReturnFocus = null, commandMatches = [];
+  let commandReturnFocus = null, commandMatches = [], commandContextId = '';
   function renderCommands() {
     const query = commandQuery.value.toLocaleLowerCase().trim();
     const actions = [
@@ -3186,6 +3361,13 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       { label: 'Switch to Gantt', kind: 'action', action: 'gantt' },
       { label: 'Focus search', kind: 'action', action: 'search' }
     ];
+    if (commandContextId) actions.splice(5, 0,
+      { label: 'Edit focused issue (E)', kind: 'action', action: 'edit-focused' },
+      { label: 'Change focused priority (P)', kind: 'action', action: 'priority-focused' },
+      { label: 'Change focused assignee (A)', kind: 'action', action: 'assignee-focused' },
+      { label: 'Change focused status (M)', kind: 'action', action: 'status-focused' },
+      { label: 'Change focused due date (D)', kind: 'action', action: 'dueDate-focused' },
+      { label: 'Toggle focused selection (X)', kind: 'action', action: 'select-focused' });
     commandMatches = actions.filter(item => !query || item.label.toLocaleLowerCase().includes(query));
     if (query) commandMatches.push(...state.issues.filter(issue => `${issue.id} ${issue.summary}`.toLocaleLowerCase().includes(query)).slice(0, 20).map(issue => ({ label: `${issue.id} · ${issue.summary}`, kind: 'issue', id: issue.id })));
     $('#command-results').innerHTML = commandMatches.length
@@ -3200,7 +3382,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function openCommands() {
     if (!state.ready || state.busy || $('dialog[open]')) return;
-    commandReturnFocus = document.activeElement;
+    commandReturnFocus = document.activeElement; commandContextId = focusedIssueContext()?.issue.id || '';
     commandQuery.value = '';
     renderCommands();
     commandDialog.showModal();
@@ -3209,10 +3391,14 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function runCommand(index) {
     const item = commandMatches[index];
     if (!item) return;
+    const anchor = commandReturnFocus, contextIssue = issueById(commandContextId);
     closeCommands();
     if (item.kind === 'issue') openIssue(item.id);
     else if (item.action === 'new') openIssue();
-    else if (['task', 'story', 'task-details', 'story-details'].includes(item.action)) beginQuickEntry(item.action.startsWith('story') ? 'Story' : 'Task', item.action.endsWith('-details'));
+    else if (['task', 'story', 'task-details', 'story-details'].includes(item.action)) beginQuickEntry(item.action.startsWith('story') ? 'Story' : 'Task', item.action.endsWith('-details'), anchor);
+    else if (item.action === 'edit-focused' && contextIssue) openIssue(contextIssue.id);
+    else if (item.action === 'select-focused' && contextIssue) toggleFocusedSelection(contextIssue, anchor);
+    else if (item.action?.endsWith('-focused') && contextIssue) openTriage(item.action.slice(0, -8), contextIssue, anchor);
     else if (item.action === 'search') $('#search').focus();
     else setView(item.action);
   }
@@ -3269,19 +3455,30 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   });
   $('#create-issue').addEventListener('click', () => openIssue());
   $('#quick-add').addEventListener('click', () => createQuickTask());
-  $('#quick-title').addEventListener('focus', () => { if (!entrySession) beginQuickEntry(); else $('.quick-entry').classList.add('entry-active'); });
+  $('#quick-title').addEventListener('focus', () => { if (!entrySession) beginQuickEntry(); else positionGhostEntry(); });
   $('#quick-title').addEventListener('keydown', event => {
     if (event.isComposing || event.keyCode === 229 || event.repeat) return;
     if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) { event.preventDefault(); createQuickTask(); }
-    else if (event.key === 'Escape') { event.preventDefault(); leaveQuickEntry(); }
+  });
+  $('.quick-entry').addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229 || !entryVisible) return;
+    event.preventDefault(); event.stopPropagation(); leaveQuickEntry();
+  });
+  $('#quick-title').addEventListener('paste', event => {
+    const text = event.clipboardData?.getData('text') || '';
+    if (!$('#quick-title').value && /\r?\n/.test(text)) { event.preventDefault(); openQuickBatch(text); }
   });
   $('#quick-kind').addEventListener('change', event => {
     if (!entrySession) return;
     entrySession.type = event.target.value;
     if (entrySession.type === 'Story') entrySession.parentId = containingEpic(entrySession.parentId);
-    renderQuickEntryContext();
+    Object.assign(entrySession, creationRank(null, entrySession.parentId, entrySession.status)); entrySession.createdCount = 0;
+    renderQuickEntryContext(); positionGhostEntry();
   });
-  $('#quick-status').addEventListener('change', event => { if (entrySession) entrySession.status = event.target.value; });
+  $('#quick-status').addEventListener('change', event => {
+    if (!entrySession) return;
+    entrySession.status = event.target.value; Object.assign(entrySession, creationRank(null, entrySession.parentId, entrySession.status)); entrySession.createdCount = 0;
+  });
   $('#quick-parent').addEventListener('focus', () => { openQuickParentPicker(); $('#quick-parent').select(); });
   $('#quick-parent').addEventListener('click', () => { if (!parentPickerOpen) openQuickParentPicker(); });
   $('#quick-parent').addEventListener('input', event => {
@@ -3300,8 +3497,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       event.preventDefault();
       const matches = filteredQuickParents(), selected = parentPickerOpen && (matches[parentPickerIndex] || (matches.length === 1 ? matches[0] : null));
       if (selected ? chooseQuickParent(selected.id) : applyQuickParent()) $('#quick-title').focus({ preventScroll: true });
-    } else if (event.key === 'Escape' && parentPickerOpen) {
-      event.preventDefault(); event.stopPropagation(); closeQuickParentPicker(); renderQuickEntryContext();
     } else if (event.key === 'Tab') closeQuickParentPicker();
   });
   $('#quick-parent-toggle').addEventListener('pointerdown', event => event.preventDefault());
@@ -3317,7 +3512,14 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   document.addEventListener('pointerdown', event => { if (parentPickerOpen && !event.target.closest('.quick-parent-picker')) closeQuickParentPicker(); });
 
   $('#quick-details').addEventListener('click', openQuickEntryDetails);
-  $('#quick-clear').addEventListener('click', () => { $('#quick-title').value = ''; entrySession = null; beginQuickEntry(); });
+  $('#quick-clear').addEventListener('click', () => {
+    const type = entrySession?.type || 'Task', anchor = entryAnchor;
+    $('#quick-title').value = ''; closeQuickBatch(true); entrySession = null; beginQuickEntry(type, false, anchor);
+  });
+  $('#quick-batch-input').addEventListener('input', renderQuickBatch);
+  $('#quick-batch-input').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); leaveQuickEntry(); } });
+  $('#quick-batch-cancel').addEventListener('click', leaveQuickEntry);
+  $('#quick-batch-submit').addEventListener('click', submitQuickBatch);
   $('#single-key-shortcuts').checked = state.singleKeyShortcuts;
   $('#single-key-shortcuts').addEventListener('change', event => { state.singleKeyShortcuts = event.target.checked; saveUiState(); });
   $('#undo-last-action').addEventListener('click', undoLastCommand);
@@ -3462,33 +3664,38 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (state.view === 'sheet' && sheetMove) { moveSheetWithKeyboard(sheetMove.dataset.sheetMoveId, sheetMove.dataset.sheetMove); return; }
     const storyLabel = event.target.closest('.gantt-row-label.has-story-toggle');
     if (ganttStoryClickTimer && (!storyLabel || storyLabel.dataset.open !== ganttStoryClickTimer.id || event.detail > 1)) cancelGanttStoryClick();
-    if (state.view === 'gantt' && !event.target.closest('.gantt-quick-popover, .gantt-add-button, [data-retry-quick]')) closeGanttQuickPopover();
-    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-quick-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
+    const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-manual], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
-    if (target.hasAttribute('data-bulk-edit-open')) openBulkEdit();
+    if (target.hasAttribute('data-ghost-add')) {
+      const parentId = target.dataset.ghostParentId;
+      if (parentId && issueById(parentId)?.type === 'Epic') activeIssueId = parentId;
+      beginQuickEntry(target.dataset.ghostKind || 'Task', false, target);
+    }
+    else if (target.hasAttribute('data-bulk-edit-open')) openBulkEdit();
+    else if (target.hasAttribute('data-select-lane')) {
+      const id = target.dataset.selectLane;
+      activeIssueId = issueById(id)?.type === 'Epic' ? id : '';
+      render();
+      $('#view-content [data-select-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
+    }
     else if (target.hasAttribute('data-toggle-lane')) {
       const id = target.dataset.toggleLane;
       setEpicCollapseStates({ [id]: !state.collapsedEpics[id] });
       render();
       $('#view-content [data-toggle-lane="' + CSS.escape(id) + '"]')?.focus({ preventScroll: true });
     }
+    else if (target.hasAttribute('data-sheet-lanes')) {
+      const collapsed = target.dataset.sheetLanes === 'collapse', layout = {};
+      $$('#view-content .sheet-lane-title [data-toggle-lane]').forEach(button => { layout[button.dataset.toggleLane] = collapsed; });
+      setEpicCollapseStates(layout);
+      render();
+    }
     else if (target.hasAttribute('data-toggle-gantt-story')) { cancelGanttStoryClick(); const id = target.dataset.toggleGanttStory; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }
     else if (target.hasAttribute('data-toggle-sheet-parent')) { const id = target.dataset.toggleSheetParent; setSheetParentCollapsed(id, !state.collapsedSheetParents[id]); render(); }
     else if (target.hasAttribute('data-gantt-add')) {
       hideGanttCommentPreview();
-      const old = document.querySelector('.gantt-quick-popover');
-      if (old && old.dataset.parentId === target.dataset.ganttAdd) { closeGanttQuickPopover(); return; }
-      closeGanttQuickPopover();
-      const epicAdd = target.dataset.ganttAddKind === 'epic', popover = document.createElement('form');
-      popover.className = 'gantt-quick-popover'; popover.dataset.ganttQuickForm = 'true'; popover.dataset.parentId = target.dataset.ganttAdd;
-      popover.innerHTML = `${epicAdd ? '<select name="kind" aria-label="New work item type"><option value="Story">Story</option><option value="Task">Task</option></select>' : '<input type="hidden" name="kind" value="Task">'}<input name="summary" required maxlength="250" placeholder="${epicAdd ? 'Story or task name…' : 'Task name…'}" aria-label="${epicAdd ? 'New story or task name' : 'New task name'}"><button type="submit">Add ${epicAdd ? 'work item' : 'task'}</button>`;
-      const anchor = target.getBoundingClientRect(), width = Math.min(230, window.innerWidth - 24);
-      popover.style.position = 'fixed'; popover.style.width = `${width}px`; popover.style.zIndex = '50'; document.body.appendChild(popover);
-      const box = popover.getBoundingClientRect(), left = Math.max(12, Math.min(window.innerWidth - box.width - 12, anchor.left));
-      const top = anchor.bottom + box.height + 8 <= window.innerHeight ? anchor.bottom + 6 : Math.max(8, anchor.top - box.height - 6);
-      popover.style.left = `${left}px`; popover.style.top = `${top}px`; popover.elements.summary.focus({ preventScroll: true });
+      beginQuickEntry('Task', false, target);
     }
-    else if (target.hasAttribute('data-quick-add')) { const input = target.parentElement.querySelector('[data-quick-title]'); input.dataset.quickKind = target.parentElement.querySelector('[data-quick-kind]').value; input.dataset.quickParentId = target.closest('.swimlane')?.dataset.epicLane || ''; createQuickTask(target.dataset.quickAdd, input); }
     else if (target.hasAttribute('data-new')) openIssue('', { status: target.dataset.new, parentId: state.epic });
     else if (target.hasAttribute('data-clear')) clearFilters();
     else if (target.hasAttribute('data-sort')) { state.ascending = state.sort === target.dataset.sort ? !state.ascending : true; state.sort = target.dataset.sort; render(); }
@@ -3507,9 +3714,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     } else if (state.view === 'gantt' && target.closest('.gantt-row-label, .gantt-bar') && !target.closest('.swimlane-edit')) return;
     else openIssue(target.dataset.open || target.dataset.issue || target.dataset.bar);
   });
-  document.addEventListener('submit', event => { const formElement = event.target.closest('[data-gantt-quick-form]'); if (!formElement) return; event.preventDefault(); createGanttQuickItem(formElement); });
-  document.addEventListener('click', event => { if (!event.target.closest('.gantt-quick-popover, .gantt-add-button, [data-retry-quick]')) closeGanttQuickPopover(); });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeGanttQuickPopover(); });
   $('#view-content').addEventListener('dblclick', event => {
     if (state.view !== 'gantt') return;
     const target = event.target.closest('.gantt-row-label, .gantt-bar');
@@ -3575,11 +3779,6 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (state.view === 'gantt' && event.altKey && event.target.matches('.gantt-label-hit, .swimlane-collapse[data-gantt-drag-id]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveGanttWithKeyboard(event.target.dataset.ganttDragId, event.key.slice(5).toLowerCase(), event.target); }
     else if (state.view === 'kanban' && event.altKey && event.target.matches('.card') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveCardWithKeyboard(event.target.dataset.issue, event.key.slice(5).toLowerCase(), event.target); }
     else if (event.target.matches('.gantt-label-hit, .gantt-bar') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); const target = event.target.closest('[data-open], [data-bar]'); openIssue(target?.dataset.open || target?.dataset.bar); }
-    else if (event.target.matches('.column-quick-add input')) {
-      if (event.isComposing || event.keyCode === 229) return;
-      if (event.key === 'Escape') { event.target.value = ''; event.target.blur(); }
-      else if (event.key === 'Enter') { event.preventDefault(); event.target.dataset.quickKind = event.target.parentElement.querySelector('[data-quick-kind]').value; event.target.dataset.quickParentId = event.target.closest('.swimlane')?.dataset.epicLane || ''; createQuickTask(event.target.dataset.quickTitle, event.target); }
-    }
     else if (event.target.matches('.card, .sheet-row-grip') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue || event.target.dataset.sheetDragId); }
   });
   document.addEventListener('change', async event => {
@@ -3757,11 +3956,20 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   $('#view-content').addEventListener('pointerup', event => { if (!endGanttResize(event)) endTimeline(event); });
   $('#view-content').addEventListener('pointercancel', event => { if (!endGanttResize(event)) endTimeline(event, true); });
-  window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); });
+  window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); if (entryVisible) positionGhostEntry(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); });
+  document.addEventListener('scroll', () => { if (entryVisible) positionGhostEntry(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); }, true);
   document.addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k' && !event.isComposing && !event.target.isContentEditable && !event.target.matches('input,textarea,select') && !$('dialog[open]')) { event.preventDefault(); openCommands(); return; }
     if (event.defaultPrevented || event.repeat || !state.singleKeyShortcuts || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.keyCode === 229 || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
     if (['t', 's'].includes(event.key.toLowerCase())) { event.preventDefault(); beginQuickEntry(event.key.toLowerCase() === 's' ? 'Story' : 'Task', event.shiftKey); }
+    else if (['p', 'a', 'm', 'd', 'e', 'x'].includes(event.key.toLowerCase())) {
+      const context = focusedIssueContext(); if (!context) return;
+      event.preventDefault();
+      const key = event.key.toLowerCase();
+      if (key === 'e') openIssue(context.issue.id);
+      else if (key === 'x') toggleFocusedSelection(context.issue, context.anchor);
+      else openTriage({ p: 'priority', a: 'assignee', m: 'status', d: 'dueDate' }[key], context.issue, context.anchor);
+    }
     else if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); openIssue(); }
     else if (['1', '2', '3'].includes(event.key)) setView(['sheet', 'kanban', 'gantt'][Number(event.key) - 1]);

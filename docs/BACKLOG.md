@@ -26,10 +26,10 @@
 - **IM-11** `[Open]` — Milestone type task addition , displayed as diamond on Gant view
 - **IM-12** `[Open]` — Improve mobile view and usage like trelo
 - **IM-13** `[Open]` — Improve colors not to mimic Jira too much
-- **IM-14** `[Implemented · live verification pending]` — Shared keyboard entry across Sheet, Kanban and Gantt.
-  - T/S focuses title-only task/story entry; Shift+T/S opens the compact editor. Enter supports repeated creation; Escape resumes the originating item and retains unfinished text; Clear discards it.
-  - Focus/selection supplies a visible, frozen parent. Epic/Story creates child tasks; Task/Bug creates sibling tasks; new Stories use the containing Epic. No hover-based context.
-  - Start date defaults to today and stays fixed through queue delays/retries. Existing column status defaults and failed-save recovery remain supported.
-  - Arrow navigation selects visible rows/cards without moving work. Existing Alt+arrow movement remains available. Single-key shortcuts can be disabled in Help.
-  - Acceptance: keyboard-only creation/context, compact handoff, selection and filter fallback, grouped/collapsed navigation, moved ID column, typing/IME guards, durable queues, failures/retries, midnight dates and responsive controls. Local/simulated-cloud checks are recorded in docs/IM14_VERIFICATION.md; private Google-copy verification precedes any live release.
+- **IM-14** `[Implemented on implement_mvp_ui · live verification pending]` — Contextual Ghost Capture and focused-item micro-triage across Sheet, Kanban and Gantt.
+  - T/S opens one temporary title-only capture beside the focused work; Shift+T/S opens the compact editor. Visible Add controls use the same state machine. The toolbar has no permanent empty entry field.
+  - Parent, status and sibling-relative rank inherit legal focus/lane context and freeze with the operation ID. Enter supports repeated creation; Escape hides but retains unfinished work; Clear explicitly discards it.
+  - Multiline paste opens an editable preview for up to 100 ordered titles without smart parsing. Existing durable queues, pending/failed/conflict states and retries remain authoritative.
+  - P/A/M/D opens focused priority/assignee/status/due-date controls; E opens details and X toggles selection. Commands expose the same actions. Typing, IME, modifiers, dialogs and the single-key preference guard every shortcut.
+  - Acceptance: keyboard/mouse/touch creation, compact handoff, context/rank fidelity, multiline order, micro-triage, selection/filter/focus retention, durable failures/retries and responsive controls. Local/simulated-cloud checks are recorded in `docs/IM14_VERIFICATION.md`; private Google-copy verification precedes any live release.
 - **IM-15** `[Open]` - CLI

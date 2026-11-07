@@ -1,29 +1,34 @@
 # IM-14 verification — 2026-11-07
 
-Implemented in the main TAK checkout on `implement_mvp`.
+Implemented on `implement_mvp_ui`. This Ghost Capture refinement supersedes the earlier persistent shared-bar presentation while preserving its queue, recovery, parent-picker and keyboard-navigation guarantees.
 
 ## Behavior
 
-- Shared task/story entry in Sheet, Kanban and Gantt. T/S opens title entry; Shift+T/S opens the compact editor. Details transfers the title and defaults without a write. Escape keeps unfinished text; Clear discards it.
-- Parent follows focus/remembered visible item, one checked row, then selected Epic. Tasks inside Stories become children; existing Task/Bug context creates siblings; Stories use the containing Epic. A focused empty grouped Kanban column supplies its Epic. Hover does not change context. Context freezes for the entry session.
-- Up/down navigates visible rows/cards; Kanban left/right changes focused column. Navigation never mutates work. Sheet Escape returns to the row grip. Existing Alt+arrow mutations remain available. Focus survives redraw by identity; input focus/caret keeps its existing restoration path.
-- New entries default to today, Backlog, Medium and unassigned; explicit column Add retains column status. Due date remains blank. Queues record the submitted payload before clearing the input, preserve dates and operation IDs, and retain recovery drafts before removing queue entries. Older queue entries keep their original blank schedule.
-- Active filters remain in place, hidden creations have feedback, and a disappeared parent blocks submission without losing the title. Single-key shortcuts can be disabled in Help; the setting uses the existing workbook-scoped preference storage.
+- T/S opens one contextual Ghost Capture beside the focused row/card/label; Shift+T/S opens the compact editor with identical defaults. Visible Kanban/Sheet/Gantt Add controls use the same capture state. Escape hides and retains unfinished work; Clear explicitly discards it.
+- Parent follows legal focus/selection/Epic context. Status follows the focused issue in Sheet/Gantt and the exact Kanban column. New work receives a safe sibling-relative rank when applicable; every queued request freezes context, rank, date and operation ID.
+- Enter supports repeated capture. Multiline paste into an empty title opens an editable preview for up to 100 ordered titles. Failed saves hide the overlay so Retry remains pointer-accessible; the draft and operation identity remain recoverable.
+- P/A/M/D opens anchored priority, assignee, status and due-date controls for one focused issue. E opens details and X toggles selection. Commands expose the same actions. Existing typing, IME, modifier, dialog and single-key preference guards apply.
+- No backend API, schema, authentication, sharing or deployment behavior changed.
 
 ## Automated checks
 
-- `npm.cmd run check`: **145/145 Node checks passed**, including build and browser/server syntax checks.
-- Final focused run: `npx.cmd playwright test e2e/quick-entry-keyboard.spec.mjs e2e/kanban-quick-create.spec.mjs --workers=2 --reporter=line`: **31/31 passed**. This includes all 24 new keyboard-entry cases and the seven existing quick-add checks.
-- Existing compact-create, command-palette, save-intents, Sheet-focus and workspace-shell cases were also exercised. The first combined 62-case run passed 60: one selection fixture assumed filtering retained hidden selections, and one old Sheet Escape assertion expected input focus. Both were updated for the approved behavior. The corrected selection and Escape cases passed in subsequent targeted runs.
-- The subsequent 36-case keyboard/Sheet/workspace run passed 35. Its remaining deep-board check compared page scroll offsets even though browser scroll anchoring preserved the card's screen position after the bar expanded. The final check asserts unchanged card position and board scroll, and passed in the final 31-case run.
-- Local persistence and a synthetic `google.script.run` harness verified single and batch queues, delayed responses, midnight dates, lost acknowledgements, retry without duplicates, reload recovery, invalid parents and browser-storage failures. Harnesses use synthetic data, no credentials or live spreadsheets.
-- Screenshots and bounds checks at 1366, 768 and 390 pixels wide confirmed reachable controls and no page-level horizontal overflow with long Epic titles. Desktop and phone screenshots were visually reviewed. Active phone entry uses the full row; the bar stays reachable in long grouped boards.
-- `git diff --check`: passed.
+- `npm.cmd run check`: **145/145 Node checks passed**, including source validation, generated `CoreScript.html` / `dist/index.html`, model/server checks, queue/retry behavior and browser/server syntax checks.
+- `npx.cmd playwright test e2e/quick-entry-keyboard.spec.mjs e2e/kanban-quick-create.spec.mjs e2e/ghost-capture-triage.spec.mjs --workers=2 --reporter=line`: **42/42 Edge checks passed**.
+- Browser coverage exercised Sheet/Kanban/Gantt context inheritance, repeated and detailed creation, visible lane Add, sibling ordering, multiline preview/order, failed-save retry identity, Escape resume, parent search, IME/typing guards, responsive bounds at 1366/768/390 px, P/A/M/D/E/X and command parity.
+- Scroll docking regression: `npx.cmd playwright test e2e/kanban-quick-create.spec.mjs --grep "docks inside" --workers=1 --reporter=line`: **1/1 passed** with the capture anchor scrolled both above and below the viewport.
+- Sheet Epic-control regressions: focused context/navigation coverage **3/3 passed** and responsive Sheet coverage at 1366/768/390 px **3/3 passed**. Heading clicks select Task context without toggling; only the left **+ / −** changes one lane; **Expand all**, **Collapse all** and contextual **+ Task** preserve the expected parent.
+- Cross-view Epic-context regression: focused Sheet/Kanban/Gantt coverage **3/3 passed**. Kanban and Gantt headings expose the same active **Task context**, retain lane expansion, persist context across view changes and create under the selected Epic.
+- Ghost Capture width/Escape regression: focused desktop/tablet/mobile and draft-resume coverage **6/6 passed**. Desktop capture is at least 700 px wide, remains viewport-bounded at 768/390 px, and one `Esc` from title, parent search or status closes capture while preserving the draft and restoring origin focus.
+- Dialog-parent context regression: focused Kanban coverage **1/1 passed**. A successful parent save moves active Task context to the new containing Epic; selecting **No parent** clears it, and subsequent `T` inherits the updated context.
+- Ghost Capture parent-focus regression: Sheet/Kanban/Gantt coverage **3/3 passed**. Accepting a different parent immediately moves the visible Task context to its containing Epic, preserves the unsaved title and saves the new task under that parent.
+- Parent-context reveal regression: cross-view collapsed-Epic parent selection **3/3 passed**; nested Story ancestor coverage **1/1 passed** across Gantt and Sheet. Parent-driven focus expands the destination hierarchy while ordinary Epic-heading focus preserves collapse state.
+- Parent-context auto-scroll regression: distant destination coverage **3/3 passed** in Sheet, Kanban and Gantt. The selected Epic is fully visible in the upper portion of the viewport with capture clearance, while keyboard focus remains in Ghost Capture.
+- Local persistence and synthetic `google.script.run` harnesses were used. No credentials, production spreadsheet, Apps Script upload or deployment was touched.
 
 Re-run the focused regressions with:
 
 ```powershell
-npx.cmd playwright test e2e/quick-entry-keyboard.spec.mjs e2e/kanban-quick-create.spec.mjs e2e/compact-create.spec.mjs e2e/sheet-focus.spec.mjs e2e/save-intents.spec.mjs e2e/command-palette.spec.mjs e2e/workspace-shell.spec.mjs --workers=2 --reporter=line
+npx.cmd playwright test e2e/quick-entry-keyboard.spec.mjs e2e/kanban-quick-create.spec.mjs e2e/ghost-capture-triage.spec.mjs --workers=2 --reporter=line
 ```
 
 ## Release boundary and remaining checks

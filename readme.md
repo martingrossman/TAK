@@ -40,14 +40,15 @@ Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts 
 | `Shift+T` / `Shift+S` | Task / story with the compact editor. |
 | `N` | Open the compact New issue dialog. |
 | `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
+| `P` / `A` / `M` / `D` | On a focused issue, edit priority / assignee / status / due date. |
+| `E` / `X` | On a focused issue, open its editor / toggle selection. |
 
 Creation and editing shortcuts depend on the focused control:
 
 | Where / focus | Key | Action |
 | --- | --- | --- |
 | Quick-add title, including Kanban column entry | `Enter` | Submit the title; keep the input ready for another task. |
-| Shared quick-entry title | `Esc` | Keep the unsent title and return to the originating item. Clear explicitly discards it. |
-| Kanban column quick-add title | `Esc` | Clear the unsent title and leave the input. |
+| Ghost Capture, from any control | `Esc` | Hide capture, keep the unfinished draft for resume, and restore focus to the originating item. Clear explicitly discards it. |
 | Focused row grip, card or Gantt label | `↑` / `↓` | Navigate visible items; Kanban `←` / `→` changes column without changing data. |
 | Issue dialog title | `Enter` | Submit the issue form. |
 | Issue dialog | `Ctrl/Cmd + Enter` | Submit the issue form, including from the description. |
@@ -71,15 +72,19 @@ Creation and editing shortcuts depend on the focused control:
 
 Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. The **Commands** button also opens the palette with a mouse or touch. Click **Shortcuts** in the app header for the in-app reference and Getting started help.
 
-### Fast entry in all three views
+### Ghost Capture in all three views
 
-Focus an Epic, Story, task or row grip and press **T** for a task or **S** for a story. The shared entry bar shows type, status and an editable parent picker labelled **EPIC: Name**, **STORY: Name** (or the appropriate task type), without IDs. Type a title and press **Enter** repeatedly; **Shift+T/S** or **Details** opens the compact editor. Escape keeps unfinished text, and **Clear** discards it. Subsequent creation shortcuts resume unfinished entry with its original context.
+Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. A temporary **Ghost Capture** control appears beside that work instead of occupying the toolbar permanently. Visible **+ Add task** controls open the same capture flow. Type a title and press **Enter** repeatedly; **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but keeps unfinished text for resume; **Clear** explicitly discards it.
 
-Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. Click the parent arrow to choose another parent or **No parent**, or type a name and use arrows + Enter. Searching by ID also works, while labels show only the type and name. Duplicate names show their parent context so you can choose the right one.
+Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. The parent picker supports pointer or keyboard search and legal choices only.
+In every grouped view, clicking an Epic heading makes it the visible **Task context** without changing its open/closed state; `T` and the view's contextual Add controls inherit that Epic. Choosing a different parent inside Ghost Capture immediately moves Task context to its containing Epic. A successful parent change in the issue dialog does the same; removing the parent clears it. Parent-driven focus opens any collapsed destination Epic and Story ancestors, places the destination near the top of its scroll viewport with capture clearance, and keeps typing focus in Ghost Capture. Manual heading selection never changes collapse state. The left **+ / −** independently expands or collapses one Epic. Sheet also provides **Expand all**, **Collapse all** and an Epic-level **+ Task** button.
 
-New items default to Backlog, Medium priority, unassigned and today as start date; due date remains empty. Kanban column Add retains that column's status. Queued submissions retain their original defaults through delays and retries. Gantt needs both dates for a bar. Active filters stay in place; save feedback explains when they hide a new item.
 
-Arrow navigation works from row grips, cards, column headings and Gantt labels, outside editing controls. It stops at boundaries; **Alt+arrows** still moves the work itself. The **Single-key shortcuts** switch in Shortcuts disables letter, number and slash shortcuts in this browser; Commands and visible controls remain available.
+Status inherits the focused issue in Sheet/Gantt and the exact Kanban column for keyboard or visible Add. New work is ranked immediately after a focused sibling when that ordering scope is valid. New items otherwise append to their inherited scope. Priority defaults to Medium, start date to today, due date remains empty, and every queued submission freezes its own defaults, rank, and operation ID.
+
+Pasting multiple lines into an empty Ghost Capture opens an editable preview for up to 100 titles. Each non-empty line becomes one work item in the same context and order. Technical title text is never interpreted as commands or natural language.
+
+From a focused issue, use **P**, **A**, **M**, or **D** for anchored priority, assignee, status, or due-date editing; **E** opens details and **X** toggles selection. The same actions are discoverable through visible controls and Commands. Single-key shortcuts can be disabled in Shortcuts; they never run while typing, during IME composition, or in dialogs.
 
 ## Project setup
 
