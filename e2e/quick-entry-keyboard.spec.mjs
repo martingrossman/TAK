@@ -59,7 +59,8 @@ for (const view of ['sheet', 'kanban', 'gantt']) {
         const created = (await stored(page)).find(i => i.summary === title);
         expect(created).toMatchObject({ type, status: initial.find(i => i.id === source).status, priority: 'Medium', assignee: '', dueDate: '' });
         expect(created.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-        await page.keyboard.press('Escape'); await expect(item(page, view, source)).toBeFocused();
+        await expect(item(page, view, created.id)).toBeFocused();
+        await expect(page.locator('#quick-title')).toBeHidden();
       }
     }
   });

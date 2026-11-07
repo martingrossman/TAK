@@ -136,19 +136,21 @@ test('Sheet Escape cancels an unsent value and Enter saves then advances in the 
   await expect(next).toBeFocused();
 });
 
-test('Sheet keeps ID pinned without duplicating the Summary title', async ({ page }) => {
+test('Sheet keeps Summary controls pinned while ID stays hidden by default', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(item => {
+    localStorage.setItem('sheetflow.ui.v1', JSON.stringify({ sheetLayoutVersion: 2, visibleColumns: ['summary', 'status', 'assignee', 'priority', 'dueDate'] }));
     if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues: [item], comments: [], sequence: 1 }));
   }, issue);
   await page.goto('/#sheet');
-  const pinned = page.locator('[data-sheet-row-id="PRJ-1"] td:first-child');
-  await expect(pinned.locator('.sheet-id-summary')).toHaveCount(0);
-  await expect(pinned.locator('.issue-link')).toContainText('PRJ-1');
+  const pinned = page.locator('[data-sheet-row-id="PRJ-1"] td[data-column-key="summary"]');
+  await expect(page.locator('td[data-column-key="id"]')).toHaveCount(0);
+  await expect(pinned.locator('[data-sheet-select]')).toBeVisible();
+  await expect(pinned.locator('.sheet-row-grip')).toBeVisible();
   await expect(page.locator('[data-id="PRJ-1"][data-field="summary"]')).toHaveValue('First title');
-  const before = await pinned.boundingBox();
-  await page.locator('.table-wrap').evaluate(element => { element.scrollLeft = 700; });
-  const after = await pinned.boundingBox();
-  expect(Math.abs(after.x - before.x)).toBeLessThan(2);
+  const viewport = page.locator('.table-wrap');
+  await viewport.evaluate(element => { element.scrollLeft = 700; });
+  const [after, frame] = await Promise.all([pinned.boundingBox(), viewport.boundingBox()]);
+  expect(Math.abs(after.x - frame.x)).toBeLessThan(2);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });

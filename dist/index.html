@@ -486,6 +486,15 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .swimlane-add{flex:0 0 auto;min-height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--primary);font-size:var(--text-meta);font-weight:600}
 .swimlane-add:hover,.swimlane-add:focus-visible{border-color:var(--primary);background:var(--primary-soft);outline:2px solid transparent}
 @media(max-width:700px){.ghost-entry{max-height:calc(100dvh - 16px);overflow-y:auto}.ghost-entry .quick-entry-line{flex-wrap:wrap}.ghost-entry .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-batch-actions{flex-wrap:wrap}.quick-batch-actions #quick-batch-status{flex-basis:100%}}
+.card-meta{min-width:0;display:flex;align-items:center;gap:5px;color:var(--muted);font-size:var(--text-meta)}
+.pending-card .card-meta{color:var(--primary)}.pending-card.failed .card-meta{color:var(--red)}
+.swimlane-epic-type{display:inline-flex;align-items:center;color:var(--muted);white-space:nowrap}
+.sheet-primary-cell{display:flex;align-items:center;gap:4px;min-width:0;padding-left:calc(var(--sheet-depth,0)*14px);box-sizing:border-box}
+.sheet-primary-cell .cell-summary{flex:1 1 auto;min-width:80px}
+.sheet-primary-heading{display:flex;align-items:center;gap:7px}.sheet-primary-heading input{width:15px;height:15px;margin:0;accent-color:var(--primary);flex:0 0 auto;cursor:pointer}
+.issue-table.summary-pinned td[data-column-key="summary"],.issue-table.summary-pinned th[data-column-key="summary"]{position:sticky;left:0;z-index:1;background:var(--surface);border-right:1px solid var(--line)}
+.issue-table.summary-pinned th[data-column-key="summary"]{z-index:3;background:var(--canvas)}
+.issue-table.summary-pinned [data-column-key="summary"]{box-sizing:border-box}
 </style>
 
 </head>
@@ -662,25 +671,27 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
     <div class="help-body">
       <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
       <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
-      <section aria-labelledby="shortcuts-navigation"><h3 id="shortcuts-navigation">Navigation</h3>
+      <section aria-labelledby="shortcuts-essentials"><h3 id="shortcuts-essentials">Start here</h3>
         <dl class="shortcut-list">
-          <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
-          <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
-          <div><dt><kbd>T</kbd> / <kbd>S</kbd></dt><dd>Quick task / story in the focused context. Shift opens the compact editor.</dd></div>
-          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column. Alt + arrows moves the work itself.</dd></div>
+          <div><dt><kbd>T</kbd> / <kbd>S</kbd></dt><dd>Quick task / story in the focused context</dd></div>
+          <div><dt><kbd>Shift</kbd> + <kbd>T</kbd> / <kbd>S</kbd></dt><dd>Create a task / story with the compact editor</dd></div>
+          <div><dt><kbd>Enter</kbd></dt><dd>In Ghost Capture: create, then focus the acknowledged item</dd></div>
           <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
+          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd></div>
+          <div><dt><kbd>E</kbd></dt><dd>Open the focused issue</dd></div>
+          <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
+          <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>Close a dialog; unsaved edits may require confirmation</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Close the current surface; unsaved edits remain protected</dd></div>
         </dl>
       </section>
       <p>Use <kbd>Tab</kbd> to focus a control before using its shortcuts, or <kbd>Shift</kbd> + <kbd>Tab</kbd> to go back.</p>
       <details class="shortcut-group"><summary>Create &amp; edit</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
           <div><dt><kbd>Esc</kbd></dt><dd>In Ghost Capture: return to the originating item and keep unsent text. Clear discards it.</dd></div>
           <div><dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt><dd>On a focused issue: edit priority, assignee, status, or due date</dd></div>
-          <div><dt><kbd>E</kbd> / <kbd>X</kbd></dt><dd>On a focused issue: open its editor or toggle selection</dd></div>
+          <div><dt><kbd>X</kbd></dt><dd>Toggle selection for the focused issue</dd></div>
         </dl>
       </details>
       <details class="shortcut-group"><summary>Sheet</summary>
@@ -1059,17 +1070,20 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
-  const defaultSheetColumnOrder = ['id', 'summary', 'status', 'assignee', 'priority', 'dueDate'];
-  const defaultSheetWidths = { id:220, summary:320, status:120, assignee:160, priority:100, dueDate:140 };
-  const sheetMinimumWidth = key => ({id:200,summary:180,dueDate:130,startDate:130,assignee:120}[key] || 80);
+  const defaultSheetColumnOrder = ['summary', 'status', 'assignee', 'priority', 'dueDate'];
+  const defaultSheetWidths = { id:130, summary:420, status:120, assignee:160, priority:100, dueDate:140 };
+  const sheetMinimumWidth = key => ({id:100,summary:280,dueDate:130,startDate:130,assignee:120}[key] || 80);
   const clampSheetWidth = (key, value) => Math.round(Math.max(sheetMinimumWidth(key), Math.min(800, Number(value) || defaultSheetWidths[key] || 140)));
   function normalizeSheetWidths(widths) { return Object.fromEntries(Object.entries(widths && typeof widths === 'object' ? widths : {}).filter(([key,value]) => sheetColumnDefinitions().has(key) && Number.isFinite(Number(value))).map(([key,value]) => [key,clampSheetWidth(key,value)])); }
-  const sheetWidth = key => clampSheetWidth(key, state.sheetColumnWidths[key] || defaultSheetWidths[key] || 140);
+  const sheetWidth = key => {
+    const configured = clampSheetWidth(key, state.sheetColumnWidths[key] || defaultSheetWidths[key] || 140);
+    return key === 'summary' && innerWidth <= 700 ? Math.min(configured, Math.max(sheetMinimumWidth(key), innerWidth - 26)) : configured;
+  };
   function normalizeSheetColumnOrder(keys) {
     const available = new Set(['taskTypeId', ...C.fields.map(field => field.key)]), seen = new Set();
     const order = (Array.isArray(keys) ? keys : []).filter(key => available.has(key) && !seen.has(key) && seen.add(key));
     if (!order.length) return defaultSheetColumnOrder.slice();
-    if (!order.includes('id')) order.unshift('id');
+    if (!order.includes('summary')) order.unshift('summary');
     return order;
   }
   const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
@@ -1339,14 +1353,27 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function findOriginForActiveItem() {
     return navigationSnapshot(navigationTargets().find(el => issueIdFor(el) === activeIssueId));
   }
-  function leaveQuickEntry() {
+  function hideQuickEntrySurface() {
     entryVisible = false; closeQuickParentPicker();
     const entry = $('.quick-entry'), home = $('#quick-entry-home');
     entry.classList.remove('entry-active'); entry.hidden = true; entry.removeAttribute('style'); home.append(entry);
     $('.parent-context-scroll-room')?.remove();
+  }
+  function leaveQuickEntry() {
+    hideQuickEntrySurface();
     const destination = findNavigationTarget(entryOrigin) || entryAnchor?.isConnected && entryAnchor || navigationTargets()[0] || $('#create-issue');
     if (!$('#quick-title').value.trim() && $('#quick-batch').hidden) { entrySession = null; entryAnchor = null; }
     focusNavigation(destination, true);
+  }
+  function focusCreatedQuickIssue(id) {
+    if (!entryVisible || $('#quick-title').value.trim() || !$('#quick-batch').hidden || !filtered().some(issue => issue.id === id)) return false;
+    activeIssueId = id;
+    revealParentContext(id);
+    hideQuickEntrySurface();
+    entrySession = null; entryOrigin = null; entryAnchor = null;
+    render();
+    queueMicrotask(() => focusNavigation(navigationTargets().find(element => issueIdFor(element) === id), true));
+    return true;
   }
   function applyQuickParent() {
     if (!entrySession) return false;
@@ -1525,12 +1552,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const definitions = sheetColumnDefinitions(), selected = normalizeSheetColumnOrder(state.visibleColumns);
     const orderedKeys = [...selected, ...defaultSheetColumnOrder.filter(key => !selected.includes(key)), ...[...definitions.keys()].filter(key => !selected.includes(key) && !defaultSheetColumnOrder.includes(key))];
     return `<details class="sheet-columns-menu" ${state.sheetColumnsMenuOpen ? 'open' : ''}><summary>Columns (${selected.length})</summary><div class="sheet-column-options" role="group" aria-label="Choose and order Sheet columns">${orderedKeys.map(key => {
-      const field = definitions.get(key), index = selected.indexOf(key), checked = index >= 0, fixed = key === 'id';
+      const field = definitions.get(key), index = selected.indexOf(key), checked = index >= 0, fixed = key === 'summary';
       return `<div class="sheet-column-option"><label><input type="checkbox" data-sheet-column-toggle="${escape(key)}" ${checked ? 'checked' : ''} ${fixed ? 'disabled' : ''}><span>${escape(field?.label || key)}</span></label><input class="sheet-column-width" type="number" min="${sheetMinimumWidth(key)}" max="800" value="${sheetWidth(key)}" data-sheet-width="${escape(key)}" aria-label="${escape(field?.label || key)} column width in pixels"><span><button type="button" data-sheet-column-move="up" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column left" ${!checked || index <= 0 ? 'disabled' : ''}>↑</button><button type="button" data-sheet-column-move="down" data-sheet-column-key="${escape(key)}" aria-label="Move ${escape(field?.label || key)} column right" ${!checked || index < 0 || index >= selected.length - 1 ? 'disabled' : ''}>↓</button></span></div>`;
     }).join('')}<button type="button" class="button subtle" data-sheet-reset>Reset layout</button></div></details>`;
   }
   function toggleSheetColumn(key, checked) {
-    if (key === 'id') return;
+    if (key === 'summary') return;
     state.sheetColumnsMenuOpen = Boolean($('.sheet-columns-menu')?.open);
     const order = normalizeSheetColumnOrder(state.visibleColumns);
     state.visibleColumns = normalizeSheetColumnOrder(checked ? [...order, key] : order.filter(item => item !== key));
@@ -1551,7 +1578,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       const cells=new Map([...row.children].map(el=>[el.dataset.columnKey,el]));
       state.visibleColumns.forEach(key=>{if(cells.has(key))row.append(cells.get(key));});
     });
-    $('.issue-table')?.classList.toggle('id-pinned',state.visibleColumns[0]==='id');
+    $('.issue-table')?.classList.toggle('summary-pinned',state.visibleColumns[0]==='summary');
     if(active?.isConnected){active.focus({preventScroll:true});if(typeof start==='number' && active.type!=='number')try{active.setSelectionRange(start,end);}catch(ignore){}}
     const menu=$('.sheet-columns-menu');if(menu)menu.outerHTML=sheetColumnMenu();
   }
@@ -1825,7 +1852,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function drainQuickQueue() {
     if (state.busy || hasPendingSaves() || !state.quickQueue.length) return;
     if (isCloud && state.quickBatchCreate && state.quickQueue.length > 1) { drainQuickBatch().catch(showError); return; }
-    const next = state.quickQueue[0], input = { ...quickEntryPayload(next), _draftKey: next.draftKey, operationId: next.operationId || next.draftKey };
+    const next = state.quickQueue[0], input = { ...quickEntryPayload(next), _draftKey: next.draftKey, _focusOnCreate: next.focusOnCreate === true, operationId: next.operationId || next.draftKey };
     try {
       // Persist the retry draft before removing the durable queue entry.
       const saving = persist(input, undefined, next.kind + ' added');
@@ -2171,7 +2198,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         if (latestDraft?.operationId === operationId) clearDraft(result.id);
         if (options.recordUndo !== false) recordUndo(undoBefore, result, operationId);
         $('#error-banner').hidden = true;
-        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); renderSavedPriority(); notify(input._draftKey?.startsWith('quick-') ? createdFeedback(result, message) : message);
+        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser');
+        if (!(quickCreate && requestInput._focusOnCreate && focusCreatedQuickIssue(result.id))) renderSavedPriority();
+        notify(input._draftKey?.startsWith('quick-') ? createdFeedback(result, message) : message);
         return result;
       } catch (error) {
         const failedDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
@@ -2217,7 +2246,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     try {
       const payload = { ...defaults, summary: title };
       C.validate(C.prepare(payload, null, today(), new Date().toISOString()), state.issues);
-      const next = [...state.quickQueue, { title, status: defaults.status, kind, parentId: defaults.parentId, draftKey, operationId, input: payload }];
+      const next = [...state.quickQueue, { title, status: defaults.status, kind, parentId: defaults.parentId, draftKey, operationId, focusOnCreate: true, input: payload }];
       localStorage.setItem(quickQueueStorageKey, JSON.stringify(next)); state.quickQueue = next;
       if (shared) entrySession.createdCount = (Number(entrySession.createdCount) || 0) + 1;
       input.value = ''; delete input.dataset.quickDraftKey; delete input.dataset.quickOperationId;
@@ -2439,7 +2468,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const viewport = cell.closest('.table-wrap');
     if (!viewport) return;
     const bounds = viewport.getBoundingClientRect(), target = cell.getBoundingClientRect();
-    const pinned = viewport.querySelector('.id-pinned') ? cell.closest('tr')?.querySelector('td[data-column-key="id"]') : null, header = viewport.querySelector('thead th');
+    const pinned = viewport.querySelector('.summary-pinned') ? cell.closest('tr')?.querySelector('td[data-column-key="summary"]') : null, header = viewport.querySelector('thead th');
     const left = Math.max(bounds.left + viewport.clientLeft, pinned && !pinned.contains(cell) && getComputedStyle(pinned).position === 'sticky' ? pinned.getBoundingClientRect().right : bounds.left);
     const top = Math.max(bounds.top + viewport.clientTop, header ? header.getBoundingClientRect().bottom : bounds.top);
     const right = bounds.left + viewport.clientLeft + viewport.clientWidth;
@@ -2476,7 +2505,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   });
   function pendingQuickCard(issue) {
     const label = issue.pendingState === 'failed' ? 'Save unconfirmed' : issue.pendingState === 'queued' ? 'Queued…' : 'Saving…';
-    return `<article class="card pending-card ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="card-top"><span class="card-id">${typeIcon(issue.type)}${label}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${issue.error ? `<p class="pending-error">${escape(issue.error)}</p><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</article>`;
+    return `<article class="card pending-card ${issue.pendingState}" data-pending-quick="${escape(issue.draftKey)}" aria-busy="${issue.pendingState !== 'failed'}"><div class="card-top"><span class="card-meta">${typeIcon(issue.type)}${label}</span></div><h3 class="card-title">${escape(issue.summary)}</h3>${issue.error ? `<p class="pending-error">${escape(issue.error)}</p><button type="button" class="button subtle" data-retry-quick="${escape(issue.draftKey)}">Retry save</button>` : ''}</article>`;
   }
   function card(issue) {
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
@@ -2490,8 +2519,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}"
         title="Alt + ↑/↓ reorder · Alt + ←/→ change status">
       <div class="card-top">
-        <span class="card-id">${typeIcon(issue.type)}${escape(issue.id)} ${taskTypeBadge(issue.taskTypeId)}</span>
-        <select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.id)}">${options(C.priorities, issue.priority)}</select>
+        <span class="card-meta">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}</span>
+        <select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.summary)}">${options(C.priorities, issue.priority)}</select>
       </div>
       <h3 class="card-title">${escape(issue.summary)}</h3>
       ${showParent ? `<div class="card-parent" title="${escape(parent.summary)}">↳ ${escape(parent.summary)}</div>` : ''}
@@ -2569,7 +2598,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
-    const identity = epic ? `<span class="swimlane-epic-id">${typeIcon('Epic')}${escape(epic.id)}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
+    const identity = epic ? `<span class="swimlane-epic-type">${typeIcon('Epic')}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
     const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
     const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
     const heading = inGantt
@@ -2596,7 +2625,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const manualOrder = state.sort === 'rank' && state.ascending;
     const renderRow = node => {
       const issue = node.issue, treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
-      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td data-column-key="${field.key}">${field.key === 'id' ? `<div class="sheet-id-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.id)}: ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
+      return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td data-column-key="${field.key}">${field.key === 'summary' ? `<div class="sheet-primary-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
     };
     const body = state.swimlanes
       ? epicLanes(list).map(lane => {
@@ -2607,7 +2636,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.selectedIssueIds = state.selectedIssueIds.filter(id => visibleIds.includes(id));
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
     const toolStatus = selectedCount ? `${selectedCount} selected · visible rows only` : '';
-    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}<button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'id' ? 'id-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'id' ? `<div class="sheet-id-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
+    $('#view-content').innerHTML = `<div class="sheet-tools"><span>${escape(toolStatus)}</span><div class="sheet-tool-actions">${selectedCount ? `<button type="button" class="button primary" data-bulk-edit-open ${selectedCount > 100 ? 'disabled aria-disabled="true" title="Bulk edits support up to 100 issues"' : ''}>Edit selected (${selectedCount})</button>` : ''}<button type="button" class="button secondary sheet-unparent-drop" id="sheet-unparent-drop" data-sheet-unparent hidden>Drop here to remove parent</button>${state.swimlanes ? '<button type="button" class="button secondary" data-sheet-lanes="expand">Expand all</button><button type="button" class="button secondary" data-sheet-lanes="collapse">Collapse all</button>' : ''}<button type="button" class="button secondary ${manualOrder ? 'selected' : ''}" data-sheet-manual aria-pressed="${manualOrder}" title="Enable rank-based order to move rows">Manual order</button>${sheetColumnMenu()}</div></div><div class="table-wrap"><table class="issue-table ${columns[0]?.key === 'summary' ? 'summary-pinned' : ''}" style="width:${columns.reduce((sum,field)=>sum+sheetWidth(field.key),0)}px"><colgroup>${columns.map(field=>`<col data-column-key="${field.key}" style="width:${sheetWidth(field.key)}px">`).join('')}</colgroup><thead><tr>${columns.map(field => `<th data-column-key="${field.key}"><button type="button" class="sheet-column-grip" data-column-grip="${field.key}" aria-label="Drag ${escape(field.label)} column" title="Drag column">⠿</button>${field.key === 'summary' ? `<div class="sheet-primary-heading"><input type="checkbox" data-sheet-select-visible aria-label="Select all visible rows" ${selectAll ? 'checked' : ''} ${visibleIds.length > 100 ? 'disabled title="Select up to 100 rows for a bulk edit"' : ''}><button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button></div>` : `<button data-sort="${field.key}">${escape(field.label)} ${state.sort === field.key ? (state.ascending ? '↑' : '↓') : ''}</button>`}<span role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize ${escape(field.label)} column" aria-valuemin="${sheetMinimumWidth(field.key)}" aria-valuemax="800" aria-valuenow="${sheetWidth(field.key)}" class="sheet-column-resizer" data-column-resize="${field.key}"></span></th>`).join('')}</tr></thead>${body}</table></div>`;
     $('#view-content').insertAdjacentHTML('beforeend', '<button type="button" class="ghost-add sheet-ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task</button>');
     const viewport=$('.table-wrap');
     const sizeHeader=()=>viewport.style.setProperty('--sheet-content-width',viewport.clientWidth+'px');
@@ -3099,7 +3128,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         const toggleClass = summary ? 'gantt-epic-toggle' : 'gantt-story-toggle';
         treeToggle = `<button type="button" class="gantt-tree-toggle ${toggleClass}" ${attribute}="${escape(issue.id)}" aria-expanded="${!collapsed}" aria-label="${label}" title="${label}">${collapsed ? '+' : '−'}</button>`;
       }
-      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${treeToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!collapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.id)}: ${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong>${escape(issue.id)}</strong><span class="gantt-label-summary">${escape(issue.summary)}</span></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
+      return `<div class="gantt-row" data-gantt-row-id="${escape(issue.id)}"><div class="gantt-row-label ${hasStoryChildren ? 'has-story-toggle' : ''}" data-open="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" style="--row-depth:${depth};--row-label-indent:${Math.max(0, depth * 12 - 16)}px">${treeToggle}<button type="button" class="gantt-label-hit" draggable="true" data-gantt-drag-id="${escape(issue.id)}" data-open="${escape(issue.id)}" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight" ${hasStoryChildren ? `aria-expanded="${!collapsed}"` : ''} aria-label="${hasStoryChildren ? 'Toggle child work items for ' : 'Open '}${escape(issue.summary)}. Double-click to edit; drag to reorder or change parent; hold Alt and use arrows to move.">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}<span class="gantt-label-copy"><strong class="gantt-label-summary">${escape(issue.summary)}</strong></span></button>${ganttAddButton(issue)}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderTrack(issue, topOffset + row * 45 + 22, schedule, summary)}</div>`;
     }).join('');
     let rows = '', rowsHeight = 0;
     if (state.swimlanes) {

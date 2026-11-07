@@ -32,22 +32,20 @@ Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts 
 
 | Key | Action |
 | --- | --- |
-| `1` | Switch to Sheet. |
-| `2` | Switch to Kanban. |
-| `3` | Switch to Gantt. |
-| `/` | Focus search. |
 | `T` / `S` | Quick task / story in the focused context. |
 | `Shift+T` / `Shift+S` | Task / story with the compact editor. |
 | `N` | Open the compact New issue dialog. |
-| `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
-| `P` / `A` / `M` / `D` | On a focused issue, edit priority / assignee / status / due date. |
 | `E` / `X` | On a focused issue, open its editor / toggle selection. |
+| `P` / `A` / `M` / `D` | On a focused issue, edit priority / assignee / status / due date. |
+| `/` | Focus search. |
+| `1` / `2` / `3` | Switch to Sheet / Kanban / Gantt. |
+| `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
 
 Creation and editing shortcuts depend on the focused control:
 
 | Where / focus | Key | Action |
 | --- | --- | --- |
-| Quick-add title, including Kanban column entry | `Enter` | Submit the title; keep the input ready for another task. |
+| Quick-add title, including Kanban column entry | `Enter` | Submit the title; focus the created item after acknowledgement unless another title is already being typed. |
 | Ghost Capture, from any control | `Esc` | Hide capture, keep the unfinished draft for resume, and restore focus to the originating item. Clear explicitly discards it. |
 | Focused row grip, card or Gantt label | `↑` / `↓` | Navigate visible items; Kanban `←` / `→` changes column without changing data. |
 | Issue dialog title | `Enter` | Submit the issue form. |
@@ -74,7 +72,7 @@ Use `Tab` to reach cards, row grips, task labels, and other controls before appl
 
 ### Ghost Capture in all three views
 
-Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. A temporary **Ghost Capture** control appears beside that work instead of occupying the toolbar permanently. Visible **+ Add task** controls open the same capture flow. Type a title and press **Enter** repeatedly; **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but keeps unfinished text for resume; **Clear** explicitly discards it.
+Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. A temporary **Ghost Capture** control appears beside that work instead of occupying the toolbar permanently. Visible **+ Add task** controls open the same capture flow. Type a title and press **Enter**; after the save is acknowledged, focus moves to the created item in the current view. If you start typing another title while a remote save is pending, TAK keeps that draft and input focus instead of interrupting you. **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but keeps unfinished text for resume; **Clear** explicitly discards it.
 
 Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. The parent picker supports pointer or keyboard search and legal choices only.
 In every grouped view, clicking an Epic heading makes it the visible **Task context** without changing its open/closed state; `T` and the view's contextual Add controls inherit that Epic. Choosing a different parent inside Ghost Capture immediately moves Task context to its containing Epic. A successful parent change in the issue dialog does the same; removing the parent clears it. Parent-driven focus opens any collapsed destination Epic and Story ancestors, places the destination near the top of its scroll viewport with capture clearance, and keeps typing focus in Ghost Capture. Manual heading selection never changes collapse state. The left **+ / −** independently expands or collapses one Epic. Sheet also provides **Expand all**, **Collapse all** and an Epic-level **+ Task** button.
@@ -208,9 +206,9 @@ The migration seeds stable task-type settings (`algo`, `data`, `requirements`, a
 
 The ordering foundation exposes `reorderIssue(id, beforeId, expectedVersion)`. It normalizes the affected status scope to stable rank gaps, checks the moved task revision, and records a reorder history event. The current board still uses its legacy client path; future table, board, and Gantt controls will call this shared operation.
 
-- **Sheet:** edit cells directly, sort columns, and toggle all 21 fields. Click an issue ID to open the full editor. Native Google Sheets remains an editable source of truth.
-- **Kanban:** view status columns grouped into epic swimlanes, collapse lanes, move cards through Backlog, To Do, In Progress, Review, and Done, and drop a card into another epic lane to reparent it. Drop on a card to insert before it; drop on a column header or empty area to append. Status is also editable in the issue drawer, including on touch devices.
-- **Gantt:** drag a bar to shift start and due dates together; resize its right edge to change the due date. Use Today, previous/next windows, a start-date picker, or day/week zoom. Bars display progress, with dashed lines for dependencies. Unscheduled issues stay visible with a link to set dates; issues outside the window show their date range.
+- **Sheet:** edit cells directly, sort columns, and toggle all 21 fields. Summary is the pinned default column and owns selection, hierarchy, and reorder controls; stable issue IDs remain available from **Columns** and in issue details. Native Google Sheets remains an editable source of truth.
+- **Kanban:** view status columns grouped into epic swimlanes, collapse lanes, move cards through Backlog, To Do, In Progress, Review, and Done, and drop a card into another epic lane to reparent it. Routine cards emphasize titles and type rather than stable issue IDs. Drop on a card to insert before it; drop on a column header or empty area to append. Status is also editable in the issue drawer, including on touch devices.
+- **Gantt:** drag a bar to shift start and due dates together; resize its right edge to change the due date. Routine row and epic labels emphasize titles and type rather than stable issue IDs. Use Today, previous/next windows, a start-date picker, or day/week zoom. Bars display progress, with dashed lines for dependencies. Unscheduled issues stay visible with a link to set dates; issues outside the window show their date range.
 - **Hierarchy.** Epics contain stories. Tasks and bugs can belong to epics or stories, and standalone issues are allowed. Open **More** and select an epic to include all its descendants.
 - **Issue editor:** create, edit, or delete issues, with descriptions, assignees, priorities, sprints, labels, estimates, time spent, progress, and dependencies. Deletion is blocked while another issue references the item as a parent or dependency.
 - **Filters:** search text and filter by type, assignee, status, sprint, or epic across every view. Statistics reflect the filtered issues. Totals count records, including epics; they are not sums of child estimates.
@@ -267,9 +265,9 @@ Kanban quick-add shows the new item immediately in its Epic/status column with *
 
 In Gantt, use **−** beside an Epic to fold its children and **+** to open it. **Expand all epics** opens the Epic rows on the current timeline. **Go back** restores your earlier mix of open and closed Epics, including after a reload. When all Epics are already open, **Collapse all epics** folds them together.
 
-The Gantt **Add** button beside an Epic or Story uses the same background queue. The new Story/Task appears immediately as a pending row under its parent. The popup clears the submitted title and stays open with its type selected, so you can enter the next item without waiting. Redraws retain the next title, cursor/focus, popup position and timeline scroll; adding in a long/collapsed Epic reveals the pending row using only the timeline's internal scroll. Repeated Enter on the cleared input creates no extra task. Failed/interrupted rows remain retryable after reload using their original operation ID. Pending rows acquire edit/drag/parent controls after Sheets confirms a real issue ID. The sync indicator announces completion only when all saves/queued entries have settled; retained unconfirmed drafts stay visible as unconfirmed.
+The Gantt **Add** button beside an Epic or Story uses the same background queue. The new Story/Task appears immediately as a pending row under its parent. The popup clears the submitted title while the save is pending. After Sheets confirms a real issue ID, the popup closes and focus moves to the created row. If you already started the next title, TAK preserves that title, cursor, popup position and timeline scroll instead of stealing focus. Adding in a long/collapsed Epic reveals the pending row using only the timeline's internal scroll. Repeated Enter on the cleared input creates no extra task. Failed/interrupted rows remain retryable after reload using their original operation ID. Pending rows acquire edit/drag/parent controls after confirmation. The sync indicator announces completion only when all saves/queued entries have settled; retained unconfirmed drafts stay visible as unconfirmed.
 
-A live Gantt Story check on 2026-10-28 showed its pending row in **44 ms** and Google confirmation in **3.89 seconds**, retaining the next title and focus throughout. This improves task entry while Google completes the save; it does not shorten the underlying Google request by that amount.
+A live Gantt Story check on 2026-10-28 measured its pending row in **44 ms** and Google confirmation in **3.89 seconds**. This historical sample demonstrates background-save latency; it is not a current guarantee and does not shorten the underlying Google request.
 
 When you enter several items quickly, the first starts saving immediately. In personal legacy mode, groups of up to **20 waiting entries** then share one request, one fresh task/receipt read, and one atomic write. Each item retains its own operation ID; partial validation errors or a lost response leave only unconfirmed items retryable. The server advertises support with `quickBatchCreate`; older/team/v2 deployments retain the serial fallback. Paste-list create batches also use the optimized writer when eligible. Tasks and permissions remain fresh; each request reuses one local property snapshot, and saves hash only the edited task plus their returned data instead of hashing unrelated tasks. The write response includes only the fields needed for verification.
 

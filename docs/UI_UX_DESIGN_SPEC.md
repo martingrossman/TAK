@@ -23,7 +23,7 @@
 | Topic | Too minimal | Too busy | Chosen balanced treatment |
 |---|---|---|---|
 | Create | Hidden behind command palette | Large full-page create form | Visible **New**, inline `+ Add`, `N`/`C` shortcut |
-| Kanban card | Title only | Every task field | Title, ID/type, priority, assignee; conditional due date/blocker |
+| Kanban card | Title only | Every task field | Title, type, priority, assignee; conditional due date/blocker. Stable ID remains searchable and available in details. |
 | Filters | Hidden behind several menus | Every criterion always expanded | Visible search and one Filters panel; removable active filter chips |
 | Priority | Task detail only | Multiple colored text badges | Small icon, direct editable click/focus |
 | Dashboard | No progress visibility | Persistent row of four oversized cards | Move summary to optional Overview or compact collapsible strip |
@@ -90,7 +90,7 @@ Backlog (8)                       To Do (3)
 [ + Add task             ]       [ + Add task             ]
 ```
 
-**Interaction:** Type a title → Enter → create in the correct context → show a pending state → keep a ready input for the next task. Esc exits. Blank title cannot create. On a save failure retain the title (or a visibly recoverable pending item) and present Retry; do not discard the only copy. Do not duplicate on slow/retried requests. Support keyboard and touch.
+**Interaction:** Type a title → Enter → create in the correct context → show a pending state → on acknowledgement, focus and reveal the created item. If the user starts another title before acknowledgement, preserve that draft and input focus rather than interrupting it. Esc exits. Blank title cannot create. On a save failure retain the title (or a visibly recoverable pending item) and present Retry; do not discard the only copy. Do not duplicate on slow/retried requests. Support keyboard and touch.
 
 **Context:** Status comes from board column; selected epic/parent only if legal under current model. No hidden invalid parent assignment. Current default issue type `Task`, priority `Medium`, status `Backlog` outside board context. Do not add a new backend workflow solely for this.
 
@@ -167,19 +167,19 @@ Collapse secondary sections where practical. Autosave on safe property changes; 
 
 | Interaction | Shortcut | Priority/notes |
 |---|---|---|
-| Switch Sheet/Kanban/Gantt | `1` / `2` / `3` | Existing; preserve |
+| Contextual task / story | `T` / `S` | Primary creation path; show first in Help |
+| Contextual task / story editor | `Shift+T` / `Shift+S` | Same context with compact editor |
+| New issue dialog | `N` | Existing; preserve |
+| Open focused issue | `E` or `Enter` on its row/card/label | Preserve visible focus |
+| Focused priority/assignee/status/due date | `P` / `A` / `M` / `D` | Direct micro-triage |
 | Search | `/` | Existing; preserve |
-| New task / Quick Create | `N` | Existing; preserve |
-| Optional Quick Create alias | `C` | Only if no typing/focus conflict |
-| Open command palette | `Ctrl/Cmd+K` | P1: actions, views, issue lookup |
-| Open selected task | `Enter` | Only when card/row is focused |
+| Switch Sheet/Kanban/Gantt | `1` / `2` / `3` | Existing; preserve |
+| Open command palette | `Ctrl/Cmd+K` | Actions, views and issue lookup |
 | Close dialog/menu | `Esc` | Preserve unsaved work |
-| Contextual priority/assignee | `P` / `A` | Future enhancement after selection model is safe |
-| Undo last action | `Ctrl/Cmd+Z` | Only for actions with a correct inverse; later work |
 
 **Command palette:** simple search and executable actions: New task, open issue by ID/title, switch view, focus search, optionally status/priority on selected task. One palette, not a mini-IDE. If it cannot be implemented reliably within P1, leave out incomplete commands rather than adding dead items.
 
-Shortcuts never hijack text editing, IME composition or modal content, and must respect platform/browser conventions. Provide keyboard Help. Visible focus on every interactive card/icon/toolbar.
+Shortcuts never hijack text editing, IME composition or modal content, and must respect platform/browser conventions. Keyboard Help starts with contextual creation and the most frequent actions, then navigation; view-specific and advanced controls remain collapsed. Visible focus is required on every interactive card, icon and toolbar control.
 
 ## 10. Persistence and feedback design
 
@@ -211,7 +211,7 @@ Aim for **WCAG 2.2 AA** on applicable UI. Verify keyboard tab order, visible foc
 
 ## 13. UX scenarios to verify
 
-1. **Repeated capture:** Enter three titles in one column with no full-form opening. Context is correct, save state visible, no duplicate on retry.
+1. **Repeated capture:** Create three titles using Enter and T/S; each acknowledged item receives focus, context is correct, save state is visible, and retry creates no duplicate.
 2. **One-click editing:** Change a card priority and assignee without leaving board; use keyboard equivalents.
 3. **Deep edit:** Expand More options, change description and dependency, confirm validation and persistence.
 4. **Keyboard-only:** Switch views, focus search, create, edit, close, and return focus correctly.

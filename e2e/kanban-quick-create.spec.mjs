@@ -47,7 +47,8 @@ test('visible Kanban Add opens Ghost Capture in the exact lane without a permane
   expect(await page.evaluate(() => captureHarness.requests[0].input)).toMatchObject({ summary: 'Created in lane', parentId: 'PRJ-2', status: 'In Progress', type: 'Task' });
   await page.evaluate(() => finishCapture(0));
   await expect(page.locator('[data-issue="PRJ-4"]')).toContainText('Created in lane');
-  await expect(page.locator('#quick-title')).toBeFocused();
+  await expect(page.locator('[data-issue="PRJ-4"]')).toBeFocused();
+  await expect(page.locator('#quick-title')).toBeHidden();
 });
 
 test('failed Ghost Capture stays recoverable and retries with the same operation identity', async ({ page }) => {

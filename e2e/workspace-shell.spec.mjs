@@ -14,6 +14,12 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await expect(dialog).toBeVisible();
     await expect(page.getByRole('button', { name: 'Close help', exact: true })).toBeFocused();
     await expect(dialog.getByText('Switch to Sheet / Kanban / Gantt', { exact: true })).toBeVisible();
+    expect((await dialog.locator('[aria-labelledby="shortcuts-essentials"] dd').allTextContents()).slice(0, 4)).toEqual([
+      'Quick task / story in the focused context',
+      'Create a task / story with the compact editor',
+      'In Ghost Capture: create, then focus the acknowledged item',
+      'Open New issue'
+    ]);
     // Global navigation must not run while help is open.
     await page.keyboard.press('1');
     await expect(page).toHaveURL(/#kanban$/);

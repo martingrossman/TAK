@@ -479,4 +479,13 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .swimlane-add{flex:0 0 auto;min-height:32px;padding:4px 8px;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);color:var(--primary);font-size:var(--text-meta);font-weight:600}
 .swimlane-add:hover,.swimlane-add:focus-visible{border-color:var(--primary);background:var(--primary-soft);outline:2px solid transparent}
 @media(max-width:700px){.ghost-entry{max-height:calc(100dvh - 16px);overflow-y:auto}.ghost-entry .quick-entry-line{flex-wrap:wrap}.ghost-entry .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-batch-actions{flex-wrap:wrap}.quick-batch-actions #quick-batch-status{flex-basis:100%}}
+.card-meta{min-width:0;display:flex;align-items:center;gap:5px;color:var(--muted);font-size:var(--text-meta)}
+.pending-card .card-meta{color:var(--primary)}.pending-card.failed .card-meta{color:var(--red)}
+.swimlane-epic-type{display:inline-flex;align-items:center;color:var(--muted);white-space:nowrap}
+.sheet-primary-cell{display:flex;align-items:center;gap:4px;min-width:0;padding-left:calc(var(--sheet-depth,0)*14px);box-sizing:border-box}
+.sheet-primary-cell .cell-summary{flex:1 1 auto;min-width:80px}
+.sheet-primary-heading{display:flex;align-items:center;gap:7px}.sheet-primary-heading input{width:15px;height:15px;margin:0;accent-color:var(--primary);flex:0 0 auto;cursor:pointer}
+.issue-table.summary-pinned td[data-column-key="summary"],.issue-table.summary-pinned th[data-column-key="summary"]{position:sticky;left:0;z-index:1;background:var(--surface);border-right:1px solid var(--line)}
+.issue-table.summary-pinned th[data-column-key="summary"]{z-index:3;background:var(--canvas)}
+.issue-table.summary-pinned [data-column-key="summary"]{box-sizing:border-box}
 </style>
