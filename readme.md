@@ -28,7 +28,7 @@ The shared app requests Google Sheets access and your email identity, then runs 
 
 ## Keyboard shortcuts
 
-Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts work when focus is outside an input, text area, select, or editable text, and no dialog is open. They pause during IME text composition. Click the view heading to leave a field before using them.
+Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts work when focus is outside an input, text area, select, or editable text, and no dialog is open. They pause during IME text composition. In Sheet, press Escape to leave a text cell for its row grip; elsewhere, use Tab to focus a card or control.
 
 | Key | Action |
 | --- | --- |
@@ -36,6 +36,8 @@ Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts 
 | `2` | Switch to Kanban. |
 | `3` | Switch to Gantt. |
 | `/` | Focus search. |
+| `T` / `S` | Quick task / story in the focused context. |
+| `Shift+T` / `Shift+S` | Task / story with the compact editor. |
 | `N` | Open the compact New issue dialog. |
 | `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
 
@@ -44,14 +46,16 @@ Creation and editing shortcuts depend on the focused control:
 | Where / focus | Key | Action |
 | --- | --- | --- |
 | Quick-add title, including Kanban column entry | `Enter` | Submit the title; keep the input ready for another task. |
-| Main or Kanban column quick-add title | `Esc` | Clear the unsent title and leave the input. |
+| Shared quick-entry title | `Esc` | Keep the unsent title and return to the originating item. Clear explicitly discards it. |
+| Kanban column quick-add title | `Esc` | Clear the unsent title and leave the input. |
+| Focused row grip, card or Gantt label | `↑` / `↓` | Navigate visible items; Kanban `←` / `→` changes column without changing data. |
 | Issue dialog title | `Enter` | Submit the issue form. |
 | Issue dialog | `Ctrl/Cmd + Enter` | Submit the issue form, including from the description. |
 | Issue dialog | `Tab` / `Shift + Tab` | Move forward/backward through controls within the dialog. |
 | Issue dialog | `Esc` | Request closing; unsaved changes may require confirmation. |
 | Sheet editable cell | `Tab` / `Shift + Tab` | Commit the cell change and move to the next/previous editable cell. |
 | Sheet text, number, or date input | `Enter` / `Shift + Enter` | Commit the change and move down/up in the same column. |
-| Sheet text, number, or date input | `Esc` | Restore the current issue value in the input, cancelling the unsent edit. |
+| Sheet text, number, or date input | `Esc` | Cancel the unsent edit and focus the row grip; T/S is then available. |
 | Kanban assignee input | `Enter` / `Esc` | Submit the assignee change / cancel the unsent change. |
 | Focused Kanban card | `Enter` or `Space` | Open the issue editor. |
 | Focused Kanban card | `Alt + ↑` / `Alt + ↓` | Reorder the card within its current column and lane. |
@@ -66,6 +70,16 @@ Creation and editing shortcuts depend on the focused control:
 | Commands dialog | `Esc` | Close Commands and restore focus. |
 
 Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. The **Commands** button also opens the palette with a mouse or touch. Click **Shortcuts** in the app header for the in-app reference and Getting started help.
+
+### Fast entry in all three views
+
+Focus an Epic, Story, task or row grip and press **T** for a task or **S** for a story. The shared entry bar shows type, status and an editable parent picker labelled **EPIC: Name**, **STORY: Name** (or the appropriate task type), without IDs. Type a title and press **Enter** repeatedly; **Shift+T/S** or **Details** opens the compact editor. Escape keeps unfinished text, and **Clear** discards it. Subsequent creation shortcuts resume unfinished entry with its original context.
+
+Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. Click the parent arrow to choose another parent or **No parent**, or type a name and use arrows + Enter. Searching by ID also works, while labels show only the type and name. Duplicate names show their parent context so you can choose the right one.
+
+New items default to Backlog, Medium priority, unassigned and today as start date; due date remains empty. Kanban column Add retains that column's status. Queued submissions retain their original defaults through delays and retries. Gantt needs both dates for a bar. Active filters stay in place; save feedback explains when they hide a new item.
+
+Arrow navigation works from row grips, cards, column headings and Gantt labels, outside editing controls. It stops at boundaries; **Alt+arrows** still moves the work itself. The **Single-key shortcuts** switch in Shortcuts disables letter, number and slash shortcuts in this browser; Commands and visible controls remain available.
 
 ## Project setup
 

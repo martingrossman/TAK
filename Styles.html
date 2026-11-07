@@ -431,3 +431,35 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 }
 @media(pointer:coarse){.sheet-row-controls [data-sheet-move]{opacity:1}.sheet-column-grip{opacity:1}.sheet-column-resizer{width:14px;right:0}.sheet-column-option button{min-width:32px;min-height:44px}}
 </style>
+
+<style>
+/* One entry surface across Sheet, Kanban and Gantt. */
+.workspace-bar:has(.entry-active){position:sticky;top:0;background:var(--canvas)}
+.workspace-bar .quick-entry{display:flex;flex-direction:column;max-width:640px;min-width:0;overflow:visible}
+.quick-entry-line{display:flex;align-items:center;min-width:0;gap:2px}
+.quick-entry-line #quick-title{flex:1 1 auto;min-width:0}
+.quick-entry button{flex:none;padding:0 8px;min-height:34px;white-space:nowrap}
+.quick-entry #quick-add{display:flex;align-items:center;gap:4px}
+.entry-label,.quick-entry .entry-extra{display:none}
+.entry-active .entry-label{display:inline}
+.entry-active .entry-extra{display:flex}
+.entry-active .quick-entry-context{display:flex;flex-wrap:wrap;gap:6px 8px;padding:6px 8px;border-top:1px solid var(--line);background:var(--surface-muted)}
+.quick-entry-context label{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:var(--text-meta);min-width:0}
+.quick-entry-context .quick-parent-field{display:flex;align-items:center;gap:4px;flex:1 1 180px;min-width:0}
+.quick-entry-context input,.quick-entry-context select{height:30px;padding:2px 5px;border:1px solid var(--control-border);border-radius:var(--radius-control);font:inherit;background:var(--surface);min-width:0;max-width:100%}
+.quick-entry-context #quick-parent{width:100%;flex:1 1 auto}
+#quick-context{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.quick-parent-picker{position:relative;flex:1 1 auto;min-width:0}
+.quick-parent-control{display:flex;border:1px solid var(--control-border);border-radius:var(--radius-control);background:var(--surface);min-width:0}
+.quick-entry-context #quick-parent{border:0;background:transparent;flex:1 1 auto;width:0;padding-inline:7px}
+.quick-entry #quick-parent-toggle{display:flex;align-items:center;justify-content:center;min-width:30px;min-height:28px;padding:0 6px;border-left:1px solid var(--line)}
+.quick-parent-options{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:240px;overflow-y:auto;border:1px solid var(--control-border);border-radius:var(--radius-control);box-shadow:0 6px 18px #172b4d20;background:var(--surface);z-index:30;padding:4px}
+.quick-parent-options[hidden]{display:none}
+.quick-entry .quick-parent-option{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;min-height:36px;padding:7px 8px;white-space:normal;text-align:left;overflow-wrap:anywhere;border-radius:3px;font-size:var(--text-control)}
+.quick-parent-option.active,.quick-parent-option:hover{background:var(--primary-soft)}
+.quick-parent-option[aria-selected="true"]{font-weight:600}
+.quick-parent-option small,.quick-parent-empty{font-size:var(--text-meta);color:var(--muted)}
+.quick-parent-empty{padding:8px}
+.sheet-row-grip:focus-visible,.card:focus-visible,.gantt-label-hit:focus-visible,.swimlane-collapse:focus-visible,.column-header:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;box-shadow:inset 0 0 0 3px var(--surface)}
+@media(max-width:700px){.workspace-controls:has(.entry-active){flex-wrap:wrap}.workspace-controls .quick-entry.entry-active{flex:1 1 100%}.workspace-bar .quick-entry{max-width:none}.entry-active .quick-entry-line{flex-wrap:wrap}.entry-active .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-entry button{min-height:40px}.quick-entry-context input,.quick-entry-context select{font-size:16px;height:36px}.quick-entry-context .quick-parent-field{order:2;flex-basis:100%}.quick-entry #quick-parent-toggle{min-width:40px;min-height:36px}#quick-context{order:3}.quick-entry-context label{flex-wrap:wrap}}
+</style>

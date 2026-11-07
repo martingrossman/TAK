@@ -2,15 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import C from '../Core.js';
 
 test('quick entry uses selected Epic only when the input has no explicit parent context', async () => {
   const client = await readFile(new URL('../Client.html', import.meta.url), 'utf8');
   const source = client.slice(client.indexOf('  async function createQuickTask('), client.indexOf('  async function undoLastCommand('));
   assert.ok(source.startsWith('  async function createQuickTask('), 'quick entry function must exist');
   const calls = [];
+  const defaults = { type: 'Task', parentId: 'E1', status: 'Backlog', priority: 'Medium', startDate: '2026-11-07' };
   const globalInput = { value: 'Global task', dataset: {} };
   const context = {
-    state: { epic: 'E1', ready: true, busy: false, drafts: {}, quickQueue: [] },
+    state: { epic: 'E1', ready: true, busy: false, drafts: {}, quickQueue: [], issues: [{ ...C.blank(), id: 'E1', type: 'Epic' }, { ...C.blank(), id: 'E2', type: 'Epic' }] },
+    C, entrySession: defaults, creationDefaults: type => ({ ...defaults, type }), applyQuickParent: () => true,
+    today: () => '2026-11-07', render: () => {}, syncText: () => {}, queueMicrotask: () => {},
+    localStorage: { setItem: (key, value) => { calls.splice(0, calls.length, ...JSON.parse(value).map(entry => entry.input)); } },
+    quickQueueStorageKey: 'queue', showError: error => { throw error; },
     issueById: id => id === 'E1' ? { id, type: 'Epic' } : null,
     $: () => globalInput,
     newOperationId: () => `intent-${calls.length + 1}`,

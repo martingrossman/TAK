@@ -62,7 +62,7 @@ test('global quick add inherits a selected Epic while an explicit No Epic lane s
   ]);
 });
 
-test('inline Enter ignores IME composition and Escape cancels only the unsent title', async ({ page }) => {
+test('inline Enter ignores IME; shared Escape retains text while column Escape clears it', async ({ page }) => {
   for (const input of [page.locator('#quick-title'), inputFor(page)]) {
     await input.fill('Composing title');
     await input.evaluate(element => {
@@ -74,8 +74,10 @@ test('inline Enter ignores IME composition and Escape cancels only the unsent ti
     expect(await requestCount(page)).toBe(0);
     await expect(input).toHaveValue('Composing title');
     await input.press('Escape');
-    await expect(input).toHaveValue('');
+    const shared = await input.getAttribute('id') === 'quick-title';
+    await expect(input).toHaveValue(shared ? 'Composing title' : '');
     await expect(input).not.toBeFocused();
+    if (shared) { await input.focus(); await page.locator('#quick-clear').click(); }
   }
   await inputFor(page).fill('Submitted title');
   await inputFor(page).press('Enter');

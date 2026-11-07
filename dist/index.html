@@ -439,6 +439,38 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 @media(pointer:coarse){.sheet-row-controls [data-sheet-move]{opacity:1}.sheet-column-grip{opacity:1}.sheet-column-resizer{width:14px;right:0}.sheet-column-option button{min-width:32px;min-height:44px}}
 </style>
 
+<style>
+/* One entry surface across Sheet, Kanban and Gantt. */
+.workspace-bar:has(.entry-active){position:sticky;top:0;background:var(--canvas)}
+.workspace-bar .quick-entry{display:flex;flex-direction:column;max-width:640px;min-width:0;overflow:visible}
+.quick-entry-line{display:flex;align-items:center;min-width:0;gap:2px}
+.quick-entry-line #quick-title{flex:1 1 auto;min-width:0}
+.quick-entry button{flex:none;padding:0 8px;min-height:34px;white-space:nowrap}
+.quick-entry #quick-add{display:flex;align-items:center;gap:4px}
+.entry-label,.quick-entry .entry-extra{display:none}
+.entry-active .entry-label{display:inline}
+.entry-active .entry-extra{display:flex}
+.entry-active .quick-entry-context{display:flex;flex-wrap:wrap;gap:6px 8px;padding:6px 8px;border-top:1px solid var(--line);background:var(--surface-muted)}
+.quick-entry-context label{display:flex;align-items:center;gap:4px;color:var(--muted);font-size:var(--text-meta);min-width:0}
+.quick-entry-context .quick-parent-field{display:flex;align-items:center;gap:4px;flex:1 1 180px;min-width:0}
+.quick-entry-context input,.quick-entry-context select{height:30px;padding:2px 5px;border:1px solid var(--control-border);border-radius:var(--radius-control);font:inherit;background:var(--surface);min-width:0;max-width:100%}
+.quick-entry-context #quick-parent{width:100%;flex:1 1 auto}
+#quick-context{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.quick-parent-picker{position:relative;flex:1 1 auto;min-width:0}
+.quick-parent-control{display:flex;border:1px solid var(--control-border);border-radius:var(--radius-control);background:var(--surface);min-width:0}
+.quick-entry-context #quick-parent{border:0;background:transparent;flex:1 1 auto;width:0;padding-inline:7px}
+.quick-entry #quick-parent-toggle{display:flex;align-items:center;justify-content:center;min-width:30px;min-height:28px;padding:0 6px;border-left:1px solid var(--line)}
+.quick-parent-options{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:240px;overflow-y:auto;border:1px solid var(--control-border);border-radius:var(--radius-control);box-shadow:0 6px 18px #172b4d20;background:var(--surface);z-index:30;padding:4px}
+.quick-parent-options[hidden]{display:none}
+.quick-entry .quick-parent-option{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;min-height:36px;padding:7px 8px;white-space:normal;text-align:left;overflow-wrap:anywhere;border-radius:3px;font-size:var(--text-control)}
+.quick-parent-option.active,.quick-parent-option:hover{background:var(--primary-soft)}
+.quick-parent-option[aria-selected="true"]{font-weight:600}
+.quick-parent-option small,.quick-parent-empty{font-size:var(--text-meta);color:var(--muted)}
+.quick-parent-empty{padding:8px}
+.sheet-row-grip:focus-visible,.card:focus-visible,.gantt-label-hit:focus-visible,.swimlane-collapse:focus-visible,.column-header:focus-visible{outline:2px solid var(--primary);outline-offset:-2px;box-shadow:inset 0 0 0 3px var(--surface)}
+@media(max-width:700px){.workspace-controls:has(.entry-active){flex-wrap:wrap}.workspace-controls .quick-entry.entry-active{flex:1 1 100%}.workspace-bar .quick-entry{max-width:none}.entry-active .quick-entry-line{flex-wrap:wrap}.entry-active .quick-entry-line #quick-title{flex-basis:calc(100% - 105px);width:auto}.quick-entry button{min-height:40px}.quick-entry-context input,.quick-entry-context select{font-size:16px;height:36px}.quick-entry-context .quick-parent-field{order:2;flex-basis:100%}.quick-entry #quick-parent-toggle{min-width:40px;min-height:36px}#quick-context{order:3}.quick-entry-context label{flex-wrap:wrap}}
+</style>
+
 </head>
 <body data-initial-view="kanban" data-shared-sheet="">
   <header class="topbar">
@@ -488,9 +520,23 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
         <span id="issue-count" class="issue-count"></span>
       </div>
       <div class="workspace-controls">
-        <div class="quick-entry" role="group" aria-label="Quick create task">
-          <input id="quick-title" type="text" maxlength="250" placeholder="Add a task… Enter to save" aria-label="New task title">
-          <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
+        <div class="quick-entry" role="group" aria-label="Quick create work item">
+          <div class="quick-entry-line">
+            <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… T / S" aria-label="New task title" aria-describedby="quick-context">
+            <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
+            <button id="quick-details" type="button" class="entry-extra">Details</button>
+            <button id="quick-clear" type="button" class="entry-extra">Clear</button>
+          </div>
+          <div class="quick-entry-context entry-extra">
+            <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+            <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
+              <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
+              <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
+              <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
+            </div></div>
+            <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+            <span id="quick-context" role="status">No parent</span>
+          </div>
         </div>
 
         <div id="sheet-actions"></div><div class="workspace-tools">
@@ -587,10 +633,13 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
     <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
     <div class="help-body">
       <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
+      <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
       <section aria-labelledby="shortcuts-navigation"><h3 id="shortcuts-navigation">Navigation</h3>
         <dl class="shortcut-list">
           <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
           <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
+          <div><dt><kbd>T</kbd> / <kbd>S</kbd></dt><dd>Quick task / story in the focused context. Shift opens the compact editor.</dd></div>
+          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column. Alt + arrows moves the work itself.</dd></div>
           <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
           <div><dt><kbd>Esc</kbd></dt><dd>Close a dialog; unsaved edits may require confirmation</dd></div>
@@ -601,7 +650,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
         <dl class="shortcut-list">
           <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In the main or Kanban quick-add input: clear the unsent title and leave the input</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In shared quick entry: return to the originating item and keep unsent text. Clear discards it. In column entry: clear the unsent title and leave.</dd></div>
         </dl>
       </details>
       <details class="shortcut-group"><summary>Sheet</summary>
@@ -993,7 +1042,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!order.includes('id')) order.unshift('id');
     return order;
   }
-  const state = { issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, previousGanttEpics: null, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -1010,6 +1059,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   try { const saved = JSON.parse(localStorage.getItem(savedViewsStorageKey) || '[]'); state.savedViews = Array.isArray(saved) ? saved.filter(view => view && view.id && view.name && view.state) : []; } catch (ignore) { state.savedViews = []; }
   try {
     const ui = JSON.parse(localStorage.getItem(uiStorageKey) || '{}');
+    state.singleKeyShortcuts = ui.singleKeyShortcuts !== false;
     state.collapsedEpics = ui.collapsedEpics || {};
     if (ui.previousGanttEpics && typeof ui.previousGanttEpics === 'object' && !Array.isArray(ui.previousGanttEpics)) {
       state.previousGanttEpics = ui.previousGanttEpics;
@@ -1028,7 +1078,193 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.visibleColumns = defaultSheetColumnOrder.slice();
   }
   function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  // Navigation context is independent of checkbox selection and never follows hover.
+  let activeIssueId = '', entrySession = null, entryOrigin = null;
+  const navigationSelector = '.sheet-row-grip, .card[data-issue], .gantt-label-hit, .swimlane-collapse, .column-header';
+  function issueIdFor(element) {
+    const row = element?.closest('[data-sheet-row-id], .card[data-issue], [data-gantt-row-id]');
+    if (row) return row.dataset.sheetRowId || row.dataset.issue || row.dataset.ganttRowId || '';
+    if (element?.matches('.column-header')) return element.closest('[data-epic-lane]')?.dataset.epicLane || '';
+    const heading = element?.closest('.swimlane-collapse');
+    return heading && issueById(heading.dataset.toggleLane) ? heading.dataset.toggleLane : '';
+  }
+  function navigationTargets() {
+    return Array.from(document.querySelectorAll('#view-content ' + navigationSelector.split(', ').join(', #view-content '))).filter(el => el.getClientRects().length && !el.disabled);
+  }
+  function navigationSnapshot(element = document.activeElement) {
+    if (!element?.matches(navigationSelector)) return null;
+    return { id: issueIdFor(element), lane: element.closest('[data-epic-lane]')?.dataset.epicLane ?? '', status: element.closest('.column')?.dataset.status || '', heading: element.matches('.swimlane-collapse'), column: element.matches('.column-header') };
+  }
+  function findNavigationTarget(snapshot) {
+    if (!snapshot) return null;
+    const targets = navigationTargets();
+    return targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.toggleLane === '__no_epic__');
+  }
+  function focusNavigation(element, reveal = false) {
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    if (reveal) {
+      const cell = element.closest('td');
+      if (cell) revealSheetCell(cell);
+      else {
+        // Scroll only the containing view, never the page or the quick-entry bar.
+        for (let viewport = element.parentElement; viewport && viewport !== $('#view-content'); viewport = viewport.parentElement) {
+          if (!/(auto|scroll)/.test(getComputedStyle(viewport).overflow + getComputedStyle(viewport).overflowY + getComputedStyle(viewport).overflowX)) continue;
+          const bounds = viewport.getBoundingClientRect(), rect = element.getBoundingClientRect();
+          const header = viewport.matches('.gantt-viewport') ? viewport.querySelector('.gantt-header')?.getBoundingClientRect().height || 0 : 0;
+          const top = bounds.top + header;
+          if (rect.top < top) viewport.scrollTop -= top - rect.top;
+          else if (rect.bottom > bounds.bottom) viewport.scrollTop += rect.bottom - bounds.bottom;
+          if (rect.left < bounds.left) viewport.scrollLeft -= bounds.left - rect.left;
+          else if (rect.right > bounds.right) viewport.scrollLeft += rect.right - bounds.right;
+        }
+      }
+    }
+  }
+  function containingEpic(id) {
+    let issue = issueById(id); const seen = new Set();
+    while (issue && !seen.has(issue.id)) { if (issue.type === 'Epic') return issue.id; seen.add(issue.id); issue = issueById(issue.parentId); }
+    return '';
+  }
+  function creationDefaults(type = 'Task') {
+    const visible = new Set(navigationTargets().map(issueIdFor).filter(Boolean));
+    const focused = issueById(issueIdFor(document.activeElement));
+    const selected = state.selectedIssueIds.length === 1 && visible.has(state.selectedIssueIds[0]) ? issueById(state.selectedIssueIds[0]) : null;
+    const context = focused || (visible.has(activeIssueId) ? issueById(activeIssueId) : null) || selected;
+    let parentId = issueById(state.epic)?.type === 'Epic' ? state.epic : '';
+    if (context) parentId = type === 'Story' ? containingEpic(context.id) : ['Epic', 'Story'].includes(context.type) ? context.id : context.parentId || '';
+    return { type, parentId: type === 'Epic' ? '' : parentId, status: 'Backlog', priority: 'Medium', assignee: '', dueDate: '', startDate: type === 'Epic' ? '' : today(), taskTypeId: defaultTaskTypeId() };
+  }
+  let parentPickerOpen = false, parentPickerQuery = '', parentPickerIndex = -1;
+  function quickParentLabel(id) {
+    if (!id) return 'No parent';
+    const parent = issueById(id);
+    return parent ? `${parent.type.toUpperCase()}: ${parent.summary}` : 'Parent unavailable';
+  }
+  function quickParentCandidates() {
+    if (!entrySession) return [];
+    return [{ id: '', label: 'No parent', summary: '', type: '' }, ...parentsFor({ type: entrySession.type, parentId: entrySession.parentId }, true).map(item => {
+      const issue = issueById(item.value);
+      return { id: issue.id, label: quickParentLabel(issue.id), summary: issue.summary, type: issue.type, parentId: issue.parentId };
+    })];
+  }
+  function filteredQuickParents() {
+    const query = parentPickerQuery.trim().toLocaleLowerCase();
+    return quickParentCandidates().filter(item => !query || [item.label, item.summary, item.id].some(text => text.toLocaleLowerCase().includes(query)));
+  }
+  function renderQuickParentResults() {
+    const input = $('#quick-parent'), list = $('#quick-parent-options'), matches = filteredQuickParents();
+    list.hidden = !parentPickerOpen; input.setAttribute('aria-expanded', String(parentPickerOpen));
+    $('#quick-parent-toggle').setAttribute('aria-expanded', String(parentPickerOpen));
+    if (!parentPickerOpen) { input.removeAttribute('aria-activedescendant'); return; }
+    parentPickerIndex = Math.min(parentPickerIndex, matches.length - 1);
+    const labelCounts = new Map();
+    for (const item of quickParentCandidates()) labelCounts.set(item.label, (labelCounts.get(item.label) || 0) + 1);
+    list.innerHTML = matches.length ? matches.map((item, index) => {
+      const duplicate = labelCounts.get(item.label) > 1;
+      const context = duplicate ? quickParentLabel(item.parentId || '') : '';
+      return `<button type="button" role="option" tabindex="-1" id="quick-parent-option-${index}" data-quick-parent-id="${escape(item.id)}" aria-selected="${entrySession.parentId === item.id}" class="quick-parent-option${index === parentPickerIndex ? ' active' : ''}"><span>${escape(item.label)}</span>${context ? `<small>${escape(context)}</small>` : ''}</button>`;
+    }).join('') : '<div class="quick-parent-empty" role="status">No matching parents</div>';
+    if (parentPickerIndex >= 0) input.setAttribute('aria-activedescendant', `quick-parent-option-${parentPickerIndex}`);
+    else input.removeAttribute('aria-activedescendant');
+    $('#quick-parent-match-count').textContent = `${matches.length} ${matches.length === 1 ? 'parent' : 'parents'} available`;
+  }
+  function openQuickParentPicker() {
+    parentPickerOpen = true; parentPickerQuery = ''; parentPickerIndex = -1;
+    renderQuickParentResults();
+  }
+  function closeQuickParentPicker() {
+    parentPickerOpen = false; parentPickerIndex = -1; renderQuickParentResults();
+  }
+  function chooseQuickParent(id) {
+    if (!entrySession || !quickParentCandidates().some(item => item.id === id)) return false;
+    entrySession.parentId = id; $('#quick-parent').setCustomValidity('');
+    closeQuickParentPicker(); renderQuickEntryContext(); return true;
+  }
+  function renderQuickEntryContext() {
+    const session = entrySession;
+    if (!session) return;
+    $('#quick-kind').value = session.type; $('#quick-status').value = session.status;
+    const label = quickParentLabel(session.parentId);
+    $('#quick-parent').value = label; $('#quick-parent').title = label;
+    $('#quick-parent').setCustomValidity(session.parentId && !issueById(session.parentId) ? 'This parent is no longer available. Choose a parent or No parent.' : '');
+    $('#quick-context').textContent = label;
+    $('#quick-title').placeholder = `Add a ${session.type.toLowerCase()}… Enter to save`;
+    $('#quick-title').setAttribute('aria-label', `New ${session.type.toLowerCase()} title`);
+    $('#quick-add').setAttribute('aria-label', `Add ${session.type.toLowerCase()}`);
+    renderQuickParentResults();
+  }
+
+  function beginQuickEntry(type = 'Task', compact = false) {
+    if (!state.ready || state.busy) return;
+    if (!entrySession || !$('#quick-title').value.trim()) {
+      entryOrigin = navigationSnapshot() || findOriginForActiveItem();
+      entrySession = creationDefaults(type);
+    }
+    $('.quick-entry').classList.add('entry-active');
+    renderQuickEntryContext();
+    if (compact) { openQuickEntryDetails(); return; }
+    $('#quick-title').focus({ preventScroll: true });
+  }
+  function findOriginForActiveItem() {
+    return navigationSnapshot(navigationTargets().find(el => issueIdFor(el) === activeIssueId));
+  }
+  function leaveQuickEntry() {
+    closeQuickParentPicker();
+    $('.quick-entry').classList.remove('entry-active');
+    const destination = findNavigationTarget(entryOrigin) || navigationTargets()[0] || $('#create-issue');
+    if (!$('#quick-title').value.trim()) entrySession = null;
+    focusNavigation(destination);
+  }
+  function applyQuickParent() {
+    if (!entrySession) return false;
+    const input = $('#quick-parent'), value = input.value.trim(), candidates = quickParentCandidates();
+    if (value === quickParentLabel(entrySession.parentId) && (!entrySession.parentId || issueById(entrySession.parentId))) { closeQuickParentPicker(); return true; }
+    if (entrySession.parentId && !issueById(entrySession.parentId) && value === 'Parent unavailable') { input.setCustomValidity('This parent is no longer available. Choose another parent or No parent.'); input.reportValidity(); return false; }
+    const matches = candidates.filter(item => item.label === value || item.id === value || (item.summary && item.summary === value));
+    if (!value || value === 'No parent') return chooseQuickParent('');
+    if (matches.length === 1) return chooseQuickParent(matches[0].id);
+    input.setCustomValidity(matches.length > 1 ? 'Several parents have this name. Choose one from the list.' : 'Choose a parent from the list, or No parent.');
+    input.reportValidity(); return false;
+  }
+  function openQuickEntryDetails() {
+    if (!entrySession || !applyQuickParent()) return;
+    if (state.drafts.__new__) { notify('Recover or discard the existing new-issue draft first.', true); return; }
+    const defaults = { ...entrySession, summary: $('#quick-title').value, startDate: today() };
+    issueReturnFocus = findNavigationTarget(entryOrigin) || $('#quick-title');
+    openIssue('', defaults);
+    if (dialog.open) { $('#quick-title').value = ''; entrySession = null; $('.quick-entry').classList.remove('entry-active'); }
+  }
+  function quickEntryPayload(item) {
+    return item.input || { summary: item.title, type: item.kind, taskTypeId: defaultTaskTypeId(), status: item.status, priority: 'Medium', parentId: item.parentId || '' };
+  }
+  function createdFeedback(issue, message) {
+    return filtered().some(item => item.id === issue.id) ? message : `${message} · Hidden by current filters`;
+  }
+  $('#view-content').addEventListener('focusin', event => {
+    const id = issueIdFor(event.target);
+    if (id) activeIssueId = id;
+    else if (event.target.matches('.column-header, .swimlane-collapse')) activeIssueId = '';
+  });
+  function navigateWorkItems(event) {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing || event.keyCode === 229 || !event.key.startsWith('Arrow') || !event.target.matches(navigationSelector)) return;
+    const source = event.target, targets = navigationTargets(); let destination;
+    if (state.view === 'kanban' && source.closest('.column')) {
+      const column = source.closest('.column'), cards = [...column.querySelectorAll('.card[data-issue]')], index = cards.indexOf(source);
+      if (['ArrowUp', 'ArrowDown'].includes(event.key)) {
+        const local = [column.querySelector('.column-header'), ...cards], position = local.indexOf(source);
+        destination = local[position + (event.key === 'ArrowUp' ? -1 : 1)];
+      } else {
+        const columns = [...column.parentElement.querySelectorAll(':scope > .column')], next = columns[columns.indexOf(column) + (event.key === 'ArrowLeft' ? -1 : 1)];
+        if (next) { const items = [...next.querySelectorAll('.card[data-issue]')]; destination = index < 0 || !items.length ? next.querySelector('.column-header') : items[Math.min(index, items.length - 1)]; }
+      }
+    } else if (['ArrowUp', 'ArrowDown'].includes(event.key)) {
+      const index = targets.indexOf(source); destination = targets[index + (event.key === 'ArrowUp' ? -1 : 1)];
+    } else return;
+    event.preventDefault(); if (destination) focusNavigation(destination, true);
+  }
+
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, previousGanttEpics: state.previousGanttEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
     return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
@@ -1417,18 +1653,21 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function drainQuickQueue() {
     if (state.busy || hasPendingSaves() || !state.quickQueue.length) return;
     if (isCloud && state.quickBatchCreate && state.quickQueue.length > 1) { drainQuickBatch().catch(showError); return; }
-    const next = state.quickQueue.shift(), input = document.createElement('input');
-    localStorage.setItem(quickQueueStorageKey, JSON.stringify(state.quickQueue));
-    input.value = next.title; input.dataset.quickKind = next.kind; input.dataset.quickParentId = next.parentId || '';
-    input.dataset.quickDraftKey = next.draftKey; input.dataset.quickOperationId = next.operationId || next.draftKey;
-    createQuickTask(next.status, input);
+    const next = state.quickQueue[0], input = { ...quickEntryPayload(next), _draftKey: next.draftKey, operationId: next.operationId || next.draftKey };
+    try {
+      // Persist the retry draft before removing the durable queue entry.
+      const saving = persist(input, undefined, next.kind + ' added');
+      const remaining = state.quickQueue.slice(1);
+      localStorage.setItem(quickQueueStorageKey, JSON.stringify(remaining)); state.quickQueue = remaining;
+      render(); saving.catch(() => {});
+    } catch (error) { showError(error); }
   }
   async function drainQuickBatch() {
     const queued = state.quickQueue.slice(0, 20);
     const entries = queued.map(item => {
       const previous = state.drafts[item.draftKey];
       const operationId = previous?.operationId || item.operationId || item.draftKey;
-      const input = previous?.input || { summary: item.title, type: item.kind, taskTypeId: defaultTaskTypeId(), status: item.status, priority: 'Medium', parentId: item.parentId || '', _draftKey: item.draftKey };
+      const input = previous?.input || { ...quickEntryPayload(item), _draftKey: item.draftKey };
       saveDraft(input, previous?.version, operationId);
       return { key: item.draftKey, input: { ...input, operationId }, operationId };
     });
@@ -1449,6 +1688,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         } else if (state.drafts[entry.key]) state.drafts[entry.key].error = errors.get(index) || 'Save is unconfirmed. Retry to check safely.';
       });
       localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
+      const hidden = [...accepted.values()].filter(issue => !filtered().some(item => item.id === issue.id)).length;
+      if (hidden) notify(`${hidden} created work items hidden by current filters`);
     } catch (error) {
       entries.forEach(entry => { if (state.drafts[entry.key]) state.drafts[entry.key].error = error.message || String(error); });
       localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
@@ -1758,7 +1999,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         if (latestDraft?.operationId === operationId) clearDraft(result.id);
         if (options.recordUndo !== false) recordUndo(undoBefore, result, operationId);
         $('#error-banner').hidden = true;
-        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); renderSavedPriority(); notify(message);
+        syncText(isCloud ? 'Synced with Sheets' : 'Saved in this browser'); renderSavedPriority(); notify(input._draftKey?.startsWith('quick-') ? createdFeedback(result, message) : message);
         return result;
       } catch (error) {
         const failedDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
@@ -1787,21 +2028,23 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     return job;
   }
   async function createQuickTask(status = 'Backlog', sourceInput = null) {
-    if (typeof status !== 'string') status = 'Backlog';
-    const input = sourceInput || $('#quick-title'), title = input.value.trim(), kind = input.dataset.quickKind || 'Task';
-    const selectedEpic = issueById(state.epic)?.type === 'Epic' ? state.epic : '';
-    const parentId = kind === 'Epic' ? '' : (input.dataset.quickParentId ?? selectedEpic);
+    const input = sourceInput || $('#quick-title'), title = input.value.trim();
     if (!title || !state.ready) return;
-    const quickDraftKey = input.dataset.quickDraftKey || `quick-${newOperationId()}`;
-    const operationId = state.drafts[quickDraftKey]?.operationId || input.dataset.quickOperationId || quickDraftKey;
-    input.value = ''; delete input.dataset.quickDraftKey; delete input.dataset.quickOperationId;
-    if (state.busy || hasPendingSaves()) {
-      state.quickQueue.push({ title, status, kind, parentId, draftKey: quickDraftKey, operationId });
-      localStorage.setItem(quickQueueStorageKey, JSON.stringify(state.quickQueue)); render(); syncText('Work item queued…'); return;
-    }
-    try { await persist({ summary: title, type: kind, taskTypeId: defaultTaskTypeId(), status, priority: 'Medium', parentId, _draftKey: quickDraftKey, operationId }, undefined, `${kind} added`); }
-    catch (ignore) {}
-    finally { drainQuickQueue(); }
+    const shared = input === $('#quick-title');
+    if (shared && !entrySession) beginQuickEntry();
+    if (shared && !applyQuickParent()) return;
+    const kind = shared ? entrySession.type : input.dataset.quickKind || 'Task';
+    const defaults = shared ? { ...entrySession, startDate: today() } : { ...creationDefaults(kind), parentId: kind === 'Epic' ? '' : input.dataset.quickParentId ?? creationDefaults(kind).parentId, status: typeof status === 'string' ? status : 'Backlog' };
+    const draftKey = input.dataset.quickDraftKey || 'quick-' + newOperationId();
+    const operationId = state.drafts[draftKey]?.operationId || input.dataset.quickOperationId || draftKey;
+    try {
+      const payload = { ...defaults, summary: title };
+      C.validate(C.prepare(payload, null, today(), new Date().toISOString()), state.issues);
+      const next = [...state.quickQueue, { title, status: defaults.status, kind, parentId: defaults.parentId, draftKey, operationId, input: payload }];
+      localStorage.setItem(quickQueueStorageKey, JSON.stringify(next)); state.quickQueue = next;
+      input.value = ''; delete input.dataset.quickDraftKey; delete input.dataset.quickOperationId;
+      render(); syncText('Work item queued…'); queueMicrotask(drainQuickQueue);
+    } catch (error) { showError(error); }
   }
   async function undoLastCommand() {
     const entry = state.undoStack.at(-1);
@@ -1962,6 +2205,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   }
   function render() {
     if (!state.ready) return;
+    const navigationFocus = navigationSnapshot();
     renderDraftRecovery();
     renderQuickEntryPending();
     const quickEntryState = state.view === 'kanban' ? captureBoardQuickEntries() : null;
@@ -2000,6 +2244,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (quickEntryState) restoreBoardQuickEntries(quickEntryState);
     if (ganttEntryState) restoreGanttQuickEntry(ganttEntryState);
     if (sheetFocus) restoreSheetCellFocus(sheetFocus);
+    else if (navigationFocus && (document.activeElement === document.body || !document.activeElement?.isConnected)) focusNavigation(findNavigationTarget(navigationFocus));
+    const visibleNavigation = navigationTargets();
+    if (activeIssueId && !visibleNavigation.some(el => issueIdFor(el) === activeIssueId)) activeIssueId = '';
+    if (entrySession && document.activeElement !== $('#quick-parent')) renderQuickEntryContext();
   }
   function captureSheetCellFocus() {
     const active = document.activeElement;
@@ -2114,7 +2362,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const pending = pendingQuickTasks();
     const renderColumns = (items, pendingItems = pending) => C.statuses.map((status, index) => {
       const cards = items.filter(i => i.status === status), pendingCards = pendingItems.filter(i => i.status === status);
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a title…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.length + pendingCards.length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(card).join('')}${pendingCards.map(pendingQuickCard).join('')}${!cards.length && !pendingCards.length ? '<div class="column-empty">No issues</div>' : ''}</div><div class="column-quick-add"><select data-quick-kind="${status}" aria-label="New work item kind"><option value="Task">Task</option><option value="Story">Story</option><option value="Epic">Epic</option></select><input data-quick-title="${status}" maxlength="250" placeholder="Add a title…" aria-label="Add task, story, or epic to ${status}"><button data-quick-add="${status}" aria-label="Add task, story, or epic to ${status}">＋</button></div></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(issues)}</div>`; return; }
     $('#view-content').innerHTML = `<div class="swimlanes">${epicLanes(issues, true).map(lane => {
@@ -2791,7 +3039,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (id && !original) return;
     edited = original ? { ...original } : null; epicDateFormValues = null;
     const restoredDraft = state.drafts[id || '__new__'];
-    const createDefaults = { parentId: defaults.type === 'Epic' ? '' : state.epic || '', ...defaults };
+    const createDefaults = { ...creationDefaults(defaults.type || 'Task'), ...defaults };
     const issue = { ...C.blank(), ...(original || createDefaults), ...(restoredDraft ? issueValues(restoredDraft.input) : {}) };
     createStarted = Boolean(id || restoredDraft);
     if (edited && restoredDraft) edited.version = restoredDraft.version;
@@ -2929,6 +3177,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const query = commandQuery.value.toLocaleLowerCase().trim();
     const actions = [
       { label: 'New issue', kind: 'action', action: 'new' },
+      { label: 'Quick task (T)', kind: 'action', action: 'task' },
+      { label: 'Quick story (S)', kind: 'action', action: 'story' },
+      { label: 'Task with details (Shift+T)', kind: 'action', action: 'task-details' },
+      { label: 'Story with details (Shift+S)', kind: 'action', action: 'story-details' },
       { label: 'Switch to Sheet', kind: 'action', action: 'sheet' },
       { label: 'Switch to Kanban', kind: 'action', action: 'kanban' },
       { label: 'Switch to Gantt', kind: 'action', action: 'gantt' },
@@ -2960,6 +3212,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     closeCommands();
     if (item.kind === 'issue') openIssue(item.id);
     else if (item.action === 'new') openIssue();
+    else if (['task', 'story', 'task-details', 'story-details'].includes(item.action)) beginQuickEntry(item.action.startsWith('story') ? 'Story' : 'Task', item.action.endsWith('-details'));
     else if (item.action === 'search') $('#search').focus();
     else setView(item.action);
   }
@@ -2994,7 +3247,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const narrow = matchMedia('(max-width:700px)').matches;
     const mount = narrow ? $('#mobile-view-options') : $('#workspace-view-options');
     const savedMenu=$('.workspace-saved-views'); if(narrow) savedMenu.removeAttribute('name'); else savedMenu.setAttribute('name','workspace-tools');
-    for (const el of $$('.view-toggle, .workspace-saved-views')) if(el.parentElement!==mount) mount.append(el);
+    for (const el of Array.from(document.querySelectorAll('.workspace-bar .view-toggle, .workspace-saved-views'))) if(el.parentElement!==mount) mount.append(el);
     const manual = $('[data-sheet-manual]'); if (manual) { const manualMount=narrow ? $('#mobile-view-options') : $('.sheet-tool-actions'); if(manual.parentElement!==manualMount) manualMount.prepend(manual); }
   }
   window.addEventListener('resize', arrangeWorkspaceTools);
@@ -3015,12 +3268,58 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (view !== state.view) setView(view);
   });
   $('#create-issue').addEventListener('click', () => openIssue());
-  $('#quick-add').addEventListener('click', () => createQuickTask('Backlog'));
+  $('#quick-add').addEventListener('click', () => createQuickTask());
+  $('#quick-title').addEventListener('focus', () => { if (!entrySession) beginQuickEntry(); else $('.quick-entry').classList.add('entry-active'); });
   $('#quick-title').addEventListener('keydown', event => {
-    if (event.isComposing || event.keyCode === 229) return;
-    if (event.key === 'Enter') { event.preventDefault(); createQuickTask(); }
-    else if (event.key === 'Escape') { event.target.value = ''; event.target.blur(); }
+    if (event.isComposing || event.keyCode === 229 || event.repeat) return;
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) { event.preventDefault(); createQuickTask(); }
+    else if (event.key === 'Escape') { event.preventDefault(); leaveQuickEntry(); }
   });
+  $('#quick-kind').addEventListener('change', event => {
+    if (!entrySession) return;
+    entrySession.type = event.target.value;
+    if (entrySession.type === 'Story') entrySession.parentId = containingEpic(entrySession.parentId);
+    renderQuickEntryContext();
+  });
+  $('#quick-status').addEventListener('change', event => { if (entrySession) entrySession.status = event.target.value; });
+  $('#quick-parent').addEventListener('focus', () => { openQuickParentPicker(); $('#quick-parent').select(); });
+  $('#quick-parent').addEventListener('click', () => { if (!parentPickerOpen) openQuickParentPicker(); });
+  $('#quick-parent').addEventListener('input', event => {
+    event.target.setCustomValidity(''); parentPickerOpen = true; parentPickerQuery = event.target.value; parentPickerIndex = -1; renderQuickParentResults();
+  });
+  $('#quick-parent').addEventListener('change', applyQuickParent);
+  $('#quick-parent').addEventListener('keydown', event => {
+    if (event.isComposing || event.keyCode === 229) return;
+    if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault();
+      if (!parentPickerOpen) openQuickParentPicker();
+      const matches = filteredQuickParents();
+      parentPickerIndex = Math.max(0, Math.min(matches.length - 1, parentPickerIndex + (event.key === 'ArrowDown' ? 1 : -1)));
+      renderQuickParentResults(); $('#quick-parent-options .active')?.scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const matches = filteredQuickParents(), selected = parentPickerOpen && (matches[parentPickerIndex] || (matches.length === 1 ? matches[0] : null));
+      if (selected ? chooseQuickParent(selected.id) : applyQuickParent()) $('#quick-title').focus({ preventScroll: true });
+    } else if (event.key === 'Escape' && parentPickerOpen) {
+      event.preventDefault(); event.stopPropagation(); closeQuickParentPicker(); renderQuickEntryContext();
+    } else if (event.key === 'Tab') closeQuickParentPicker();
+  });
+  $('#quick-parent-toggle').addEventListener('pointerdown', event => event.preventDefault());
+  $('#quick-parent-toggle').addEventListener('click', () => {
+    if (parentPickerOpen) { closeQuickParentPicker(); return; }
+    $('#quick-parent').focus({ preventScroll: true }); $('#quick-parent').select(); openQuickParentPicker();
+  });
+  $('#quick-parent-options').addEventListener('pointerdown', event => { if (event.target.closest('[data-quick-parent-id]')) event.preventDefault(); });
+  $('#quick-parent-options').addEventListener('click', event => {
+    const option = event.target.closest('[data-quick-parent-id]');
+    if (option && chooseQuickParent(option.dataset.quickParentId)) $('#quick-title').focus({ preventScroll: true });
+  });
+  document.addEventListener('pointerdown', event => { if (parentPickerOpen && !event.target.closest('.quick-parent-picker')) closeQuickParentPicker(); });
+
+  $('#quick-details').addEventListener('click', openQuickEntryDetails);
+  $('#quick-clear').addEventListener('click', () => { $('#quick-title').value = ''; entrySession = null; beginQuickEntry(); });
+  $('#single-key-shortcuts').checked = state.singleKeyShortcuts;
+  $('#single-key-shortcuts').addEventListener('change', event => { state.singleKeyShortcuts = event.target.checked; saveUiState(); });
   $('#undo-last-action').addEventListener('click', undoLastCommand);
   $('#bulk-create-open').addEventListener('click', openBulkCreate);
   $('#bulk-create-close').addEventListener('click', () => $('#bulk-create-dialog').close());
@@ -3236,6 +3535,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   $('#view-content').addEventListener('focusin', event => { if (state.view === 'gantt') { const source = event.target.closest('.gantt-row-label[data-preview-id], .gantt-bar[data-preview-id]'); if (source) showGanttCommentPreview(source); } });
   $('#view-content').addEventListener('focusout', event => { if (state.view === 'gantt' && !event.relatedTarget?.closest?.('.gantt-row-label[data-preview-id], .gantt-bar[data-preview-id]')) hideGanttCommentPreview(); });
   $('#view-content').addEventListener('keydown', event => {
+    navigateWorkItems(event);
+    if (event.defaultPrevented) return;
     if (state.view === 'sheet' && event.target.matches('.cell-input[data-id][data-field]') && !event.isComposing && event.keyCode !== 229) {
       const cell = event.target, issue = issueById(cell.dataset.id);
       if (event.key === 'Tab') {
@@ -3252,7 +3553,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         return;
       }
       if (cell.tagName !== 'INPUT') return;
-      if (event.key === 'Escape') { event.preventDefault(); if (issue) cell.value = String(issue[cell.dataset.field] ?? ''); return; }
+      if (event.key === 'Escape') { event.preventDefault(); if (issue) cell.value = String(issue[cell.dataset.field] ?? ''); focusNavigation(cell.closest('tr')?.querySelector('.sheet-row-grip')); return; }
       if (event.key === 'Enter') {
         event.preventDefault();
         const sameColumn = $$('.cell-input').filter(input => input.dataset.field === cell.dataset.field);
@@ -3279,7 +3580,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       if (event.key === 'Escape') { event.target.value = ''; event.target.blur(); }
       else if (event.key === 'Enter') { event.preventDefault(); event.target.dataset.quickKind = event.target.parentElement.querySelector('[data-quick-kind]').value; event.target.dataset.quickParentId = event.target.closest('.swimlane')?.dataset.epicLane || ''; createQuickTask(event.target.dataset.quickTitle, event.target); }
     }
-    else if (event.target.matches('.card') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue); }
+    else if (event.target.matches('.card, .sheet-row-grip') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue || event.target.dataset.sheetDragId); }
   });
   document.addEventListener('change', async event => {
     if (!event.target.closest('#view-content, #sheet-actions, #workspace-more')) return;
@@ -3459,8 +3760,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); });
   document.addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k' && !event.isComposing && !event.target.isContentEditable && !event.target.matches('input,textarea,select') && !$('dialog[open]')) { event.preventDefault(); openCommands(); return; }
-    if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
-    if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
+    if (event.defaultPrevented || event.repeat || !state.singleKeyShortcuts || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.keyCode === 229 || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
+    if (['t', 's'].includes(event.key.toLowerCase())) { event.preventDefault(); beginQuickEntry(event.key.toLowerCase() === 's' ? 'Story' : 'Task', event.shiftKey); }
+    else if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); openIssue(); }
     else if (['1', '2', '3'].includes(event.key)) setView(['sheet', 'kanban', 'gantt'][Number(event.key) - 1]);
   });

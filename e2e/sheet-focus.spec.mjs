@@ -127,7 +127,7 @@ test('Sheet Escape cancels an unsent value and Enter saves then advances in the 
   await summary.fill('Unsent title');
   await summary.press('Escape');
   await expect(summary).toHaveValue('First title');
-  await expect(summary).toBeFocused();
+  await expect(page.locator('.sheet-row-grip[data-sheet-drag-id="PRJ-1"]')).toBeFocused();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues[0].summary)).toBe('First title');
   await summary.fill('Committed title');
   await summary.press('Enter');

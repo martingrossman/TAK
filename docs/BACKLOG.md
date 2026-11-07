@@ -26,10 +26,10 @@
 - **IM-11** `[Open]` — Milestone type task addition , displayed as diamond on Gant view
 - **IM-12** `[Open]` — Improve mobile view and usage like trelo
 - **IM-13** `[Open]` — Improve colors not to mimic Jira too much
-- **IM-14** [Open] — create a plan and imeplent UI and shortcuts to be easier
-	- Applies to all views
-		- new task entry quickly without opening even details "t", under given epics is selected or mouse is over
-		- new task entry quickly with  opening  compact details "Shift+t", under given epics is selected or mouse is over
-		- start date is always default today
-		- Same for story s and Shift+S
-- 
+- **IM-14** `[Implemented · live verification pending]` — Shared keyboard entry across Sheet, Kanban and Gantt.
+  - T/S focuses title-only task/story entry; Shift+T/S opens the compact editor. Enter supports repeated creation; Escape resumes the originating item and retains unfinished text; Clear discards it.
+  - Focus/selection supplies a visible, frozen parent. Epic/Story creates child tasks; Task/Bug creates sibling tasks; new Stories use the containing Epic. No hover-based context.
+  - Start date defaults to today and stays fixed through queue delays/retries. Existing column status defaults and failed-save recovery remain supported.
+  - Arrow navigation selects visible rows/cards without moving work. Existing Alt+arrow movement remains available. Single-key shortcuts can be disabled in Help.
+  - Acceptance: keyboard-only creation/context, compact handoff, selection and filter fallback, grouped/collapsed navigation, moved ID column, typing/IME guards, durable queues, failures/retries, midnight dates and responsive controls. Local/simulated-cloud checks are recorded in docs/IM14_VERIFICATION.md; private Google-copy verification precedes any live release.
+- **IM-15** `[Open]` - CLI

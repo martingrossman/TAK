@@ -55,9 +55,23 @@
         <span id="issue-count" class="issue-count"></span>
       </div>
       <div class="workspace-controls">
-        <div class="quick-entry" role="group" aria-label="Quick create task">
-          <input id="quick-title" type="text" maxlength="250" placeholder="Add a task… Enter to save" aria-label="New task title">
-          <button id="quick-add" type="button" aria-label="Add task" title="Add task (Enter)"><span data-icon="plus" aria-hidden="true"></span></button>
+        <div class="quick-entry" role="group" aria-label="Quick create work item">
+          <div class="quick-entry-line">
+            <input id="quick-title" type="text" maxlength="250" autocomplete="off" placeholder="Add a task… T / S" aria-label="New task title" aria-describedby="quick-context">
+            <button id="quick-add" type="button" aria-label="Add task" title="Create (Enter)"><span data-icon="plus" aria-hidden="true"></span><span class="entry-label">Create ↵</span></button>
+            <button id="quick-details" type="button" class="entry-extra">Details</button>
+            <button id="quick-clear" type="button" class="entry-extra">Clear</button>
+          </div>
+          <div class="quick-entry-context entry-extra">
+            <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+            <div class="quick-parent-field"><label for="quick-parent">Parent</label><div class="quick-parent-picker">
+              <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
+              <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" hidden></div>
+              <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
+            </div></div>
+            <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
+            <span id="quick-context" role="status">No parent</span>
+          </div>
         </div>
 
         <div id="sheet-actions"></div><div class="workspace-tools">
@@ -154,10 +168,13 @@
     <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
     <div class="help-body">
       <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
+      <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
       <section aria-labelledby="shortcuts-navigation"><h3 id="shortcuts-navigation">Navigation</h3>
         <dl class="shortcut-list">
           <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
           <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
+          <div><dt><kbd>T</kbd> / <kbd>S</kbd></dt><dd>Quick task / story in the focused context. Shift opens the compact editor.</dd></div>
+          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column. Alt + arrows moves the work itself.</dd></div>
           <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
           <div><dt><kbd>Esc</kbd></dt><dd>Close a dialog; unsaved edits may require confirmation</dd></div>
@@ -168,7 +185,7 @@
         <dl class="shortcut-list">
           <div><dt><kbd>Enter</kbd></dt><dd>In a quick-add title: create and stay ready for the next task. In the issue dialog title: submit the form.</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In the main or Kanban quick-add input: clear the unsent title and leave the input</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>In shared quick entry: return to the originating item and keep unsent text. Clear discards it. In column entry: clear the unsent title and leave.</dd></div>
         </dl>
       </details>
       <details class="shortcut-group"><summary>Sheet</summary>
