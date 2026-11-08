@@ -1256,7 +1256,7 @@ function versionedRecordToIssue_(record, book, tab) {
   try { legacy = JSON.parse(String(record['Legacy JSON'] || '{}')); } catch (ignore) {}
   Object.keys(legacy).forEach(function (key) { if (key !== '__sheetflow') issue[key] = legacy[key]; });
   var epic = tab === 'projects';
-  issue.id = String(record.ID || ''); issue.type = epic ? 'Epic' : record.Kind === 'Story' ? 'Story' : (legacy.type === 'Bug' ? 'Bug' : 'Task');
+  issue.id = String(record.ID || ''); issue.type = epic ? 'Epic' : record.Kind === 'Story' ? 'Story' : (['Bug', 'Milestone'].indexOf(legacy.type) >= 0 ? legacy.type : 'Task');
   issue.summary = String(epic ? record.Title || '' : record.Title || ''); issue.description = String(record.Description || '');
   issue.parentId = epic ? '' : String(record['Parent Task ID'] || record['Epic ID'] || '');
   issue.taskTypeId = epic ? String(legacy.taskTypeId || 'algo') : String(record['Task Type ID'] || legacy.taskTypeId || 'algo');

@@ -25,10 +25,10 @@
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
-  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600' };
+  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600', Milestone: '#d97706' };
   const statusColors = ['#7a869a', '#4c9aff', '#0052cc', '#975a16', '#00875a'];
   const statusBg = ['#ebecf0', '#e9f2ff', '#deebff', '#fff0b3', '#e3fcef'];
-  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•' })[type] || '•'}</span>`;
+  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•', Milestone: '◆' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
   const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const monthFormat = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' });
@@ -71,13 +71,13 @@
     if (!order.includes('summary')) order.unshift('summary');
     return order;
   }
-  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: true, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: true, milestonesOnTop: false, milestonesRank: null, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
   const scrollByView = {}, renderedView = { current: '' };
   let pendingSheetFocus = null;
-  let edited = null, initialForm = '', formInitialParentId = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
+  let edited = null, initialForm = '', formInitialParentId = '', formSaveTimer = null, formSession = 0, draggingId = null, sheetDraggingId = null, swimlaneDraggingId = null, sheetDropPreview = null, ganttHierarchyDrag = null, timelineDrag = null, ganttResize = null, ganttPreviewTarget = null, suppressClickUntil = 0, ganttStoryClickTimer = null, toastTimer, epicDateFormValues = null;
   let selectionAnchorId = '', bulkDeleteDraft = null, deleteDialogItems = [], deleteSubmitting = false, deleteReturnFocus = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
   let createStarted = false, issueReturnFocus = null, newFormDraftKey = '';
@@ -98,6 +98,7 @@
     state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
     state.sheetColumnWidths = normalizeSheetWidths(ui.sheetColumnWidths);
     state.swimlanes = ui.swimlanes !== false;
+    state.milestonesOnTop = ui.milestonesOnTop === true; state.milestonesRank = Number.isFinite(ui.milestonesRank) ? ui.milestonesRank : null;
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
     state.collapsedEpics = {};
@@ -116,21 +117,69 @@
     if (row) return row.dataset.sheetRowId || row.dataset.issue || row.dataset.ganttRowId || '';
     if (element?.matches('.column-header')) return element.closest('[data-epic-lane]')?.dataset.epicLane || '';
     const heading = element?.closest('.swimlane-collapse');
-    return heading && issueById(heading.dataset.selectLane) ? heading.dataset.selectLane : '';
+    if (heading) return heading.dataset.selectLane || '';
+    return '';
   }
   function navigationTargets() {
     return Array.from(document.querySelectorAll('#view-content ' + navigationSelector.split(', ').join(', #view-content '))).filter(el => el.getClientRects().length && !el.disabled);
   }
   function navigationSnapshot(element = document.activeElement) {
-    const pending = element?.closest('[data-pending-quick]');
-    const control = ['[data-card-assignee]', '[data-card-priority]', '[data-board-move]', '.gantt-bar'].find(selector => element?.matches(selector));
-    if (!pending && !control && !element?.matches(navigationSelector)) return null;
-    return { id: issueIdFor(element), control, value: control && 'value' in element ? element.value : null, start: control && typeof element.selectionStart === 'number' ? element.selectionStart : null, end: control && typeof element.selectionEnd === 'number' ? element.selectionEnd : null, retry: Boolean(element?.closest('[data-retry-quick]')), lane: element.closest('[data-epic-lane]')?.dataset.epicLane ?? '', status: element.closest('.column')?.dataset.status || '', heading: element.matches('.swimlane-collapse'), column: element.matches('.column-header') };
+    if (!element) return null;
+    const ghost = element.closest('.ghost-add, .swimlane-add, .gantt-add-button');
+    if (ghost) {
+      const column = ghost.closest('.column');
+      const laneEl = ghost.closest('[data-epic-lane], [data-sheet-parent-target]');
+      const lane = laneEl?.dataset.epicLane || laneEl?.dataset.sheetParentTarget || (ghost.closest('.gantt-milestones-row') ? '__milestones__' : '');
+      const status = column?.dataset.status || '';
+      return {
+        id: '',
+        isGhost: true,
+        ghostKind: ghost.dataset.ghostKind || '',
+        lane,
+        status,
+        column: Boolean(column),
+        heading: Boolean(ghost.closest('.swimlane-header, .sheet-lane-row, .gantt-epic-label'))
+      };
+    }
+    const pending = element.closest('[data-pending-quick]');
+    const control = ['[data-card-assignee]', '[data-card-priority]', '[data-board-move]', '.gantt-bar'].find(selector => element.matches(selector));
+    if (!pending && !control && !element.matches(navigationSelector)) return null;
+    return { id: issueIdFor(element), control, value: control && 'value' in element ? element.value : null, start: control && typeof element.selectionStart === 'number' ? element.selectionStart : null, end: control && typeof element.selectionEnd === 'number' ? element.selectionEnd : null, retry: Boolean(element.closest('[data-retry-quick]')), lane: element.closest('[data-epic-lane]')?.dataset.epicLane ?? '', status: element.closest('.column')?.dataset.status || '', heading: element.matches('.swimlane-collapse'), column: element.matches('.column-header') };
   }
   function findNavigationTarget(snapshot) {
     if (!snapshot) return null;
+    if (snapshot.isGhost) {
+      if (snapshot.column && snapshot.status) {
+        const laneAttr = snapshot.lane ? `[data-epic-lane="${CSS.escape(snapshot.lane)}"]` : ':not([data-epic-lane])';
+        const col = document.querySelector(`.swimlane${laneAttr} .column[data-status="${CSS.escape(snapshot.status)}"]`)
+          || document.querySelector(`.column[data-status="${CSS.escape(snapshot.status)}"]`);
+        if (col) {
+          const ghostBtn = col.querySelector('.ghost-add');
+          if (ghostBtn && ghostBtn.getClientRects().length) return ghostBtn;
+          const header = col.querySelector('.column-header');
+          if (header && header.getClientRects().length) return header;
+        }
+      }
+      if (snapshot.lane) {
+        const laneEl = document.querySelector(`[data-epic-lane="${CSS.escape(snapshot.lane)}"], [data-sheet-parent-target="${CSS.escape(snapshot.lane)}"], .gantt-milestones-row`);
+        if (laneEl) {
+          const addBtn = laneEl.querySelector('.swimlane-add, .gantt-add-button');
+          if (addBtn && addBtn.getClientRects().length) return addBtn;
+          const heading = laneEl.querySelector('.swimlane-collapse');
+          if (heading && heading.getClientRects().length) return heading;
+        }
+      }
+    }
     const targets = navigationTargets();
-    const target = targets.find(el => snapshot.column ? el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane : snapshot.id ? issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse')) : el.matches('.swimlane-collapse') && el.dataset.selectLane === '__no_epic__');
+    const target = targets.find(el => {
+      if (snapshot.column) {
+        return el.matches('.column-header') && el.closest('.column')?.dataset.status === snapshot.status && (el.closest('[data-epic-lane]')?.dataset.epicLane ?? '') === snapshot.lane;
+      }
+      if (snapshot.id) {
+        return issueIdFor(el) === snapshot.id && (!snapshot.heading || el.matches('.swimlane-collapse'));
+      }
+      return snapshot.heading && el.matches('.swimlane-collapse') && el.dataset.selectLane === '__no_epic__';
+    });
     if (snapshot.control) return (target?.closest('.card[data-issue], [data-gantt-row-id]') || target)?.querySelector(snapshot.control) || target;
     return snapshot.retry && target?.querySelector('[data-retry-quick]') || target;
   }
@@ -217,15 +266,21 @@
     const focused = issueById(issueIdFor(focusedElement));
     const selected = state.selectedIssueIds.length === 1 && visible.has(state.selectedIssueIds[0]) ? issueById(state.selectedIssueIds[0]) : null;
     const context = focused || (visible.has(activeIssueId) ? issueById(activeIssueId) : null) || selected;
-    const laneId = focusedElement?.closest('[data-epic-lane]')?.dataset.epicLane || '';
+    const laneEl = focusedElement?.closest('[data-epic-lane], [data-sheet-parent-target]');
+    const laneId = laneEl?.dataset.epicLane || laneEl?.dataset.sheetParentTarget || '';
+    const inMilestoneLane = laneId === '__milestones__' || Boolean(focusedElement?.closest('[data-ghost-kind="Milestone"]')) || (context && context.type === 'Milestone' && state.milestonesOnTop);
+    if (inMilestoneLane && type === 'Task') type = 'Milestone';
     const explicitParentId = focusedElement?.closest('[data-ghost-parent-id]')?.dataset.ghostParentId || '';
     let parentId = issueById(explicitParentId)?.type === 'Epic' ? explicitParentId : issueById(state.epic)?.type === 'Epic' ? state.epic : issueById(laneId)?.type === 'Epic' ? laneId : '';
     if (context) parentId = type === 'Story' ? containingEpic(context.id) : ['Epic', 'Story'].includes(context.type) ? context.id : context.parentId || '';
     if (explicitParentId && issueById(explicitParentId)?.type === 'Epic') parentId = explicitParentId;
     else if (!focused && focusedElement?.closest('.column') && state.swimlanes) parentId = laneId;
-    if (type === 'Epic') parentId = '';
+    if (type === 'Epic' || laneId === '__milestones__' || parentId === '__milestones__') parentId = '';
+    const isMilestone = type === 'Milestone';
     const status = focusedElement?.closest('.column')?.dataset.status || context?.status || 'Backlog';
-    return { type, parentId, status, priority: 'Medium', assignee: '', dueDate: '', startDate: type === 'Epic' ? '' : today(), taskTypeId: defaultTaskTypeId(), ...creationRank(context, parentId, status), createdCount: 0 };
+    const startDate = type === 'Epic' ? '' : today();
+    const dueDate = isMilestone ? today() : '';
+    return { type, parentId, status, priority: 'Medium', assignee: '', dueDate, startDate, taskTypeId: defaultTaskTypeId(), ...creationRank(context, parentId, status), createdCount: 0 };
   }
   let parentPickerOpen = false, parentPickerQuery = '', parentPickerIndex = -1;
   let assigneePickerToken = null, assigneePickerMatches = [], assigneePickerIndex = 0;
@@ -447,6 +502,7 @@
     $('#quick-title').focus({ preventScroll: true }); positionGhostEntry(true);
   }
   function findOriginForActiveItem() {
+    if (!activeIssueId) return null;
     return navigationSnapshot(navigationTargets().find(el => issueIdFor(el) === activeIssueId));
   }
   function hideQuickEntrySurface() {
@@ -464,10 +520,18 @@
   }
   function leaveQuickEntry() {
     hideQuickEntrySurface();
-    const origin = entryOrigin, anchor = entryAnchor;
+    const origin = entryOrigin, anchor = entryAnchor, session = entrySession;
     if (!$('#quick-title').value.trim() && $('#quick-batch').hidden) { entrySession = null; entryAnchor = null; }
     render();
-    focusNavigation(findNavigationTarget(origin) || (anchor?.isConnected ? anchor : null) || navigationTargets()[0] || $('#create-issue'), true);
+    let target = findNavigationTarget(origin) || (anchor?.isConnected ? anchor : null);
+    if (!target && session) {
+      if (session.type === 'Milestone' && (session.parentId === '' || session.parentId === '__milestones__')) {
+        target = document.querySelector(`[data-epic-lane="__milestones__"] .column[data-status="${CSS.escape(session.status || 'Backlog')}"] .ghost-add, [data-epic-lane="__milestones__"] .ghost-add, [data-epic-lane="__milestones__"] .swimlane-add, [data-epic-lane="__milestones__"] .swimlane-collapse, [data-sheet-parent-target="__milestones__"] .swimlane-collapse, .gantt-milestones-row .swimlane-collapse`);
+      } else if (session.parentId) {
+        target = findParentContextTarget(session.parentId);
+      }
+    }
+    focusNavigation(target || navigationTargets()[0] || $('#create-issue'), true);
   }
   function acknowledgeQuickFocus(key, id) {
     const snapshot = navigationSnapshot();
@@ -565,9 +629,9 @@
     event.preventDefault(); if (destination) focusNavigation(destination, true);
   }
 
-  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, ganttLabelWidth: state.ganttLabelWidth })); }
+  function saveUiState() { localStorage.setItem(uiStorageKey, JSON.stringify({ singleKeyShortcuts: state.singleKeyShortcuts, collapsedEpics: state.collapsedEpics, collapsedGanttStories: state.collapsedGanttStories, collapsedSheetParents: state.collapsedSheetParents, visibleColumns: state.visibleColumns, sheetColumnWidths: state.sheetColumnWidths, sheetLayoutVersion: 2, swimlanes: state.swimlanes, milestonesOnTop: state.milestonesOnTop, milestonesRank: state.milestonesRank, ganttLabelWidth: state.ganttLabelWidth })); }
   function saveViewSnapshot() {
-    return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
+    return { view: state.view, query: state.query, types: state.types.slice(), priority: state.priority, tag: state.tag, startAfter: state.startAfter, dueBefore: state.dueBefore, assignee: state.assignee, status: state.status, sprint: state.sprint, epic: state.epic, sort: state.sort, ascending: state.ascending, visibleColumns: state.visibleColumns.slice(), sheetColumnWidths: { ...state.sheetColumnWidths }, sheetLayoutVersion: 2, swimlanes: state.swimlanes, milestonesOnTop: state.milestonesOnTop, milestonesRank: state.milestonesRank, collapsedEpics: { ...state.collapsedEpics }, collapsedSheetParents: { ...state.collapsedSheetParents }, collapsedGanttStories: { ...state.collapsedGanttStories }, ganttLabelWidth: state.ganttLabelWidth, zoom: state.zoom, timelineStart: state.timelineStart };
   }
   function renderSavedViews() {
     const select = $('#saved-view-select');
@@ -592,6 +656,7 @@
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
     state.sheetColumnWidths = normalizeSheetWidths(view.sheetColumnWidths);
     state.swimlanes = view.swimlanes !== false;
+    state.milestonesOnTop = view.milestonesOnTop === true; state.milestonesRank = Number.isFinite(view.milestonesRank) ? view.milestonesRank : null;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
@@ -1593,7 +1658,7 @@
     return schedules.get(issue.id);
   }
   function updateEpicDateFields() {
-    const isEpic = form.elements.type.value === 'Epic', keys = ['startDate', 'dueDate'];
+    const isEpic = form.elements.type.value === 'Epic', isMilestone = form.elements.type.value === 'Milestone', keys = ['startDate', 'dueDate'];
     if (isEpic && epicDateFormValues === null) epicDateFormValues = Object.fromEntries(keys.map(key => [key, form.elements[key].value]));
     const dates = isEpic && edited?.type === 'Epic' ? effectiveDates(edited) : null;
     keys.forEach(key => {
@@ -1604,6 +1669,13 @@
       else if (epicDateFormValues !== null) input.value = epicDateFormValues[key];
     });
     if (!isEpic) epicDateFormValues = null;
+    const startField = form.elements.startDate?.closest('.field');
+    if (startField) startField.hidden = isMilestone;
+    const dueField = form.elements.dueDate?.closest('.field');
+    if (dueField) {
+      const labelText = dueField.childNodes[0];
+      if (labelText && labelText.nodeType === Node.TEXT_NODE) labelText.textContent = isMilestone ? 'Target date ' : 'Due date ';
+    }
   }
   function commentPreview(id) { return (state.comments[id] || []).slice(-3).map(comment => comment.body).join('\n'); }
   function renderComments(id) {
@@ -1691,6 +1763,8 @@
     $$('[data-view]').forEach(el => { const active = el.dataset.view === state.view; el.classList.toggle('active', active); if (active) el.setAttribute('aria-current', 'page'); else el.removeAttribute('aria-current'); if (el.getAttribute('role') === 'tab') { el.setAttribute('aria-selected', String(active)); el.setAttribute('aria-controls', 'view-content'); } });
     const swimlanesToggle = $('#swimlanes-toggle');
     if (swimlanesToggle) swimlanesToggle.checked = state.swimlanes;
+    const milestonesToggle = $('#milestones-top-toggle');
+    if (milestonesToggle) milestonesToggle.checked = state.milestonesOnTop;
     const issues = filtered();
     const content = $('#view-content'), oldScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
     const currentScroll = oldScroll ? { left: oldScroll.scrollLeft, top: oldScroll.scrollTop } : null;
@@ -1782,20 +1856,21 @@
   function card(issue) {
     const priorityClass = C.priorities.includes(issue.priority) ? issue.priority.toLowerCase() : '';
     const parent = issueById(issue.parentId);
-    const showParent = parent && !(state.swimlanes && parent.type === 'Epic');
+    const showParent = parent && !(state.swimlanes && parent.type === 'Epic' && !state.milestonesOnTop);
     const { dueDate } = effectiveDates(issue);
     const overdue = dueDate && dueDate < today() && issue.status !== 'Done';
     const labels = C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('');
     const commentsCount = (state.comments[issue.id] || []).length;
     const currentActivity = issue.taskTypeId && issue.taskTypeId !== 'none' ? C.taskTypePresentation(issue.taskTypeId, state.settings).name : 'None';
-    return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}"
+    const isMilestone = issue.type === 'Milestone';
+    return `<article class="card${isMilestone ? ' card-milestone' : ''}" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}" data-issue-type="${escape(issue.type)}"
         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
         aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status. Press m to move.')}"
         title="Alt + ↑/↓ reorder · Alt + ←/→ change status · m move">
       <div class="card-top">
         <span class="card-meta">
-          ${['Task', 'Bug'].includes(issue.type)
-            ? `<label class="card-type-field" title="Type: ${escape(issue.type)}">${typeIcon(issue.type)}<select class="card-type-select" data-card-type="${escape(issue.id)}" data-field="type" data-id="${escape(issue.id)}" aria-label="Type for ${escape(issue.summary)}">${options(['Task', 'Bug'], issue.type)}</select></label>`
+          ${['Task', 'Bug', 'Milestone'].includes(issue.type)
+            ? `<label class="card-type-field" title="Type: ${escape(issue.type)}">${typeIcon(issue.type)}<select class="card-type-select" data-card-type="${escape(issue.id)}" data-field="type" data-id="${escape(issue.id)}" aria-label="Type for ${escape(issue.summary)}">${options(['Task', 'Bug', 'Milestone'], issue.type)}</select></label>`
             : `<span class="card-type-field card-type-static" title="Type: ${escape(issue.type)}">${typeIcon(issue.type)}</span>`}
           <label class="card-activity-field" title="Activity: ${escape(currentActivity)}">${taskTypeBadge(issue.taskTypeId) || `<span class="task-type-badge task-type-empty" title="Set activity">+</span>`}<select class="card-activity-select" data-card-activity="${escape(issue.id)}" data-field="taskTypeId" data-id="${escape(issue.id)}" aria-label="Activity for ${escape(issue.summary)}">${options(activityTypes(), issue.taskTypeId || 'none')}</select></label>
         </span>
@@ -1809,9 +1884,9 @@
       ${labels ? `<div class="card-labels">${labels}</div>` : ''}
       <div class="card-footer">
         <label class="card-assignee-field" title="Assignee: ${escape(issue.assignee || 'Unassigned')}">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Assignee" aria-label="Assignee for ${escape(issue.id)}"></label>
-        <label class="card-due-field${overdue ? ' overdue' : ''}" title="${dueDate ? 'Due: ' + escape(dueDate) : 'Set due date'}">
-          <span class="card-due-badge">${icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : '+Date'}</span></span>
-          <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="Due date for ${escape(issue.summary)}">
+        <label class="card-due-field${overdue ? ' overdue' : ''}" title="${isMilestone ? (dueDate ? 'Target date: ' + escape(dueDate) : 'Set target date') : (dueDate ? 'Due: ' + escape(dueDate) : 'Set due date')}">
+          <span class="card-due-badge">${isMilestone ? '<span style="color:#d97706;font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
+          <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="${isMilestone ? 'Target date' : 'Due date'} for ${escape(issue.summary)}">
         </label>
         <button type="button" class="card-comment-btn" data-card-comment-toggle="${escape(issue.id)}" title="${commentsCount ? commentsCount + ' comments · Click to add' : 'Add quick comment'}" aria-label="Add comment to ${escape(issue.id)}">
           ${icon('message')}
@@ -1826,15 +1901,21 @@
   }
   function renderBoard(issues) {
     const displayIssues = [...issues, ...pendingQuickTasks(), ...composerItems()];
-    const renderColumns = items => C.statuses.map((status, index) => {
+    const renderColumns = (items, isMilestoneLane = false) => C.statuses.map((status, index) => {
       const cards = C.sorted(items.filter(i => i.status === status));
-      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.filter(issue => !issue.composer).length}</span><button data-new="${status}" aria-label="Open full task editor for ${status}">+</button></h2><div class="card-list">${cards.map(issue => issue.composer ? '<div class="composer-card" data-composer-slot></div>' : issue.draftKey ? pendingQuickCard(issue) : card(issue)).join('')}${!cards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="Task">+ Add task · T</button></section>`;
+      const ghostKind = isMilestoneLane ? 'Milestone' : 'Task';
+      const ghostLabel = isMilestoneLane ? '+ Add milestone' : '+ Add task · T';
+      const newKindAttr = isMilestoneLane ? ' data-new-kind="Milestone"' : '';
+      const newLabel = isMilestoneLane ? `Open full milestone editor for ${status}` : `Open full task editor for ${status}`;
+      return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.filter(issue => !issue.composer).length}</span><button data-new="${status}"${newKindAttr} aria-label="${escape(newLabel)}">+</button></h2><div class="card-list">${cards.map(issue => issue.composer ? '<div class="composer-card" data-composer-slot></div>' : issue.draftKey ? pendingQuickCard(issue) : card(issue)).join('')}${!cards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="${ghostKind}">${ghostLabel}</button></section>`;
     }).join('');
     if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(displayIssues)}</div>`; return; }
     const lanes = epicLanes(displayIssues, true);
+    const orderableLanes = lanes.filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
     $('#view-content').innerHTML = `<div class="kanban-tools"><div class="left"></div></div><div class="swimlanes">${lanes.map(lane => {
       const collapsed = laneCollapsed(lane);
-      return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items)}</div>`}</section>`;
+      const isMilestone = lane.id === '__milestones__' || Boolean(lane.isMilestoneLane);
+      return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane, '', orderableLanes)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items, isMilestone)}</div>`}</section>`;
     }).join('')}</div>`;
     addEpicViewControls('kanban', lanes.filter(lane => lane.id).map(lane => lane.id), $('#view-content .kanban-tools .left'));
   }
@@ -1848,13 +1929,21 @@
     return false;
   }
   function boardScopeItems(status, laneId, excludeId = '') {
+    if (laneId === '__milestones__') {
+      return C.sorted(state.issues.filter(item => item.id !== excludeId && item.type === 'Milestone' && item.status === status));
+    }
     const hasEpic = item => state.issues.some(epic => epic.type === 'Epic' && inEpicWithin(item, epic.id));
-    return C.sorted(state.issues.filter(item => item.id !== excludeId && item.type !== 'Epic' && item.status === status && (!state.swimlanes || (laneId ? inEpicWithin(item, laneId) : !hasEpic(item)))));
+    return C.sorted(state.issues.filter(item => item.id !== excludeId && item.type !== 'Epic' && (!state.milestonesOnTop || item.type !== 'Milestone') && item.status === status && (!state.swimlanes || (laneId ? inEpicWithin(item, laneId) : !hasEpic(item)))));
   }
   function epicLanes(issues, includeEmptyNoEpic = false) {
     const lanesById = new Map(indexedIssues().epics.map(epic => [epic.id, { id: epic.id, label: epic.summary, items: [] }]));
-    const visibleEpics = new Set(), noEpicItems = [];
+    const visibleEpics = new Set(), noEpicItems = [], milestoneItems = [];
+    const milestonesOnTop = typeof state !== 'undefined' && Boolean(state?.milestonesOnTop);
     for (const issue of issues) {
+      if (milestonesOnTop && issue.type === 'Milestone') {
+        milestoneItems.push(issue);
+        continue;
+      }
       let current = issue, grouped = false;
       const seen = new Set();
       while (current && !seen.has(current.id)) {
@@ -1869,9 +1958,26 @@
       }
       if (!grouped) noEpicItems.push(issue);
     }
-    const lanes = C.sorted(indexedIssues().epics)
+    const lanes = [];
+    const sortedEpics = C.sorted(indexedIssues().epics)
       .map(epic => lanesById.get(epic.id))
       .filter(lane => lane.items.length || visibleEpics.has(lane.id));
+    if (milestonesOnTop && (milestoneItems.length || includeEmptyNoEpic)) {
+      const milestoneLane = { id: '__milestones__', label: 'Project Milestones', isMilestoneLane: true, items: milestoneItems };
+      const mRank = typeof state !== 'undefined' && Number.isFinite(state?.milestonesRank) ? state.milestonesRank : null;
+      if (mRank === null) {
+        lanes.push(milestoneLane, ...sortedEpics);
+      } else {
+        const entries = [
+          { rank: mRank, lane: milestoneLane },
+          ...sortedEpics.map(l => ({ rank: Number(issueById(l.id)?.rank) || 0, lane: l }))
+        ];
+        entries.sort((a, b) => a.rank - b.rank);
+        lanes.push(...entries.map(e => e.lane));
+      }
+    } else {
+      lanes.push(...sortedEpics);
+    }
     if (noEpicItems.length || includeEmptyNoEpic) lanes.push({ id: '', label: 'No epic', items: noEpicItems });
     return lanes;
   }
@@ -1881,15 +1987,120 @@
     if (leafProgressCache.issues !== state.issues) leafProgressCache = { issues: state.issues, counts: C.leafWorkProgress(state.issues) };
     return leafProgressCache.counts.get(laneId) || { done: 0, total: 0 };
   }
-  function renderSwimlaneHeader(lane, extraClass = '') {
+  function getLaneRank(lane) {
+    if (lane.id === '__milestones__' || lane.isMilestoneLane) {
+      if (typeof state !== 'undefined' && Number.isFinite(state?.milestonesRank)) {
+        return state.milestonesRank;
+      }
+      const epics = typeof indexedIssues === 'function' ? indexedIssues().epics : [];
+      const firstEpic = epics[0];
+      const firstRank = firstEpic ? Number(firstEpic.rank) || 0 : 1000;
+      return firstRank - 1000;
+    }
+    const issue = issueById(lane.id);
+    return issue ? (Number(issue.rank) || 0) : 0;
+  }
+  async function reorderSwimlane(movingId, targetId, position) {
+    if (!movingId || !targetId || movingId === targetId || state.busy) return;
+    const allIssues = [...state.issues, ...pendingQuickTasks(), ...composerItems()];
+    const currentLanes = epicLanes(allIssues, true).filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
+    const fromIndex = currentLanes.findIndex(l => l.id === movingId);
+    if (fromIndex < 0) return;
+    const remaining = currentLanes.filter(l => l.id !== movingId);
+    const toIndex = remaining.findIndex(l => l.id === targetId);
+    if (toIndex < 0) return;
+    const insertIndex = position === 'before' ? toIndex : toIndex + 1;
+    const preceding = insertIndex > 0 ? remaining[insertIndex - 1] : null;
+    const succeeding = insertIndex < remaining.length ? remaining[insertIndex] : null;
+
+    let newRank;
+    if (preceding && succeeding) {
+      newRank = (getLaneRank(preceding) + getLaneRank(succeeding)) / 2;
+    } else if (preceding) {
+      newRank = getLaneRank(preceding) + 1000;
+    } else if (succeeding) {
+      newRank = getLaneRank(succeeding) - 1000;
+    } else {
+      newRank = 1000;
+    }
+
+    if (movingId === '__milestones__') {
+      state.milestonesRank = newRank;
+      saveUiState();
+      render();
+      notify('Milestone swimlane moved');
+      return;
+    }
+
+    const epic = issueById(movingId);
+    if (epic && epic.type === 'Epic') {
+      try {
+        await persist({ ...epic, rank: newRank }, epic.version, 'Epic order updated', 'moveIssue');
+      } catch (error) {
+        notify(error.message, true);
+      }
+    }
+  }
+  async function moveSwimlane(laneId, direction, source) {
+    if (!laneId || state.busy) return;
+    const allIssues = [...state.issues, ...pendingQuickTasks(), ...composerItems()];
+    const currentLanes = epicLanes(allIssues, true).filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
+    const index = currentLanes.findIndex(l => l.id === laneId);
+    if (index < 0) return;
+    if (direction === 'up' && index > 0) {
+      await reorderSwimlane(laneId, currentLanes[index - 1].id, 'before');
+    } else if (direction === 'down' && index < currentLanes.length - 1) {
+      await reorderSwimlane(laneId, currentLanes[index + 1].id, 'after');
+    }
+    const refocused = $(`[data-swimlane-id="${CSS.escape(laneId)}"][data-swimlane-move="${direction}"]`) || $(`[data-swimlane-drag-id="${CSS.escape(laneId)}"]`);
+    if (refocused && !refocused.disabled) refocused.focus();
+    else $(`[data-swimlane-id="${CSS.escape(laneId)}"]`)?.focus();
+  }
+  function renderSwimlaneHeader(lane, extraClass = '', orderableLanes = null) {
+    const isMilestoneLane = lane.isMilestoneLane || lane.id === '__milestones__';
+    const key = isMilestoneLane ? '__milestones__' : laneCollapsedKey(lane);
+    const epic = !isMilestoneLane && lane.id ? issueById(lane.id) : null;
+    const canReorder = Boolean(orderableLanes && (isMilestoneLane || (epic && epic.type === 'Epic')));
+    let isFirst = true, isLast = true;
+    if (canReorder) {
+      const idx = orderableLanes.findIndex(l => l.id === lane.id);
+      isFirst = idx <= 0;
+      isLast = idx < 0 || idx >= orderableLanes.length - 1;
+    }
+    const orderControls = canReorder
+      ? `<span class="swimlane-order-controls"><button type="button" class="swimlane-move-btn" data-swimlane-move="up" data-swimlane-id="${escape(key)}" aria-label="Move ${escape(lane.label)} swimlane up" title="Move swimlane up" ${isFirst ? 'disabled' : ''}>↑</button><button type="button" class="swimlane-move-btn" data-swimlane-move="down" data-swimlane-id="${escape(key)}" aria-label="Move ${escape(lane.label)} swimlane down" title="Move swimlane down" ${isLast ? 'disabled' : ''}>↓</button><button type="button" class="swimlane-drag-grip" data-swimlane-drag-id="${escape(key)}" draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" aria-label="Drag ${escape(lane.label)} swimlane to reorder; hold Alt and use ArrowUp or ArrowDown to reorder" title="Drag to reorder swimlane">⠿</button></span>`
+      : '';
+    if (lane.isMilestoneLane || lane.id === '__milestones__') {
+      const visibleCount = lane.items.filter(issue => !issue.composer).length;
+      const visibleLabel = visibleCount === 1 ? 'milestone' : 'milestones';
+      const doneCount = lane.items.filter(issue => issue.status === 'Done').length;
+      const collapsed = laneCollapsed(lane);
+      const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
+      const identity = `<span class="type-icon" style="--type-color:#d97706" title="Milestone">◆</span>`;
+      const name = `<strong title="Project Milestones">Project Milestones</strong>`;
+      const heading = inGantt
+        ? `<span class="gantt-lane-copy"><span class="gantt-lane-meta">${identity}</span>${name}</span>`
+        : `${identity}${name}`;
+      const action = collapsed ? 'Expand' : 'Collapse';
+      return `<div class="swimlane-header ${extraClass} milestone-lane-header">
+        <button type="button" class="swimlane-toggle-button" data-toggle-lane="${escape(key)}" aria-expanded="${!collapsed}" aria-label="${action} Project Milestones" title="${action} Project Milestones">
+          <span class="swimlane-toggle" aria-hidden="true">${collapsed ? '+' : '−'}</span>
+        </button>
+        <button type="button" class="swimlane-collapse" data-select-lane="${escape(key)}" aria-label="Project Milestones">
+          ${heading}<span class="swimlane-progress">${visibleCount} ${visibleLabel} · ${doneCount}/${visibleCount} reached</span>
+        </button>
+        ${orderControls}
+        ${!inGantt ? `<button type="button" class="swimlane-add" data-ghost-add data-ghost-kind="Milestone" aria-label="Add milestone">+ Milestone</button>` : ''}
+      </div>`;
+    }
     const visibleCount = lane.items.filter(issue => issue.type !== 'Epic' && !issue.composer).length;
     const visibleLabel = visibleCount === 1 ? 'item' : 'items';
     const { done, total } = overallLeafProgress(lane.id);
     const progress = total ? Math.round(done / total * 100) : 0;
-    const epic = lane.id ? issueById(lane.id) : null;
+
     const statusIndex = epic ? C.statuses.indexOf(epic.status) : -1;
     const dates = epic ? effectiveDates(epic) : null;
-    const collapsed = laneCollapsed(lane), key = laneCollapsedKey(lane);
+    const collapsed = laneCollapsed(lane);
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
     const identity = epic ? `<span class="swimlane-epic-type">${typeIcon('Epic')}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
@@ -1907,6 +2118,7 @@
       <button type="button" class="swimlane-collapse" data-select-lane="${escape(key)}" ${draggable} aria-pressed="${Boolean(epic && activeIssueId === epic.id)}" aria-label="Select ${escape(lane.label)} as task creation context${draggable ? '. Drag to reorder.' : ''}">
         ${heading}${range}<span class="swimlane-progress">${visibleCount} visible ${visibleLabel} · ${done}/${total} leaf work done · ${progress}% complete</span>${epic ? `<span class="task-context-marker" aria-label="Task creation context" title="Task creation context" ${activeIssueId === epic.id ? '' : 'hidden'}></span>` : ''}
       </button>
+      ${orderControls}
       ${inSheet && epic ? `<button type="button" class="swimlane-add" data-ghost-add data-ghost-kind="Task" data-ghost-parent-id="${escape(epic.id)}" aria-label="Add task under ${escape(epic.summary)}">+ Task</button>` : ''}
       ${epic ? `<button type="button" class="swimlane-edit" data-open="${escape(epic.id)}" aria-label="Edit epic ${escape(epic.id)}" title="Edit epic">${inGantt ? '✎' : 'Edit'}</button>` : ''}
     </div>`;
@@ -1927,10 +2139,12 @@
       const treeToggle = sheetTreeToggle(node); visibleIds.push(issue.id);
       return `<tr class="sheet-issue-row${state.selectedIssueIds.includes(issue.id) ? ' selected' : ''}" data-sheet-row-id="${escape(issue.id)}" data-sheet-depth="${node.depth}" data-sheet-status="${escape(issue.status)}" data-sheet-parent="${escape(issue.parentId || '')}">${columns.map(field => `<td data-column-key="${field.key}">${field.key === 'summary' ? `<div class="sheet-primary-cell" style="--sheet-depth:${node.depth}"><input type="checkbox" class="sheet-row-select" data-sheet-select="${escape(issue.id)}" aria-label="Select ${escape(issue.summary)}" ${state.selectedIssueIds.includes(issue.id) ? 'checked' : ''}>${treeToggle}${sheetRowControls(issue, scopePositions.get(issue.id) ?? -1, scopeLengths.get(issue.parentId || '') || 0)}${cell(issue, field)}</div>` : cell(issue, field)}</td>`).join('')}</tr>`;
     };
+    const allLanes = state.swimlanes ? epicLanes(list) : [];
+    const orderableLanes = allLanes.filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
     const body = state.swimlanes
-      ? epicLanes(list).map(lane => {
+      ? allLanes.map(lane => {
         const collapsed = laneCollapsed(lane);
-        return `<tbody class="sheet-lane-group"><tr class="sheet-lane-row" data-sheet-parent-target="${escape(lane.id)}"><td colspan="${columns.length}">${renderSwimlaneHeader(lane, 'sheet-lane-title')}</td></tr>${collapsed ? '' : sheetHierarchyRows(lane.items, lane.id).map(renderRow).join('')}</tbody>`;
+        return `<tbody class="sheet-lane-group"><tr class="sheet-lane-row" data-sheet-parent-target="${escape(lane.id)}"><td colspan="${columns.length}">${renderSwimlaneHeader(lane, 'sheet-lane-title', orderableLanes)}</td></tr>${collapsed ? '' : sheetHierarchyRows(lane.items, lane.id).map(renderRow).join('')}</tbody>`;
       }).join('')
       : `<tbody>${sheetHierarchyRows(list).map(renderRow).join('')}</tbody>`;
     const selectedCount = state.selectedIssueIds.length, selectAll = visibleIds.length > 0 && selectedCount === visibleIds.length;
@@ -2093,9 +2307,9 @@
   function parentsFor(issue, includeTaskParents = false) {
     const index = indexedIssues(), byId = index.byId, currentParent = byId.get(issue.parentId);
     // Inline rows list project containers plus their current task parent; the full editor can list every task parent.
-    const candidates = issue.type === 'Story' ? index.epics : includeTaskParents ? state.issues : [...index.containers, ...(currentParent && ['Task', 'Bug'].includes(currentParent.type) ? [currentParent] : [])];
+    const candidates = issue.type === 'Story' ? index.epics : issue.type === 'Milestone' ? index.containers : includeTaskParents ? state.issues : [...index.containers, ...(currentParent && ['Task', 'Bug'].includes(currentParent.type) ? [currentParent] : [])];
     return candidates.filter(candidate => {
-      if (candidate.id === issue.id || !(issue.type === 'Story' ? candidate.type === 'Epic' : ['Task', 'Bug'].includes(issue.type) ? ['Epic', 'Story', 'Task', 'Bug'].includes(candidate.type) : false)) return false;
+      if (candidate.id === issue.id || !(issue.type === 'Story' ? candidate.type === 'Epic' : issue.type === 'Milestone' ? ['Epic', 'Story'].includes(candidate.type) : ['Task', 'Bug'].includes(issue.type) ? ['Epic', 'Story', 'Task', 'Bug'].includes(candidate.type) : false)) return false;
       let parent = candidate; const seen = new Set();
       while (parent) { if (parent.id === issue.id || seen.has(parent.id)) return false; seen.add(parent.id); parent = byId.get(parent.parentId); }
       return true;
@@ -2156,7 +2370,7 @@
     return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">Add</button></span>`;
   }
   function ganttCanParent(issue, parent) {
-    return parent && ((parent.type === 'Epic' && ['Story', 'Task', 'Bug'].includes(issue.type)) || (parent.type === 'Story' && ['Task', 'Bug'].includes(issue.type)));
+    return parent && ((parent.type === 'Epic' && ['Story', 'Task', 'Bug', 'Milestone'].includes(issue.type)) || (parent.type === 'Story' && ['Task', 'Bug', 'Milestone'].includes(issue.type)));
   }
   function ganttParentIsValid(issue, parentId) {
     if (!parentId) return issue.type !== 'Epic';
@@ -2219,6 +2433,7 @@
     return state.issues.find(epic => epic.type === 'Epic' && inEpicWithin(issue, epic.id))?.id || '';
   }
   function boardMoveParent(issue, epicId) {
+    if (epicId === '__milestones__') return issue.parentId || '';
     if (issue.type === 'Epic' || epicId === boardEpicId(issue)) return issue.parentId || '';
     if (epicId && issueById(epicId)?.type !== 'Epic') throw new Error('Choose an existing Epic.');
     if (issue.parentId && issueById(issue.parentId)?.type !== 'Epic') {
@@ -2335,6 +2550,18 @@
     });
     mount.prepend(group);
   }
+    function renderMilestonesHeaderTrack(milestones, trackWidth, dayWidth, timelineStart, timelineDays) {
+    const pins = milestones.map(m => {
+      const mDate = m.dueDate || m.startDate;
+      if (!mDate || !C.validDate(mDate)) return '';
+      const rawDate = C.dateNumber(mDate) - C.dateNumber(timelineStart);
+      if (rawDate < 0 || rawDate >= timelineDays) return '';
+      const left = rawDate * dayWidth + dayWidth / 2;
+      const isDone = m.status === 'Done';
+      return `<button type="button" class="gantt-header-milestone-pin${isDone ? ' is-done' : ''}" style="left:${left}px" data-open="${escape(m.id)}" title="${escape(m.summary)} (${shortDate(mDate)}) · ${escape(m.status)}"></button>`;
+    }).join('');
+    return `<div class="gantt-track gantt-milestones-track" style="width:${trackWidth}px;--day-width:${dayWidth}px">${pins}</div>`;
+  }
   function renderGantt(issues) {
     state.ganttLabelWidth = clampGanttLabelWidth(state.ganttLabelWidth);
     const scale = {
@@ -2398,8 +2625,28 @@
         Epic: ['#F5F3FF', '#6D28D9', '#DDD6FE'],
         Story: ['#ECFEFF', '#0E7490', '#A5F3FC'],
         Task: ['#EFF6FF', '#1D4ED8', '#BFDBFE'],
-        Bug: ['#FEF2F2', '#B91C1C', '#FECACA']
+        Bug: ['#FEF2F2', '#B91C1C', '#FECACA'],
+        Milestone: ['#FFFBEB', '#D97706', '#FDE68A']
       }[issue.type] || ['#EFF6FF', '#1D4ED8', '#BFDBFE'];
+      if (issue.type === 'Milestone') {
+        const milestoneDate = schedule.dueDate || schedule.startDate;
+        const hasDate = milestoneDate && C.validDate(milestoneDate);
+        const rawDate = hasDate ? C.dateNumber(milestoneDate) - C.dateNumber(start) : -1;
+        const visible = hasDate && rawDate >= 0 && rawDate < days;
+        const centerX = rawDate * dayWidth + dayWidth / 2;
+        if (visible) positions.set(issue.id, { left: centerX - 9, right: centerX + 9, y });
+        if (!visible) {
+          const note = hasDate ? `Outside this window · ${shortDate(milestoneDate)}` : 'Set milestone date →';
+          return `<button class="schedule-note" data-open="${escape(issue.id)}">${note}</button>`;
+        }
+        const isDone = issue.status === 'Done';
+        const isOverdue = milestoneDate < today() && !isDone;
+        const milestoneClass = `gantt-milestone${isDone ? ' is-done' : ''}${isOverdue ? ' is-overdue' : ''}`;
+        return `<div class="${milestoneClass}" style="left:${centerX}px;--milestone-color:${colors[1]};--milestone-bg:${colors[0]};--milestone-border:${colors[2]}">
+          <button type="button" class="gantt-milestone-diamond" data-bar="${escape(issue.id)}" data-preview-id="${escape(issue.id)}" data-day-width="${dayWidth}" data-full-start="${rawDate}" data-full-end="${rawDate + 1}" data-start-only="false" aria-label="Milestone: ${escape(issue.summary)}, ${escape(shortDate(milestoneDate))}, ${escape(issue.status)}" title="${escape(issue.summary)} · ${escape(shortDate(milestoneDate))}"></button>
+          <span class="gantt-milestone-label" data-open="${escape(issue.id)}">${escape(issue.summary)} <small>${escape(shortDate(milestoneDate))}</small></span>
+        </div>`;
+      }
       if (!visible) {
         if (summary) return `<span class="schedule-note epic-schedule-note">${scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Schedule child issues to set epic duration'}</span>`;
         const note = startOnly ? `Starts outside this window · ${shortDate(schedule.startDate)}` : scheduled ? `Outside this window · ${shortDate(schedule.startDate)} – ${shortDate(schedule.dueDate)}` : 'Set a start date →';
@@ -2442,13 +2689,18 @@
     }).join('');
     let rows = '', rowsHeight = 0;
     if (state.swimlanes) {
-      rows = epicLanes(displayIssues).map(lane => {
+      const allLanes = epicLanes(displayIssues);
+      const orderableLanes = allLanes.filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
+      rows = allLanes.map(lane => {
         if (lane.id) epicIds.push(lane.id);
         const collapsed = laneCollapsed(lane);
         const topOffset = rowsHeight;
-        const epic = lane.id ? issueById(lane.id) : null;
+        const isMilestoneLane = lane.id === '__milestones__';
+        const epic = lane.id && !isMilestoneLane ? issueById(lane.id) : null;
         const epicSchedule = epic ? effectiveDates(epic) : null;
-        const epicHeader = `<div class="gantt-row gantt-epic-row" ${epic ? `data-gantt-row-id="${escape(epic.id)}"` : ''}><div class="gantt-row-label gantt-epic-label" data-open="${escape(epic?.id || '')}" data-preview-id="${escape(epic?.id || '')}">${renderSwimlaneHeader(lane, 'gantt-lane-title')}${epic ? ganttAddButton(epic) : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${epic ? renderTrack(epic, topOffset + 22, epicSchedule, true) : `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div>`}</div>`;
+        const epicHeader = isMilestoneLane
+          ? `<div class="gantt-row gantt-epic-row gantt-milestones-row"><div class="gantt-row-label gantt-epic-label">${renderSwimlaneHeader(lane, 'gantt-lane-title', orderableLanes)}<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-ghost-add data-ghost-kind="Milestone" aria-label="Add milestone" title="Add milestone">Add</button></span></div><div class="gantt-resize-gutter" aria-hidden="true"></div>${renderMilestonesHeaderTrack(lane.items, width, dayWidth, start, days)}</div>`
+          : `<div class="gantt-row gantt-epic-row" ${epic ? `data-gantt-row-id="${escape(epic.id)}"` : ''}><div class="gantt-row-label gantt-epic-label" data-open="${escape(epic?.id || '')}" data-preview-id="${escape(epic?.id || '')}">${renderSwimlaneHeader(lane, 'gantt-lane-title', orderableLanes)}${epic ? ganttAddButton(epic) : ''}</div><div class="gantt-resize-gutter" aria-hidden="true"></div>${epic ? renderTrack(epic, topOffset + 22, epicSchedule, true) : `<div class="gantt-track" style="width:${width}px;--day-width:${dayWidth}px"></div>`}</div>`;
         rowsHeight += 45;
         const nodes = collapsed ? [] : ganttHierarchyRows(lane.items, lane.id);
         const laneRows = renderRows(nodes, rowsHeight);
@@ -2684,20 +2936,38 @@
   document.addEventListener('pointerdown', event => { if (!triagePopover.hidden && !event.target.closest('#triage-popover')) closeTriage(); });
   const commandDialog = $('#command-dialog'), commandQuery = $('#command-query');
   let commandReturnFocus = null, commandMatches = [], commandContextId = '';
+  function jumpToMilestones() {
+    if (!state.milestonesOnTop) {
+      state.milestonesOnTop = true;
+      saveUiState();
+      render();
+    }
+    const target = document.querySelector('[data-epic-lane="__milestones__"], [data-sheet-parent-target="__milestones__"], .gantt-milestones-row');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const focusable = target.querySelector('.swimlane-collapse, .swimlane-add, button') || target;
+      focusable.focus?.({ preventScroll: true });
+    }
+  }
   function renderCommands() {
     const query = commandQuery.value.toLocaleLowerCase().trim();
     const actions = [
       { label: 'New issue', kind: 'action', action: 'new' },
       { label: 'Quick task (T)', kind: 'action', action: 'task' },
       { label: 'Quick story (S)', kind: 'action', action: 'story' },
+      { label: 'Quick milestone', kind: 'action', action: 'milestone' },
       { label: 'Task with details (Shift+T)', kind: 'action', action: 'task-details' },
       { label: 'Story with details (Shift+S)', kind: 'action', action: 'story-details' },
+      { label: 'Milestone with details (Shift+M)', kind: 'action', action: 'milestone-details' },
+      { label: state.milestonesOnTop ? 'Show milestones inside Epics' : 'Group milestones on top', kind: 'action', action: 'toggle-milestones-top' },
+      { label: 'Jump to Project Milestones (M)', kind: 'action', action: 'jump-milestones' },
+      { label: state.types.length === 1 && state.types[0] === 'Milestone' ? 'Clear Milestone filter' : 'Filter: Milestones only', kind: 'action', action: 'filter-milestones' },
       { label: 'Switch to Sheet', kind: 'action', action: 'sheet' },
       { label: 'Switch to Kanban', kind: 'action', action: 'kanban' },
       { label: 'Switch to Gantt', kind: 'action', action: 'gantt' },
       { label: 'Focus search', kind: 'action', action: 'search' }
     ];
-    if (commandContextId) actions.splice(5, 0,
+    if (commandContextId) actions.splice(7, 0,
       { label: 'Edit focused issue (E)', kind: 'action', action: 'edit-focused' },
       { label: 'Change focused priority (P)', kind: 'action', action: 'priority-focused' },
       { label: 'Change focused assignee (A)', kind: 'action', action: 'assignee-focused' },
@@ -2731,7 +3001,21 @@
     closeCommands();
     if (item.kind === 'issue') openIssue(item.id);
     else if (item.action === 'new') openIssue();
-    else if (['task', 'story', 'task-details', 'story-details'].includes(item.action)) beginQuickEntry(item.action.startsWith('story') ? 'Story' : 'Task', item.action.endsWith('-details'), anchor);
+    else if (['task', 'story', 'milestone', 'task-details', 'story-details', 'milestone-details'].includes(item.action)) {
+      const type = item.action.startsWith('story') ? 'Story' : item.action.startsWith('milestone') ? 'Milestone' : 'Task';
+      beginQuickEntry(type, item.action.endsWith('-details'), anchor);
+    }
+    else if (item.action === 'toggle-milestones-top') {
+      state.milestonesOnTop = !state.milestonesOnTop;
+      saveUiState();
+      render();
+    }
+    else if (item.action === 'jump-milestones') jumpToMilestones();
+    else if (item.action === 'filter-milestones') {
+      const onlyMilestones = state.types.length === 1 && state.types[0] === 'Milestone';
+      state.types = onlyMilestones ? [] : ['Milestone'];
+      render();
+    }
     else if (item.action === 'edit-focused' && contextIssue) openIssue(contextIssue.id);
     else if (item.action === 'select-focused' && contextIssue) toggleFocusedSelection(contextIssue, anchor);
     else if (item.action?.endsWith('-focused') && contextIssue) openTriage(item.action.slice(0, -8), contextIssue, anchor);
@@ -2848,6 +3132,11 @@
     if (!entrySession) return;
     entrySession.type = event.target.value;
     if (entrySession.type === 'Story') entrySession.parentId = containingEpic(entrySession.parentId);
+    if (entrySession.type === 'Milestone') {
+      if (entrySession.parentId === '__milestones__' || state.milestonesOnTop) entrySession.parentId = '';
+      if (!entrySession.dueDate) entrySession.dueDate = entrySession.startDate || today();
+      entrySession.startDate = entrySession.dueDate;
+    }
     Object.assign(entrySession, creationRank(null, entrySession.parentId, entrySession.status)); entrySession.createdCount = 0;
     renderQuickEntryContext(); render(); positionGhostEntry(true);
   });
@@ -2982,6 +3271,7 @@
     if (formSaveTimer) clearTimeout(formSaveTimer); setFormSaveStatus('Saving…'); formSaveTimer = setTimeout(autosaveForm, 0);
   });
   $('#swimlanes-toggle').addEventListener('change', event => { setSwimlanes(event.target.checked); render(); });
+  $('#milestones-top-toggle')?.addEventListener('change', event => { state.milestonesOnTop = event.target.checked; saveUiState(); render(); });
   $('#epic-nav').addEventListener('click', event => { const target = event.target.closest('[data-epic]'); if (target) { state.epic = state.epic === target.dataset.epic ? '' : target.dataset.epic; render(); } });
   $('#export').addEventListener('click', () => {
     if (!state.ready) return;
@@ -3108,6 +3398,8 @@
     if (state.view === 'sheet' && sheetMove) { moveSheetWithKeyboard(sheetMove.dataset.sheetMoveId, sheetMove.dataset.sheetMove); return; }
     const storyLabel = event.target.closest('.gantt-row-label.has-story-toggle');
     if (ganttStoryClickTimer && (!storyLabel || storyLabel.dataset.open !== ganttStoryClickTimer.id || event.detail > 1)) cancelGanttStoryClick();
+    const swimlaneMove = event.target.closest('[data-swimlane-move]');
+    if (swimlaneMove && !state.busy) { moveSwimlane(swimlaneMove.dataset.swimlaneId, swimlaneMove.dataset.swimlaneMove, swimlaneMove); return; }
     const target = event.target.closest('[data-open], [data-issue], [data-new], [data-ghost-add], [data-clear], [data-sort], [data-sheet-lanes], [data-sheet-column-move], [data-bulk-edit-open], [data-timeline], [data-bar], [data-select-lane], [data-toggle-lane], [data-toggle-gantt-story], [data-toggle-sheet-parent], [data-gantt-add]');
     if (!target) return;
     if (target.hasAttribute('data-ghost-add')) {
@@ -3149,7 +3441,10 @@
       hideGanttCommentPreview();
       beginQuickEntry('Task', false, target);
     }
-    else if (target.hasAttribute('data-new')) openIssue('', { status: target.dataset.new, parentId: state.epic });
+    else if (target.hasAttribute('data-new')) {
+      const newKind = target.dataset.newKind || 'Task';
+      openIssue('', { type: newKind, status: target.dataset.new, parentId: newKind === 'Milestone' ? '' : state.epic });
+    }
     else if (target.hasAttribute('data-clear')) clearFilters();
     else if (target.hasAttribute('data-sort')) { state.ascending = state.sort === target.dataset.sort ? !state.ascending : true; state.sort = target.dataset.sort; render(); }
     else if (target.hasAttribute('data-sheet-column-move')) moveSheetColumn(target.dataset.sheetColumnKey, target.dataset.sheetColumnMove);
@@ -3269,6 +3564,7 @@
       if (event.key === 'Escape') { event.preventDefault(); event.target.value = issueById(event.target.dataset.cardAssignee)?.assignee || ''; return; }
     }
     if (event.target.matches('.gantt-resizer') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); applyGanttLabelWidth(state.ganttLabelWidth + (event.key === 'ArrowRight' ? 10 : -10)); saveUiState(); }
+    else if (event.altKey && event.target.matches('[data-swimlane-move], [data-swimlane-drag-id], .swimlane-collapse[data-select-lane]') && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); const laneId = event.target.dataset.swimlaneId || event.target.dataset.swimlaneDragId || event.target.dataset.selectLane; if (laneId) moveSwimlane(laneId, event.key === 'ArrowUp' ? 'up' : 'down', event.target); }
     else if (state.view === 'sheet' && event.altKey && event.target.matches('.sheet-row-grip') && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); moveSheetWithKeyboard(event.target.dataset.sheetDragId, event.key === 'ArrowUp' ? 'up' : 'down'); }
     else if (state.view === 'gantt' && event.altKey && event.target.matches('.gantt-label-hit, .swimlane-collapse[data-gantt-drag-id]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveGanttWithKeyboard(event.target.dataset.ganttDragId, event.key.slice(5).toLowerCase(), event.target); }
     else if (state.view === 'kanban' && event.target.matches('.card[data-issue]') && event.key === 'M' && event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) { event.preventDefault(); openBoardMove(event.target.dataset.issue); }
@@ -3380,6 +3676,8 @@
   });
   $('#view-content').addEventListener('dragstart', event => {
     if (event.shiftKey || event.ctrlKey || event.metaKey || event.target.closest('[data-issue-select]')) { event.preventDefault(); return; }
+    const swimlaneDrag = event.target.closest('[data-swimlane-drag-id]');
+    if (swimlaneDrag && !state.busy) { swimlaneDraggingId = swimlaneDrag.dataset.swimlaneDragId; event.dataTransfer.setData('text/plain', swimlaneDraggingId); event.dataTransfer.setData('application/x-sheetflow-swimlane', swimlaneDraggingId); event.dataTransfer.effectAllowed = 'move'; swimlaneDrag.closest('.swimlane, .gantt-swimlane, .sheet-lane-row')?.classList.add('swimlane-dragging'); return; }
     const ganttSource = event.target.closest('[data-gantt-drag-id]');
     if (state.view === 'gantt' && ganttSource && !state.busy) {
       const issue = issueById(ganttSource.dataset.ganttDragId); if (!issue) { event.preventDefault(); return; }
@@ -3400,8 +3698,21 @@
     const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
-  function clearDragStyle() { $$('.drag-over, .drop-before, .dragging, .gantt-dragging, .gantt-drop-before, .gantt-drop-after, .gantt-drop-parent, .gantt-drop-invalid, .gantt-drop-unparent, .sheet-dragging, .sheet-drop-before, .sheet-drop-after, .sheet-drop-parent, .sheet-drop-invalid, .sheet-drop-unparent').forEach(el => el.classList.remove('drag-over', 'drop-before', 'dragging', 'gantt-dragging', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-dragging', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent')); }
+  function clearDragStyle() { $('.drag-over, .drop-before, .drop-after, .dragging, .swimlane-dragging, .gantt-dragging, .gantt-drop-before, .gantt-drop-after, .gantt-drop-parent, .gantt-drop-invalid, .gantt-drop-unparent, .sheet-dragging, .sheet-drop-before, .sheet-drop-after, .sheet-drop-parent, .sheet-drop-invalid, .sheet-drop-unparent').forEach(el => el.classList.remove('drag-over', 'drop-before', 'dragging', 'gantt-dragging', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-dragging', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent')); }
   document.addEventListener('dragover', event => {
+    if (swimlaneDraggingId && !state.busy) {
+      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row');
+      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target]');
+      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget;
+      if (targetId && targetId !== '' && targetId !== swimlaneDraggingId) {
+        event.preventDefault(); event.dataTransfer.dropEffect = 'move';
+        const rect = targetHeader.getBoundingClientRect();
+        const before = (event.clientY - rect.top) < rect.height / 2;
+        clearDragStyle();
+        targetHeader.classList.add(before ? 'drop-before' : 'drop-after');
+        return;
+      }
+    }
     if (state.view === 'gantt' && ganttHierarchyDrag && !state.busy) {
       const unparentDrop = event.target.closest('[data-gantt-unparent]'), row = event.target.closest('[data-gantt-row-id]');
       if (!unparentDrop && !row) return;
@@ -3434,9 +3745,24 @@
   });
   $('#view-content').addEventListener('dragend', () => {
     if (ganttHierarchyDrag) { suppressClickUntil = Date.now() + 450; ganttHierarchyDrag = null; const unparentDrop = $('#gantt-unparent-drop'); if (unparentDrop) unparentDrop.hidden = true; }
-    draggingId = null; finishSheetDrag(); clearDragStyle();
+    swimlaneDraggingId = null; draggingId = null; finishSheetDrag(); clearDragStyle();
   });
   document.addEventListener('drop', async event => {
+    if (swimlaneDraggingId && !state.busy) {
+      event.preventDefault();
+      const movingId = swimlaneDraggingId; swimlaneDraggingId = null;
+      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row');
+      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target]');
+      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget;
+      clearDragStyle();
+      if (targetId && targetId !== '' && targetId !== movingId) {
+        const rect = targetHeader.getBoundingClientRect();
+        const before = (event.clientY - rect.top) < rect.height / 2;
+        suppressClickUntil = Date.now() + 450;
+        await reorderSwimlane(movingId, targetId, before ? 'before' : 'after');
+      }
+      return;
+    }
     if (state.view === 'gantt' && ganttHierarchyDrag) {
       const movingId = ganttHierarchyDrag.id, unparentDrop = event.target.closest('[data-gantt-unparent]'), row = event.target.closest('[data-gantt-row-id]');
       if (!unparentDrop && !row) return;
@@ -3486,9 +3812,18 @@
     let days = Math.round((event.clientX - d.x) / dayWidth);
     if (d.resize) days = Math.max(days, d.startOnly ? 0 : C.dateNumber(d.issue.startDate) - C.dateNumber(d.issue.dueDate));
     d.days = days; if (Math.abs(event.clientX - d.x) > 4) d.moved = true;
-    if (d.resize) d.bar.style.width = d.startOnly ? Math.max(8, (days + 1) * dayWidth - 6) + 'px' : Math.max(8, d.width + days * dayWidth) + 'px';
-    else d.bar.style.transform = `translateX(${days * dayWidth}px)`;
-    if (d.moved) d.bar.title = d.startOnly ? d.resize ? `${d.issue.startDate} → ${C.addDays(d.issue.startDate, days)}` : `${C.addDays(d.issue.startDate, days)} · No due date` : `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
+    if (d.issue.type === 'Milestone') {
+      const parentWrap = d.bar.closest('.gantt-milestone');
+      if (parentWrap) parentWrap.style.transform = `translateX(${days * dayWidth}px)`;
+      if (d.moved) {
+        const mDate = d.issue.dueDate || d.issue.startDate;
+        d.bar.title = `${d.issue.summary} · ${C.addDays(mDate, days)}`;
+      }
+    } else {
+      if (d.resize) d.bar.style.width = d.startOnly ? Math.max(8, (days + 1) * dayWidth - 6) + 'px' : Math.max(8, d.width + days * dayWidth) + 'px';
+      else d.bar.style.transform = `translateX(${days * dayWidth}px)`;
+      if (d.moved) d.bar.title = d.startOnly ? d.resize ? `${d.issue.startDate} → ${C.addDays(d.issue.startDate, days)}` : `${C.addDays(d.issue.startDate, days)} · No due date` : `${d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, days)} → ${C.addDays(d.issue.dueDate, days)}`;
+    }
   });
   async function endTimeline(event, cancel = false) {
     if (!timelineDrag || event.pointerId !== timelineDrag.pointer) return;
@@ -3496,6 +3831,15 @@
     if (d.bar.hasPointerCapture(event.pointerId)) d.bar.releasePointerCapture(event.pointerId);
     if (d.moved) suppressClickUntil = Date.now() + 400;
     const changed = d.startOnly && d.resize ? d.moved : Boolean(d.days);
+    if (d.issue.type === 'Milestone') {
+      const parentWrap = d.bar.closest('.gantt-milestone');
+      if (cancel || !changed) { if (parentWrap) parentWrap.style.transform = ''; return; }
+      const milestoneDate = d.issue.dueDate || d.issue.startDate;
+      const targetDate = C.addDays(milestoneDate, d.days);
+      try { await persist({ ...d.issue, startDate: targetDate, dueDate: targetDate }, d.issue.version, 'Milestone date updated'); }
+      catch (error) { render(); notify(error.message, true); }
+      return;
+    }
     if (cancel || !changed) { d.bar.style.transform = ''; d.bar.style.width = d.width + 'px'; return; }
     const startDate = d.resize ? d.issue.startDate : C.addDays(d.issue.startDate, d.days);
     const dueDate = d.startOnly ? d.resize ? C.addDays(d.issue.startDate, d.days) : '' : C.addDays(d.issue.dueDate, d.days);
@@ -3516,8 +3860,13 @@
     if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k' && !event.isComposing && !event.target.isContentEditable && !event.target.matches('input,textarea,select') && !$('dialog[open]')) { event.preventDefault(); openCommands(); return; }
     if (event.defaultPrevented || event.repeat || !state.singleKeyShortcuts || event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.keyCode === 229 || event.key === 'Process' || event.target.isContentEditable || event.target.matches('input,textarea,select') || $('dialog[open]')) return;
     if (['t', 's'].includes(event.key.toLowerCase())) { event.preventDefault(); beginQuickEntry(event.key.toLowerCase() === 's' ? 'Story' : 'Task', event.shiftKey); }
+    else if (event.key.toLowerCase() === 'm' && event.shiftKey) { event.preventDefault(); beginQuickEntry('Milestone', true); }
     else if (['p', 'a', 'm', 'd', 'e', 'x'].includes(event.key.toLowerCase())) {
-      const context = focusedIssueContext(); if (!context) return;
+      const context = focusedIssueContext();
+      if (!context) {
+        if (event.key.toLowerCase() === 'm') { event.preventDefault(); jumpToMilestones(); }
+        return;
+      }
       event.preventDefault();
       const key = event.key.toLowerCase();
       if (key === 'e') openIssue(context.issue.id);

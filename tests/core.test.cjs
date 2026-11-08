@@ -21,12 +21,12 @@ test('task type presentation supports legacy names, JSON configuration, and safe
 });
 
 test('sample project has unique IDs and valid hierarchy, dates, and dependencies', () => {
-  const issues = C.sample(day); assert.equal(issues.length, 13);
+  const issues = C.sample(day); assert.equal(issues.length, 15);
   assert.equal(new Set(issues.map(i => i.id)).size, issues.length);
   issues.forEach(i => C.validate(i, issues));
   assert.deepEqual(
-    Object.fromEntries(['Epic', 'Story', 'Task'].map(type => [type, issues.filter(issue => issue.type === type).length])),
-    { Epic: 3, Story: 3, Task: 7 }
+    Object.fromEntries(['Epic', 'Story', 'Task', 'Milestone'].map(type => [type, issues.filter(issue => issue.type === type).length])),
+    { Epic: 3, Story: 3, Task: 7, Milestone: 2 }
   );
   for (const epic of issues.filter(issue => issue.type === 'Epic')) {
     const stories = issues.filter(issue => issue.type === 'Story' && issue.parentId === epic.id);
@@ -159,4 +159,56 @@ test('CSV escapes multiline quotes and neutralizes spreadsheet formulas', () => 
   const csv = C.csv([make({ summary: '=HYPERLINK("https://example.com")', description: 'one, two\n"three"', assignee: ' +SUM(1,2)' })]);
   assert.ok(csv.startsWith('\uFEFF"ID"')); assert.ok(csv.includes('"\'=HYPERLINK(""https://example.com"")"'));
   assert.ok(csv.includes('"one, two\n""three"""')); assert.ok(csv.includes('"\' +SUM(1,2)"'));
+});
+
+test('milestone point-in-time dates synchronize cleanly and prevent range errors', () => {
+  const today = '2026-11-07';
+  // New milestone defaults to today for both start and due
+  const defaultMilestone = C.prepare({ summary: 'Alpha gate', type: 'Milestone' }, null, today, now);
+  assert.equal(defaultMilestone.startDate, today);
+  assert.equal(defaultMilestone.dueDate, '');
+  assert.doesNotThrow(() => C.validate(defaultMilestone, []));
+
+  // Setting target dueDate synchronizes startDate
+  const targetMilestone = C.prepare({ summary: 'Beta gate', type: 'Milestone', dueDate: '2026-12-15' }, null, today, now);
+  assert.equal(targetMilestone.startDate, '2026-12-15');
+  assert.equal(targetMilestone.dueDate, '2026-12-15');
+  assert.doesNotThrow(() => C.validate(targetMilestone, []));
+
+  // Updating existing milestone dueDate moves startDate along
+  const updatedDue = C.prepare({ dueDate: '2027-01-10' }, targetMilestone, today, now);
+  assert.equal(updatedDue.startDate, '2027-01-10');
+  assert.equal(updatedDue.dueDate, '2027-01-10');
+  assert.doesNotThrow(() => C.validate(updatedDue, []));
+
+  // Converting a multi-day task to a milestone aligns startDate to dueDate
+  const task = make({ type: 'Task', startDate: '2026-10-01', dueDate: '2026-10-20' });
+  const converted = C.prepare({ type: 'Milestone' }, task, today, now);
+  assert.equal(converted.type, 'Milestone');
+  assert.equal(converted.dueDate, '2026-10-20');
+  assert.equal(converted.startDate, '2026-10-20');
+  assert.doesNotThrow(() => C.validate(converted, []));
+});
+
+test('milestone parenting allows root, epic, or story parents, but rejects task parents or milestone children', () => {
+  const epic = make({ id: 'PRJ-1', type: 'Epic' });
+  const story = make({ id: 'PRJ-2', type: 'Story', parentId: epic.id });
+  const task = make({ id: 'PRJ-3', type: 'Task', parentId: story.id });
+
+  // Milestones can be at project root (no parent), under an Epic, or under a Story
+  const rootMilestone = make({ id: 'PRJ-4', type: 'Milestone', parentId: '' });
+  const epicMilestone = make({ id: 'PRJ-5', type: 'Milestone', parentId: epic.id });
+  const storyMilestone = make({ id: 'PRJ-6', type: 'Milestone', parentId: story.id });
+
+  assert.doesNotThrow(() => C.validate(rootMilestone, [epic, story, task]));
+  assert.doesNotThrow(() => C.validate(epicMilestone, [epic, story, task]));
+  assert.doesNotThrow(() => C.validate(storyMilestone, [epic, story, task]));
+
+  // Milestone cannot belong to a Task or Bug
+  const invalidMilestone = make({ id: 'PRJ-7', type: 'Milestone', parentId: task.id });
+  assert.throws(() => C.validate(invalidMilestone, [epic, story, task]), /milestones belong to epics or stories/);
+
+  // Tasks and Stories cannot belong to a Milestone
+  const childTask = make({ id: 'PRJ-8', type: 'Task', parentId: rootMilestone.id });
+  assert.throws(() => C.validate(childTask, [epic, rootMilestone]), /tasks and bugs may belong to epics, stories, or other tasks/);
 });

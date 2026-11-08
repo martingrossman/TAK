@@ -76,7 +76,7 @@
               <button id="quick-add" type="button" aria-label="Create task" title="Create (Enter)">Create ↵</button>
               <button id="quick-details" type="button" title="Open full creation details. From focused work, Shift+T/S opens the editor directly.">Details</button>
               <details class="quick-entry-options"><summary aria-label="More creation options">More</summary><div class="quick-entry-secondary">
-                <label>Type<select id="quick-kind"><option>Task</option><option>Story</option></select></label>
+                <label>Type<select id="quick-kind"><option>Task</option><option>Story</option><option>Milestone</option></select></label>
                 <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
                 <button id="quick-clear" type="button">Discard draft</button>
               </div><p class="quick-smart-hint">Use @"Martin Novak" for full names. Priorities: !highest, !high, !medium, !low, !lowest. Durations count Mon–Fri inclusively; 2w = 10 workdays, with no holidays. Set an exact deadline with due:today, due:tomorrow or due:YYYY-MM-DD. Use a preview chip’s × to keep a token as title text.</p></details>
@@ -93,6 +93,7 @@
 
         <div id="sheet-actions"></div><div class="workspace-tools">
           <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox" checked>Group by epic</label>
+          <label class="view-toggle" title="Group all milestones into a dedicated project lane on top"><input id="milestones-top-toggle" type="checkbox">Milestones on top</label>
 
 
           <details class="workspace-saved-views tool-menu">

@@ -139,5 +139,5 @@ test('story card cannot change type to task or other on kanban', async ({ page }
   // Task card cannot select Story or Epic (only Task and Bug are options)
   const taskCard = page.locator('.card[data-issue="PRJ-1"]');
   const options = await taskCard.locator('[data-card-type="PRJ-1"] option').allTextContents();
-  expect(options).toEqual(['Task', 'Bug']);
+  expect(options).toEqual(['Task', 'Bug', 'Milestone']);
 });

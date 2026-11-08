@@ -3,6 +3,7 @@
 - **PRC-01** `[Open]` — Minimize token usage by doing tests locally.
 - **PRC-02** `[Open]` — Review and update `AGENTS.md` and other coding instructions.
 - **PRC-03** `[Open]` — Update the README to match the code and setup process.
+- **PRC-04** `[Open]` — Confirm whether saved views in `implement_mvp` are approved for this release; the MVP requirements place them in P2. Keep the release decision separate from the two data-safety fixes below.
 
 # Issues
 
@@ -10,6 +11,8 @@
 - **ISS-02** `[Done · 2026-11-01]` — Use clear Gantt day, week, two-week and month scales while preserving task dates and drag/resize behavior.
 - **ISS-03** `[Done · 2026-11-01]` — Sheet keyboard navigation keeps the focused cell visible around the pinned column and sticky header. Verified locally and in Apps Script; commit `3608c99`.
 - **ISS-04** `[Open]` — Fix the spreadsheet's **Open tracker** link so it opens the deployed tracker.
+- **ISS-05** `[Open · P1]` — Make standalone batch creation idempotent across storage failures and retries. At `implement_mvp` commit `e6eddcb`, `Client.html` writes an issue before separately storing its operation receipt; if the receipt write fails, retry can create a duplicate. Commit issue data and retry identity together, then test a failed receipt write and retry to confirm exactly one issue exists.
+- **ISS-06** `[Open · P1]` — Persist bulk-edit retry details across reloads. At `implement_mvp` commit `e6eddcb`, `Client.html` keeps `bulkEditDraft` only in memory, losing its operation IDs after an uncertain save and reload. Restore the immutable batch and provide a safe retry/reconciliation path; test timeout, reload and retry in local and simulated Apps Script modes.
 
 # Improvements
 
