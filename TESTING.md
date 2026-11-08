@@ -66,6 +66,19 @@ Avoid feeding complete successful logs, entire traces, screenshots of passing te
 
 Use isolated test fixtures and local browser storage. Never point automated tests at a production Google Sheet or run Apps Script deployment commands without explicit approval. A passing local browser suite does not verify the Apps Script-backed mode.
 
+## Smart Notepad and manual Gemini trial
+
+Run the targeted browser cases from this worktree in VS Code PowerShell:
+
+```powershell
+npm.cmd run check
+npx.cmd playwright test e2e/plan-notepad.spec.mjs --workers=2 --retries=0 --reporter=line
+```
+
+The browser file covers local Epic-child creation, manual proposal selection, stale revisions, local receipt recovery and a simulated Apps Script acknowledgement loss. The simulated server is an isolated browser fixture; it does not verify a live Google Sheet. Review the downloaded context before uploading it to Gemini because it contains task descriptions, assignees, dates and dependencies. A live trial needs a separately verified test workbook and Apps Script project.
+
+Verification in this worktree: `npm.cmd run check` passed 201 Node tests; the targeted Edge suite passed 6/6 cases with retries disabled. A live Apps Script workbook has not been tested.
+
 ## Multi-item action verification
 
 ```powershell
