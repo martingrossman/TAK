@@ -18,6 +18,52 @@ test('notepad resolves a new Epic, existing people, and inclusive workdays', () 
   assert.equal(rows[2].fields.dueDate, '2026-11-20');
 });
 
+test('Epic headings reuse existing work or create a new Epic and parent following items', () => {
+  const rows = C.parseNotepad('Epic: Existing epic\nStory: Review scope\nEpic: Fresh launch\nTask: Prepare release\nBug: Check #"Existing epic"', options);
+  assert.equal(rows[0].action, 'reuse');
+  assert.equal(rows[0].id, 'PRJ-1');
+  assert.equal(rows[1].parentRef, 'PRJ-1');
+  assert.equal(rows[2].action, 'create');
+  assert.equal(rows[3].parentRef, rows[2].key);
+  assert.equal(rows[4].parentRef, 'PRJ-1');
+  assert.ok(rows.every(row => !row.errors.length));
+  const repeated = C.parseNotepad('Epic: Fresh launch\nTask: First\nEpic: Fresh launch\nTask: Second', options);
+  assert.equal(repeated[2].action, 'reuse');
+  assert.equal(repeated[3].parentRef, repeated[0].key);
+});
+
+test('Epic selection uses an ID for duplicate titles and blocks stale or ambiguous headings', () => {
+  const duplicate = { ...epic, id: 'PRJ-9' }, context = { ...options, issues: [epic, duplicate] };
+  const chosen = C.parseNotepad('Epic: [PRJ-9] Existing epic\nTask: Linked', context);
+  assert.equal(chosen[0].action, 'reuse');
+  assert.equal(chosen[0].id, 'PRJ-9');
+  assert.equal(chosen[1].parentRef, 'PRJ-9');
+  const ambiguous = C.parseNotepad('Epic: Existing epic\nTask: Cannot attach', context);
+  assert.match(ambiguous[0].errors.join(' '), /More than one Epic/);
+  assert.match(ambiguous[1].errors.join(' '), /Resolve the Epic heading/);
+  const stale = C.parseNotepad('Epic: [PRJ-9] Old name\nTask: Cannot attach', context);
+  assert.equal(stale[0].action, 'reuse');
+  assert.match(stale[0].errors.join(' '), /name changed/);
+  assert.match(stale[1].errors.join(' '), /Resolve the Epic heading/);
+  const changed = C.parseNotepad('Epic: Existing epic !high', options);
+  assert.match(changed[0].errors.join(' '), /cannot change its fields/);
+});
+
+test('notepad accepts comma-separated metadata from the name picker without changing prose commas', () => {
+  const input = 'Epic: Milivice\nStory: prepare targets, @"Jamie Chen", 5d, !low';
+  const rows = C.parseNotepad(input, { ...options, assignees: ['Jamie Chen'] });
+  assert.deepEqual(rows[1].errors, []);
+  assert.equal(rows[1].fields.summary, 'prepare targets');
+  assert.equal(rows[1].fields.assignee, 'Jamie Chen');
+  assert.equal(rows[1].fields.priority, 'Low');
+  assert.equal(rows[1].fields.startDate, '2026-11-09');
+  assert.equal(rows[1].fields.dueDate, '2026-11-13');
+  assert.equal(C.parseNotepad('Story: Research, then report', options)[0].fields.summary, 'Research, then report');
+  const invalid = C.parseNotepad('Story: prepare targets, @"Unknown Name", 5d', options)[0];
+  assert.match(invalid.errors.join(' '), /Unknown assignee/);
+  assert.equal(invalid.fields.summary, 'prepare targets, @"Unknown Name", 5d');
+});
+
 test('notepad shows unknown and ambiguous references and keeps plain prose as a draft line', () => {
   const rows = C.parseNotepad('Task: Call @Alex #Missing +5x !urgent\nWe should rethink the release plan.', options);
   assert.match(rows[0].errors.join(' '), /Unknown Epic|Ambiguous assignee/);

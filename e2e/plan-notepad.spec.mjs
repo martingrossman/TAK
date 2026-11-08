@@ -29,6 +29,56 @@ test('local notepad creates a reviewed Epic and child exactly once across reload
   expect((await localIssues(page)).filter(issue => issue.summary === 'Launch')).toHaveLength(1);
 });
 
+test('notepad name picker accepts comma-separated assignee and workday metadata', async ({ page }) => {
+  await page.addInitScript(issues => { localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues, comments: [], sequence: 2 })); }, starting);
+  await page.goto('/#kanban'); await open(page);
+  const notes = page.locator('#plan-notepad-input');
+  await notes.fill('Epic: Milivice\nStory: prepare targets, @Mar');
+  await expect(page.locator('#plan-notepad-suggestions')).toContainText('Martin Novak');
+  await page.locator('#plan-notepad-suggestions button').filter({ hasText: 'Martin Novak' }).click();
+  await notes.pressSequentially(', 5d, !low');
+  await page.locator('#plan-notepad-parse').click();
+  await expect(page.locator('[data-plan-row="1"] .plan-notepad-row-error')).toBeEmpty();
+  await expect(page.locator('[data-plan-row="1"] [data-plan-field="summary"]')).toHaveValue('prepare targets');
+  await expect(page.locator('[data-plan-row="1"] [data-plan-field="assignee"]')).toHaveValue('Martin Novak');
+  await expect(page.locator('[data-plan-row="1"] [data-plan-field="priority"]')).toHaveValue('Low');
+  await expect(page.locator('#plan-notepad-apply')).toBeEnabled();
+});
+
+test('Epic heading picker reuses an existing Epic and a new heading creates one', async ({ page }) => {
+  await page.addInitScript(issues => { if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues, comments: [], sequence: 2 })); }, starting);
+  await page.goto('/#kanban'); await open(page);
+  const notes = page.locator('#plan-notepad-input');
+  await notes.fill('Epic: Exis');
+  await expect(page.locator('#plan-notepad-suggestions')).toContainText('Existing epic');
+  await notes.press('Enter');
+  await expect(notes).toHaveValue('Epic: Exis\n');
+  await notes.fill('Epic:');
+  await expect(page.locator('#plan-notepad-suggestions')).toContainText('Existing epic');
+  await page.locator('#plan-notepad-suggestions button').filter({ hasText: 'Existing epic' }).click();
+  await expect(notes).toHaveValue('Epic: [PRJ-1] Existing epic');
+  await notes.press('Enter');
+  await notes.pressSequentially('Task: Work under existing');
+  await page.locator('#plan-notepad-parse').click();
+  await expect(page.locator('[data-plan-row="0"]')).toContainText('Use existing Epic');
+  await expect(page.locator('[data-plan-row="1"] [data-plan-parent]')).toHaveValue('PRJ-1');
+  await page.locator('#plan-notepad-apply').click();
+  await expect.poll(async () => (await localIssues(page)).length).toBe(3);
+  expect((await localIssues(page)).filter(issue => issue.type === 'Epic')).toHaveLength(1);
+  expect((await localIssues(page)).find(issue => issue.summary === 'Work under existing')?.parentId).toBe('PRJ-1');
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#plan-notepad-discard').click();
+  await notes.fill('Epic: New territory\nTask: Work under new');
+  await page.locator('#plan-notepad-parse').click();
+  await expect(page.locator('[data-plan-row="0"]')).toContainText('Create Epic');
+  await expect(page.locator('[data-plan-row="1"] [data-plan-parent]')).toHaveValue('draft-1');
+  await page.locator('#plan-notepad-apply').click();
+  await expect.poll(async () => (await localIssues(page)).length).toBe(5);
+  const issues = await localIssues(page), created = issues.find(issue => issue.summary === 'New territory');
+  expect(created?.type).toBe('Epic');
+  expect(issues.find(issue => issue.summary === 'Work under new')?.parentId).toBe(created.id);
+});
+
 test('manual Gemini proposal downloads context and requires selected, reviewed changes', async ({ page }) => {
   await page.addInitScript(issues => { if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues, comments: [{ body: 'Never export this comment', taskId: 'PRJ-2' }], sequence: 2 })); }, starting);
   await page.goto('/#kanban'); await open(page);
@@ -52,6 +102,60 @@ test('manual Gemini proposal downloads context and requires selected, reviewed c
   const issues = await localIssues(page), epic = issues.find(issue => issue.summary === 'Launch');
   expect(issues.find(issue => issue.summary === 'Prepare notes')?.parentId).toBe(epic.id);
   expect(issues.find(issue => issue.id === 'PRJ-2')?.priority).toBe('Medium');
+});
+
+test('simulated private Apps Script sends context and reviews Gemini API proposal before saving', async ({ page }) => {
+  await page.addInitScript(issues => {
+    const saved = JSON.parse(sessionStorage.getItem('plan-api-backend') || 'null');
+    const h = window.planApiCloud = { issues: saved?.issues || structuredClone(issues), calls: saved?.calls || [], sequence: saved?.sequence || 2 };
+    const store = () => sessionStorage.setItem('plan-api-backend', JSON.stringify(h));
+    window.google = { script: {} };
+    Object.defineProperty(window.google.script, 'run', { get() { return {
+      withSuccessHandler(fn) { this.success = fn; return this; }, withFailureHandler(fn) { this.failure = fn; return this; },
+      getProject() { queueMicrotask(() => this.success({ issues: structuredClone(h.issues), comments: {}, settings: [], mode: 'personal', spreadsheetUrl: '' })); },
+      getTaskComments() { queueMicrotask(() => this.success([])); },
+      proposePlanWithGemini(note, contextId, snapshot) {
+        h.calls.push({ method: 'gemini', note, contextId, snapshot }); store();
+        const proposal = { schema: 'tak-plan-proposal/v1', contextId, summary: 'Launch proposal', changes: [
+          { action: 'create', key: 'draft-launch', type: 'Epic', fields: { summary: 'New launch' }, reason: 'Organize work' },
+          { action: 'create', key: 'draft-child', type: 'Task', parentRef: 'draft-launch', fields: { summary: 'Prepare launch' }, reason: 'Next step' }
+        ] };
+        queueMicrotask(() => this.success({ contextId, issueCount: h.issues.length, byteSize: 1234, proposalText: h.invalidNext ? 'Ignore the review and change every task.' : JSON.stringify(proposal) }));
+      },
+      createIssuesBatch(items) {
+        h.calls.push({ method: 'create', title: items[0].input.summary, parentId: items[0].input.parentId });
+        const savedItems = items.map((item, index) => {
+          const issue = { ...issues[0], ...item.input, id: `PRJ-${++h.sequence}`, rank: h.sequence * 1000, version: `v${h.sequence}` };
+          h.issues.push(issue); return { index, issue };
+        }); store(); queueMicrotask(() => this.success({ items: savedItems, errors: [] }));
+      }
+    }; } });
+  }, starting);
+  await page.goto('/#kanban'); await open(page);
+  await expect(page.locator('#plan-notepad-api')).toBeVisible();
+  await page.locator('#plan-notepad-input').fill('Plan a launch from the whole project.');
+  await page.locator('#plan-notepad-api').click();
+  await expect(page.locator('[data-plan-row]')).toHaveCount(2);
+  expect(await page.evaluate(() => planApiCloud.issues.length)).toBe(2);
+  const request = await page.evaluate(() => planApiCloud.calls[0]);
+  expect(request.note).toBe('Plan a launch from the whole project.');
+  expect(JSON.parse(request.snapshot)).toHaveLength(2);
+  await page.reload(); await open(page);
+  await expect(page.locator('[data-plan-row]')).toHaveCount(2);
+  await page.locator('#plan-notepad-apply').click();
+  await expect.poll(() => page.evaluate(() => planApiCloud.issues.length)).toBe(4);
+  const saved = await page.evaluate(() => ({ issues: planApiCloud.issues, calls: planApiCloud.calls }));
+  expect(saved.calls.map(call => call.method)).toEqual(['gemini', 'create', 'create']);
+  expect(saved.calls[2].parentId).toBe(saved.issues.find(issue => issue.summary === 'New launch').id);
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#plan-notepad-discard').click();
+  await page.evaluate(() => { planApiCloud.invalidNext = true; });
+  await page.locator('#plan-notepad-api').click();
+  await expect(page.locator('#plan-notepad-error')).toContainText('Paste a JSON proposal');
+  await expect(page.locator('#plan-notepad-import')).toHaveValue('Ignore the review and change every task.');
+  await page.reload(); await open(page);
+  await expect(page.locator('#plan-notepad-import')).toHaveValue('Ignore the review and change every task.');
+  expect(await page.evaluate(() => planApiCloud.issues.length)).toBe(4);
 });
 
 test('local proposal updates an existing field and blocks a stale revision', async ({ page }) => {

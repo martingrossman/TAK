@@ -173,10 +173,11 @@
   <dialog id="plan-notepad-dialog" class="help-dialog plan-notepad-dialog" aria-labelledby="plan-notepad-title">
     <div class="dialog-header"><div><span class="eyebrow">PLAN WITH REVIEW</span><h2 id="plan-notepad-title">Smart Notepad</h2></div><button id="plan-notepad-close" type="button" class="icon-button" aria-label="Close Smart Notepad">×</button></div>
     <div class="plan-notepad-body">
-      <p>Write free-form notes for Gemini, or one structured item per line to create work directly. Nothing is sent or saved until you choose it.</p>
-      <label class="field" for="plan-notepad-input">Planning notes<textarea id="plan-notepad-input" rows="7" maxlength="30000" aria-controls="plan-notepad-suggestions" aria-expanded="false" placeholder="Epic: Launch&#10;Story: Prepare release #Launch @Martin +5d !high"></textarea></label>
+      <p>Write free-form notes for Gemini, or one structured item per line to create work directly. Type Epic: to choose an existing Epic or enter a new name. Following items use that Epic unless you choose another. Nothing is sent or saved until you choose it.</p>
+      <label class="field" for="plan-notepad-input">Planning notes<textarea id="plan-notepad-input" rows="7" maxlength="30000" aria-controls="plan-notepad-suggestions" aria-expanded="false" placeholder="Epic: Launch&#10;Story: Prepare release @Martin +5d !high"></textarea></label>
       <div id="plan-notepad-suggestions" class="plan-notepad-suggestions" role="listbox" aria-label="Notepad suggestions" hidden></div>
-      <div class="plan-notepad-actions"><button id="plan-notepad-parse" type="button" class="button secondary">Preview structured lines</button><button id="plan-notepad-prepare" type="button" class="button secondary">Prepare for Gemini</button></div>
+      <div class="plan-notepad-actions"><button id="plan-notepad-parse" type="button" class="button secondary">Preview structured lines</button><button id="plan-notepad-prepare" type="button" class="button secondary">Prepare for Gemini</button><button id="plan-notepad-api" type="button" class="button secondary" hidden>Ask Gemini API</button></div>
+      <p id="plan-notepad-api-disclosure" hidden>Ask Gemini API sends these notes and every issue’s task fields to Gemini from this private Apps Script project. TAK may retry once if Gemini is temporarily unavailable. Review the response before applying anything.</p>
       <div id="plan-notepad-context" class="plan-notepad-context" role="status" aria-live="polite">Your notes remain in this browser until you create work.</div>
       <div id="plan-notepad-preview" class="plan-notepad-preview" role="group" aria-label="Notepad proposal"></div>
       <button id="plan-notepad-discard" type="button" class="button subtle" hidden>Discard current review</button>

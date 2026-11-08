@@ -9,7 +9,7 @@ function harness() {
   const notes = new Map();
   const props = new Map([['SPREADSHEET_ID', 'book-1']]);
   let locks = 0, releases = 0;
-  const reads = [], logs = [];
+  const reads = [], logs = [], sleeps = [];
   function range(row, column, height = 1, width = 1) {
     return {
       getValues: () => { reads.push({ row, column, height, width }); return Array.from({ length: height }, (_, r) => Array.from({ length: width }, (_, c) => rows[row - 1 + r]?.[column - 1 + c] ?? '')); },
@@ -30,11 +30,12 @@ function harness() {
     Utilities: {
       formatDate: (date, zone, format) => format === 'yyyy-MM-dd' ? date.toLocaleDateString('en-CA', { timeZone: zone }) : date.toISOString(),
       parseDate: date => new Date(date + 'T00:00:00.000Z'),
-      DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, value) => crypto.createHash('sha256').update(value).digest(), base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url')
+      DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, value) => crypto.createHash('sha256').update(value).digest(), base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url'),
+      sleep: ms => sleeps.push(ms)
     }
   });
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  return { api: context, rows, notes, props, sheet, book, reads, logs, balanced: () => locks === releases };
+  return { api: context, rows, notes, props, sheet, book, reads, logs, sleeps, balanced: () => locks === releases };
 }
 function setTime(h, value) {
   const timestamp = Date.parse(value);
@@ -44,6 +45,105 @@ function setTime(h, value) {
     static [Symbol.hasInstance](value) { return value instanceof Date; }
   };
 }
+function geminiSnapshot(issues) {
+  return JSON.stringify(issues.map(issue => [issue.id, issue.version]).sort((a, b) => a[0].localeCompare(b[0])));
+}
+test('Gemini API receives complete task context and returns a review-only response', () => {
+  const h = harness(), epic = h.api.saveIssue({ summary: 'Launch', type: 'Epic' });
+  h.api.saveIssue({ summary: 'Write plan', description: 'Detailed scope', type: 'Task', parentId: epic.id, assignee: 'Martin', dueDate: '2026-11-30' });
+  const issues = h.api.getProject().issues, calls = [];
+  h.props.set('GEMINI_API_KEY', 'test-only-key');
+  h.api.Utilities.newBlob = value => ({ getBytes: () => Buffer.from(value, 'utf8') });
+  h.api.UrlFetchApp = { fetch: (url, options) => {
+    calls.push({ url, options });
+    return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"schema":"tak-plan-proposal/v1"}' }] } }] }) };
+  } };
+  const result = h.api.proposePlanWithGemini('Please plan the launch', 'plan-12345678', geminiSnapshot(issues));
+  assert.equal(calls.length, 1); assert.match(calls[0].url, /gemini-flash-latest:generateContent$/);
+  assert.equal(calls[0].options.headers['x-goog-api-key'], 'test-only-key');
+  const payload = JSON.parse(calls[0].options.payload), content = JSON.parse(payload.contents[0].parts[0].text.slice(payload.contents[0].parts[0].text.indexOf('{')));
+  assert.equal(content.note, 'Please plan the launch'); assert.equal(content.issues.length, 2);
+  assert.equal(content.issues[1].description, 'Detailed scope'); assert.equal(content.issues[1].assignee, 'Martin');
+  assert.equal(content.issues[1].parentId, epic.id); assert.equal(content.issues[1].dueDate, '2026-11-30');
+  assert.deepEqual(Object.keys(content.issues[1]).sort(), [...C.fields.map(field => field.key), 'taskTypeId'].sort());
+  assert.ok(!calls[0].options.payload.includes('test-only-key'));
+  assert.ok(!calls[0].options.payload.includes('docs.google.com'));
+  assert.equal(result.issueCount, 2); assert.equal(result.proposalText, '{"schema":"tak-plan-proposal/v1"}');
+  const geminiLogs = h.logs.filter(line => line.startsWith('TAK Gemini timing '));
+  assert.deepEqual(geminiLogs.map(line => JSON.parse(line.slice('TAK Gemini timing '.length)).phase), ['request', 'response', 'proposal']);
+  assert.equal(JSON.parse(geminiLogs[1].slice('TAK Gemini timing '.length)).httpStatus, 200);
+  assert.ok(geminiLogs.every(line => !line.includes('test-only-key') && !line.includes('Please plan the launch') && !line.includes('Detailed scope')));
+  assert.equal(h.rows.length, 3); assert.ok(h.balanced());
+});
+test('Gemini API rejects stale or unauthorized contexts before the outbound request', () => {
+  const h = harness(), issue = h.api.saveIssue({ summary: 'Initial' }), snapshot = geminiSnapshot(h.api.getProject().issues);
+  h.props.set('GEMINI_API_KEY', 'test-only-key'); let fetches = 0;
+  h.api.UrlFetchApp = { fetch: () => { fetches++; throw new Error('Unexpected request'); } };
+  h.api.saveIssue({ id: issue.id, summary: 'Newer' }, issue.version);
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /project changed/);
+  assert.equal(fetches, 0);
+  const currentSnapshot = geminiSnapshot(h.api.getProject().issues);
+  h.api.SheetFlowAuth = { require: () => { throw new Error('AUTH_FORBIDDEN'); } };
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', currentSnapshot), /AUTH_FORBIDDEN/);
+  assert.equal(fetches, 0);
+  h.api.sharedHost_ = () => true;
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /private TAK installation/);
+  assert.equal(fetches, 0); assert.ok(h.balanced());
+});
+test('Gemini API protects the key and drafts when configuration or the response fails', () => {
+  const h = harness(), snapshot = geminiSnapshot(h.api.getProject().issues);
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /GEMINI_API_KEY/);
+  h.props.set('GEMINI_API_KEY', 'test-only-key');
+  h.api.Utilities.newBlob = value => ({ getBytes: () => Buffer.from(value, 'utf8') });
+  for (const [status, expected] of [[403, /key or project permission/], [429, /rate or billing/], [503, /HTTP 503/]]) {
+    h.api.UrlFetchApp = { fetch: () => ({ getResponseCode: () => status }) };
+    assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), expected);
+  }
+  h.api.UrlFetchApp = { fetch: () => ({ getResponseCode: () => 200, getContentText: () => 'bad response' }) };
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /unreadable response/);
+  h.api.UrlFetchApp = { fetch: () => { throw new Error('test-only-key'); } };
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /could not be reached/);
+  assert.ok(h.logs.some(line => line.includes('"phase":"fetch-failed"')));
+  assert.ok(h.logs.every(line => !line.includes('test-only-key')));
+  assert.equal(h.rows.length, 1); assert.ok(h.balanced());
+});
+test('Gemini retries one prompt on a quick 503, then returns the proposal', () => {
+  const h = harness(), snapshot = geminiSnapshot(h.api.getProject().issues);
+  h.props.set('GEMINI_API_KEY', 'test-only-key');
+  h.api.Utilities.newBlob = value => ({ getBytes: () => Buffer.from(value, 'utf8') });
+  let calls = 0;
+  h.api.UrlFetchApp = { fetch: () => {
+    calls++;
+    return calls === 1 ? { getResponseCode: () => 503 } : { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"schema":"tak-plan-proposal/v1"}' }] } }] }) };
+  } };
+  const result = h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot);
+  assert.equal(result.proposalText, '{"schema":"tak-plan-proposal/v1"}');
+  assert.equal(calls, 2);
+  assert.equal(h.sleeps.length, 1);
+  assert.ok(h.sleeps[0] >= 2000 && h.sleeps[0] < 4000);
+  const timing = h.logs.filter(line => line.startsWith('TAK Gemini timing ')).map(line => JSON.parse(line.slice('TAK Gemini timing '.length)));
+  assert.deepEqual(timing.map(item => item.phase), ['request', 'response', 'retry', 'response', 'proposal']);
+  assert.equal(timing[3].attempt, 2);
+});
+test('Gemini stops after a second 503 and never retries authorization or quota errors', () => {
+  const h = harness(), snapshot = geminiSnapshot(h.api.getProject().issues);
+  h.props.set('GEMINI_API_KEY', 'test-only-key');
+  h.api.Utilities.newBlob = value => ({ getBytes: () => Buffer.from(value, 'utf8') });
+  let calls = 0;
+  h.api.UrlFetchApp = { fetch: () => { calls++; return { getResponseCode: () => 503 }; } };
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /temporarily unavailable/);
+  assert.equal(calls, 2);
+  for (const status of [403, 429]) {
+    calls = 0; h.api.UrlFetchApp = { fetch: () => { calls++; return { getResponseCode: () => status }; } };
+    assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot));
+    assert.equal(calls, 1);
+  }
+  let tick = 0;
+  h.api.Date = class extends Date { static now() { return tick; } };
+  calls = 0; h.api.UrlFetchApp = { fetch: () => { calls++; tick = 61000; return { getResponseCode: () => 503 }; } };
+  assert.throws(() => h.api.proposePlanWithGemini('Plan', 'plan-12345678', snapshot), /temporarily unavailable/);
+  assert.equal(calls, 1);
+});
 test('ordinary, sidebar, and batch creates default only missing non-Epic starts in the book timezone', () => {
   const h = harness(); setTime(h, '2026-11-06T23:30:00.000Z');
   const today = '2026-11-07';

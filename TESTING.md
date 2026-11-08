@@ -75,9 +75,21 @@ npm.cmd run check
 npx.cmd playwright test e2e/plan-notepad.spec.mjs --workers=2 --retries=0 --reporter=line
 ```
 
-The browser file covers local Epic-child creation, manual proposal selection, stale revisions, local receipt recovery and a simulated Apps Script acknowledgement loss. The simulated server is an isolated browser fixture; it does not verify a live Google Sheet. Review the downloaded context before uploading it to Gemini because it contains task descriptions, assignees, dates and dependencies. A live trial needs a separately verified test workbook and Apps Script project.
+The browser file covers local Epic-child creation, existing Epic selection, new Epic headings, manual proposal selection, stale revisions, local receipt recovery and a simulated Apps Script acknowledgement loss. The simulated server is an isolated browser fixture; it does not verify a live Google Sheet. Review the downloaded context before uploading it to Gemini because it contains task descriptions, assignees, dates and dependencies. A live trial needs a separately verified test workbook and Apps Script project.
 
 Verification in this worktree: `npm.cmd run check` passed 201 Node tests; the targeted Edge suite passed 6/6 cases with retries disabled. A live Apps Script workbook has not been tested.
+
+## Private Gemini API trial
+
+Use a verified private Apps Script test project and workbook. Put the API key in that project's Script Properties as `GEMINI_API_KEY`; keep it out of the repository. Set `GEMINI_MODEL` only if testing a different supported model. The API button sends all task fields and the planning notes to Gemini, so use synthetic data for the first live check. The shared Google app and local browser demo continue to use manual export/import.
+
+The targeted browser command is:
+
+```powershell
+npx.cmd playwright test e2e/plan-notepad.spec.mjs --workers=2 --retries=0 --reporter=line
+```
+
+The new browser case simulates the private Apps Script endpoint, checks that the proposal survives reload, and verifies Epic-before-child save order. It cannot confirm a live Gemini response, API billing, or Apps Script authorization. The server unit tests check full context, key isolation, stale revisions, permissions and HTTP failures.
 
 ## Multi-item action verification
 

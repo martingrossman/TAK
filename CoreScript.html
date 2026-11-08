@@ -118,15 +118,38 @@ var TrackerCore = (function () {
   function parseNotepad(text, options) {
     options = options || {};
     var lines = String(text || '').split(/\r?\n/), issues = Array.isArray(options.issues) ? options.issues : [];
-    var epics = issues.filter(function (issue) { return issue.type === 'Epic'; }).map(function (issue) { return { name: issue.summary, ref: issue.id }; });
+    var metadata = "@(?:\"[^\"]*\"|“[^”]*”|‘[^’]*’|'[^']*'|[\\p{L}\\p{N}_-]+)|#(?:\"[^\"]*\"|[\\p{L}\\p{N}_-]+)|\\+?\\d+[dw]|!(?:highest|high|medium|low|lowest)|due:(?:today|tomorrow|\\d{4}-\\d{2}-\\d{2})";
+    var commaAfterMetadata = new RegExp('(^|\\s)(' + metadata + '),(?=\\s|$)', 'giu');
+    var commaBeforeMetadata = new RegExp(',\\s+(?=(?:' + metadata + ')(?:\\s|$))', 'giu');
+    var existingEpics = issues.filter(function (issue) { return issue.type === 'Epic'; }).map(function (issue) { return { name: issue.summary, ref: issue.id, planned: false }; });
+    var epics = existingEpics.slice(), headings = new Map();
     lines.forEach(function (line, index) {
-      var match = line.trim().match(/^Epic:\s*(.+)$/i);
-      if (match) epics.push({ name: match[1].trim(), ref: 'draft-' + (index + 1) });
+      var match = line.trim().match(/^Epic:\s*(.*)$/i);
+      if (!match) return;
+      var content = match[1].trim(), selected = content.match(/^\[([^\]]+)\](?:\s+(.*))?$/);
+      var name = selected ? String(selected[2] || '').trim() : parseQuickEntry(content.replace(commaAfterMetadata, '$1$2').replace(commaBeforeMetadata, ' '), { assignees: options.assignees, today: options.today }).summary.trim();
+      var heading = { action: 'create', name: name, ref: '', id: '', errors: [] };
+      if (selected) {
+        heading.action = 'reuse'; heading.id = selected[1];
+        var chosen = existingEpics.find(function (epic) { return epic.ref === selected[1]; });
+        if (!chosen) heading.errors.push('Selected Epic no longer exists. Choose it again.');
+        else if (name && name.toLowerCase() !== chosen.name.toLowerCase()) heading.errors.push('Selected Epic name changed. Choose it again.');
+        else { heading.name = chosen.name; heading.ref = chosen.ref; }
+      } else if (name) {
+        var matches = epics.filter(function (epic) { return epic.name.toLowerCase() === name.toLowerCase(); });
+        if (matches.length > 1) heading.errors.push('More than one Epic has this name. Choose one from the suggestions.');
+        else if (matches.length) { heading.action = 'reuse'; heading.name = matches[0].name; heading.ref = matches[0].ref; heading.id = matches[0].planned ? '' : matches[0].ref; }
+        else { heading.ref = 'draft-' + (index + 1); epics.push({ name: name, ref: heading.ref, planned: true }); }
+      }
+      headings.set(index, heading);
     });
+    var activeEpic = null;
     return lines.map(function (line, index) {
       var raw = line.trim(); if (!raw) return null;
       var match = raw.match(/^(Epic|Story|Task|Bug):\s*/i), type = match ? match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase() : 'Task';
-      var content = match ? raw.slice(match[0].length) : raw, errors = [], parentRef = '';
+      var content = match ? raw.slice(match[0].length) : raw, originalContent = content, heading = type === 'Epic' ? headings.get(index) : null;
+      var errors = heading ? heading.errors.slice() : [], parentRef = type === 'Epic' ? '' : activeEpic && activeEpic.ref || '';
+      content = content.replace(commaAfterMetadata, '$1$2').replace(commaBeforeMetadata, ' ');
       var refs = Array.from(content.matchAll(/(?:^|\s)#(?:"([^"]+)"|([^\s]+))/g));
       if (refs.length > 1) errors.push('Choose only one Epic per line.');
       if (refs.length) {
@@ -135,7 +158,7 @@ var TrackerCore = (function () {
         if (matches.length !== 1) errors.push(matches.length ? 'Ambiguous Epic reference.' : 'Unknown Epic reference.');
         else parentRef = matches[0].ref;
         content = content.slice(0, refs[0].index) + content.slice(refs[0].index + refs[0][0].length);
-      }
+      } else if (type !== 'Epic' && activeEpic && activeEpic.error) errors.push('Resolve the Epic heading above before creating this item.');
       if (type === 'Epic' && parentRef) errors.push('Epics cannot have a parent.');
       content = content.replace(/(^|\s)\+(\d+[dw])(?=\s|$)/gi, '$1$2');
       var parsed = parseQuickEntry(content, { assignees: options.assignees, today: options.today });
@@ -143,9 +166,13 @@ var TrackerCore = (function () {
       if (/(^|\s)!(?!highest\b|high\b|medium\b|low\b|lowest\b)\S+/i.test(content)) errors.push('Unknown priority token. Use highest, high, medium, low or lowest.');
       if (/(^|\s)\+\S+/i.test(content)) errors.push('Invalid duration token. Use +5d or +2w.');
       if (type === 'Epic' && (parsed.updates.startDate || parsed.updates.dueDate)) errors.push('Epic dates are derived from their children.');
-      if (!parsed.summary || parsed.summary.length > 250) errors.push('Title must contain 1–250 characters.');
+      if (heading && heading.action === 'reuse' && Object.keys(parsed.updates).length) errors.push('An existing Epic heading cannot change its fields. Edit the Epic separately.');
+      var summary = heading && heading.action === 'reuse' ? heading.name : parsed.summary;
+      if (!summary || summary.length > 250) errors.push('Title must contain 1–250 characters.');
       if (/(^|\s)@[\w"“‘]/u.test(parsed.summary)) errors.push('Unknown assignee. Choose an existing person or keep the @ text literal.');
-      return { key: 'draft-' + (index + 1), line: index + 1, type: type, parentRef: parentRef, fields: Object.assign({ summary: parsed.summary }, parsed.updates), errors: errors };
+      if (type === 'Epic') activeEpic = errors.length || !heading || !heading.ref ? { error: true } : { ref: heading.ref };
+      if (heading && heading.action === 'reuse') return { action: 'reuse', id: heading.id, ref: heading.ref, key: 'draft-' + (index + 1), line: index + 1, type: 'Epic', parentRef: '', fields: { summary: errors.length ? originalContent : heading.name }, errors: errors };
+      return { action: 'create', key: 'draft-' + (index + 1), line: index + 1, type: type, parentRef: parentRef, fields: Object.assign({ summary: errors.length ? originalContent : parsed.summary }, parsed.updates), errors: errors };
     }).filter(Boolean);
   }
   var planEditableFields = ['summary', 'description', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'estimate', 'sprint', 'labels'];
