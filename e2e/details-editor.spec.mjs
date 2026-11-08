@@ -16,6 +16,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
   test(`detailed editor groups retain every property and related action at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.addInitScript(({ key, initial, discussion }) => {
+      localStorage.setItem('sheetflow.ui.v1', JSON.stringify({ sheetLayoutVersion: 2, visibleColumns: ['id', 'summary', 'status', 'assignee', 'priority', 'dueDate'] }));
       if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ issues: initial, comments: Object.values(discussion).flat(), sequence: 4 }));
     }, { key, initial, discussion });
     await page.goto('/#sheet'); await open(page, 'PRJ-2');
@@ -81,6 +82,7 @@ for (const outcome of ['saved', 'failed']) {
         getProject() { queueMicrotask(() => this.success({ issues: structuredClone(h.issues), comments: discussion, settings: [], mode: 'personal', spreadsheetUrl: '' })); },
         saveIssue(input, version) { h.requests.push({ input: structuredClone(input), version, success: this.success, failure: this.failure }); }
       }; } });
+      localStorage.setItem('sheetflow.ui.v1', JSON.stringify({ sheetLayoutVersion: 2, visibleColumns: ['id', 'summary', 'status', 'assignee', 'priority', 'dueDate'] }));
     }, { initial, discussion });
     await page.goto('/#sheet'); await open(page, 'PRJ-2');
     await page.locator('#create-more-options').click();
