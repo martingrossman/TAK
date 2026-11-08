@@ -21,14 +21,17 @@ test('task type presentation supports legacy names, JSON configuration, and safe
 });
 
 test('sample project has unique IDs and valid hierarchy, dates, and dependencies', () => {
-  const issues = C.sample(day); assert.equal(new Set(issues.map(i => i.id)).size, issues.length);
+  const issues = C.sample(day); assert.equal(issues.length, 13);
+  assert.equal(new Set(issues.map(i => i.id)).size, issues.length);
   issues.forEach(i => C.validate(i, issues));
-  const epics = issues.filter(issue => issue.type === 'Epic');
-  assert.equal(epics.length, 3);
-  for (const epic of epics) {
+  assert.deepEqual(
+    Object.fromEntries(['Epic', 'Story', 'Task'].map(type => [type, issues.filter(issue => issue.type === type).length])),
+    { Epic: 3, Story: 3, Task: 7 }
+  );
+  for (const epic of issues.filter(issue => issue.type === 'Epic')) {
     const stories = issues.filter(issue => issue.type === 'Story' && issue.parentId === epic.id);
-    assert.ok(stories.length >= 1 && stories.length <= 2);
-    for (const story of stories) assert.ok(issues.some(issue => ['Task', 'Bug'].includes(issue.type) && issue.parentId === story.id));
+    assert.equal(stories.length, 1);
+    assert.ok(issues.filter(issue => issue.type === 'Task' && issue.parentId === stories[0].id).length >= 2);
   }
   assert.ok(issues.every(issue => issue.description.length > 50 && !issue.description.startsWith('Sample issue')));
 });

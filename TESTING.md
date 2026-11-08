@@ -151,3 +151,9 @@ Gantt keeps a fixed **Epics** group at the start of its toolbar with separate **
 Grouped Kanban now shows a fixed **Epics · Expand all · Collapse all** group above its lanes. Bulk actions affect only displayed Epic lanes, preserve filtered-out Epic preferences, leave **No epic** unchanged, close empty capture before folding, and retain nonempty title or pasted-list drafts.
 
 All 14 `e2e/gantt-epic-view.spec.mjs` cases passed with Kanban added to the shared empty/title/batch capture-safety matrix. Both `e2e/swimlane-progress.spec.mjs` cases passed, covering visible controls, first/second Epic states, filtering, keyboard focus and a 390px viewport. Local Edge at 390×844 measured the complete control group at 241 px inside the 390 px viewport; both bulk actions and empty-capture folding worked. Live Apps Script was not exercised.
+
+## Simple sample project
+
+The built-in empty-project example contains exactly **3 Epics, 3 Stories, and 7 Tasks** across customer portal, team planning, and delivery-update themes. Every Epic owns one Story; every Story owns at least two Tasks. Dates, dependencies, descriptions, priorities, owners, statuses and two Sprints remain valid and varied enough to demonstrate Sheet, Kanban and Gantt.
+
+`npm.cmd run check` passed all 194 Node tests. Local Edge with cleared browser storage created 13 items and measured the expected 3/3/7 type split; all 13 items rendered in Kanban, Sheet and Gantt. Live Apps Script sample loading was not exercised.

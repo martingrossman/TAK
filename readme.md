@@ -12,7 +12,7 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 2. Open your copy. If the menu has not appeared yet, reload the sheet. Choose **🔷 TAK → Open tracker**.
 3. Authorize with the Google account that owns your copy if prompted. TAK opens in a full browser tab, starting in Kanban. Switch to Sheet or Gantt from the top bar. If your browser blocks the new tab, click **Open tracker ↗** in the small launcher.
 
-Your copy starts with three example Epics, six Stories, and twelve Tasks/Bugs. Replace or remove the examples as you make the project your own. Your tasks stay in **your Google spreadsheet**. You do not need to publish an app, copy code, or share your sheet publicly. Bookmark the opened TAK tab for later, including on your phone.
+Your copy starts with a simple example: three Epics, three Stories, and seven Tasks covering a customer portal, team planning, and delivery updates. Replace or remove the examples as you make the project your own. Your tasks stay in **your Google spreadsheet**. You do not need to publish an app, copy code, or share your sheet publicly. Bookmark the opened TAK tab for later, including on your phone.
 
 The shared app requests Google Sheets access and your email identity, then runs using your own Google permissions. Google may show an **unverified-app warning** during this initial release; Google verification is not yet complete. The [browser demo](https://martingrossman.github.io/TAK/) remains separate and saves only in your browser. Developers attaching TAK to a different blank spreadsheet can use the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md).
 
