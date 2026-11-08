@@ -418,7 +418,7 @@ New labels are used to avoid confusion with the old P0/P1/P2 terminology:
 | ISS-01 | Compact existing-issue editor. | done |
 | ISS-02 | Day/week/two-week/month Gantt scales. | done in code; current full regression remains open |
 | ISS-03 | Sheet focus visibility. | done in code; live evidence must be tied to a deployment |
-| ISS-04 | Open tracker link. | TAK-1 |
+| ISS-04 | Shared-starter launcher verified on 2026-11-06; identify any older-copy or independent-installation failure before closing the original report. | TAK-1 follow-up, target unclear |
 | IM-01 | Do not solve with rename only; incorporate into Simple List ↔ Expanded Sheet. | TAK-1 |
 | IM-02 | Direct assignee/common properties are TAK-1; inline comments/description are TAK-2. | split |
 | IM-03 | One-time local → test Sheet import. | TAK-2 |
@@ -429,7 +429,7 @@ New labels are used to avoid confusion with the old P0/P1/P2 terminology:
 | IM-08 | Holidays in Gantt. | TAK-2 |
 | IM-09 | Google Calendar. | TAK-2 |
 | IM-10 | Blank SheetFlow template. | TAK-2 onboarding |
-| IM-11 | Milestone/diamond in Gantt. | TAK-2 |
+| IM-11 | Milestone/diamond was implemented in code on 2026-11-08; release inclusion and live acceptance remain undecided. | Originally TAK-2; scope decision open |
 | IM-12 | Mobile usability. | TAK-1 for basic touch/reflow; advanced mobile patterns TAK-2 |
 | IM-13 | Differentiate colors from Jira. | TAK-1 branding; neutral/cobalt foundation already exists |
 

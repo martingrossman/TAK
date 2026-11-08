@@ -1,6 +1,7 @@
 # TAK documentation overview
 
-**Updated:** 2026-11-02  
+**Updated:** 2026-11-08
+
 **Purpose:** Explain which documents guide current work, which provide supporting evidence, and which are historical.
 
 Start with the unified requirements and roadmap for the TAK direction. The focused MVP PRD and UX specification remain active detailed contracts until their replacement is explicitly accepted. Consolidating their content did not retire them.
@@ -70,3 +71,9 @@ The following alignment work remains pending:
 - Keep this overview current when a document is replaced, archived, or given a new role.
 
 The unified document's implementation and performance figures are a dated snapshot. This overview adds no new application, live Google, accessibility, or performance verification.
+
+## 2026-11-08 status reconciliation
+
+- The current branch implements Milestone (`a0759e5`), while the focused MVP PRD still defines four types and the unified roadmap originally classified milestones as TAK-2. The PRD, roadmap, scope mapping, and backlog now identify this as a product scope and release-acceptance decision, not as completed MVP acceptance.
+- The shared starter's Open tracker path was verified for the 2026-11-06 release. `ISS-04` remains open pending identification and reproduction of the originally reported failure; it is not evidence that the verified starter launcher currently fails.
+- These notes update document status; they do not verify the 2026-11-08 code in a live Apps Script deployment or change the product contract.

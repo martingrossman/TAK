@@ -16,7 +16,7 @@
 | 7. Gantt | **Preserve and polish** | Keep existing drag/resize; defer scheduling engine. |
 | 8. Team/capacity | **Defer** | Existing free-text assignee remains initially. |
 | 9. Holidays/availability | **Defer** | No working-day or partial-day capacity calculations. |
-| 10. Task types/settings | **Defer model migration** | Current Epic/Story/Task/Bug retained; redesign via CSS only first. |
+| 10. Task types/settings | **Defer model migration** | The original MVP contract retained Epic/Story/Task/Bug. Current `implement_mvp` code also has Milestone (`a0759e5`, 2026-11-08); its release scope and acceptance require a separate decision. This mapping does not authorize a broader type/settings migration. |
 | 11. Custom attributes/badges | **Defer** | Simple current metadata/type markers only. |
 | 12. Dashboard | **Simplify** | Remove intrusive stats from workspace; future optional Overview. |
 | 13. Agentic workflow | **Out of MVP** | Codex builds product externally; product does not orchestrate Codex. |

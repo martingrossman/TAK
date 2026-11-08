@@ -189,7 +189,9 @@ Each requirement has an **ID** so Codex can cite it in implementation reports an
 
 ### Existing schema is the MVP compatibility contract
 
-The existing `Issues` sheet has 21 columns; `Core.js` defines: types **Epic, Story, Task, Bug**; statuses **Backlog, To Do, In Progress, Review, Done**; priorities **Highest, High, Medium, Low, Lowest**. `parentId` supports the current parent restrictions, and `rank` controls order. Preserve these now.
+The existing `Issues` sheet has 21 columns. The focused MVP baseline specifies types **Epic, Story, Task, Bug**; statuses **Backlog, To Do, In Progress, Review, Done**; priorities **Highest, High, Medium, Low, Lowest**. `parentId` supports the baseline parent restrictions, and `rank` controls order. Preserve these now.
+
+**Current-code divergence (2026-11-08):** `implement_mvp` commit `a0759e5` added **Milestone** to the type enum and related UI. This paragraph remains the focused MVP scope contract, not a description of current HEAD. Milestone release inclusion and the resulting type/hierarchy acceptance need an explicit product decision; this note does not approve or roll back that change.
 
 Important distinction for later: **hierarchy kind** (epic/story/task/subtask) and **work category** (Algo/Data/Requirements/Bug) are separate concepts. Do not disguise a structural migration as an interface redesign. Document a proposed future model, but defer a schema rewrite until the need and migration plan are approved.
 

@@ -36,6 +36,8 @@ Possible later features: holiday calendars, leave and part-day availability, con
 
 **Keep now:** existing calendar-day Gantt dragging/resizing/dependency display; optional start/due dates and estimates. Do not expand into a schedule solver just to improve the UI.
 
+**Current-code status (2026-11-08):** commit `a0759e5` implemented a Milestone type and related planning UI on `implement_mvp`, although milestones were deferred when this roadmap was written. Implementation alone does not promote them into the focused MVP or certify a live release. Record a product scope decision and local/Apps Script acceptance before changing this roadmap's release priority; the other advanced planning ideas remain deferred.
+
 **Approved narrow exception:** FR-02A permits weekday-only duration tokens in quick entry, mapped to existing start/due dates. This does not promote holiday calendars, configurable workweeks, resource scheduling, automatic rescheduling or changes to calendar-day Gantt dragging.
 
 ## D. Configurability and richer hierarchy
