@@ -273,7 +273,7 @@
   <dialog id="board-move-dialog" class="help-dialog" aria-labelledby="board-move-title">
     <form id="board-move-form">
       <div class="dialog-header"><h2 id="board-move-title">Move issue</h2><button type="button" id="board-move-close" class="icon-button" aria-label="Close move">×</button></div>
-      <div class="help-body"><p id="board-move-context"></p><label class="field">Status<select id="board-move-status"></select></label><label class="field">Epic<select id="board-move-epic" aria-describedby="board-move-note"></select></label><p id="board-move-note">Moves to the end of the destination column. Other issues keep their order.</p><div id="board-move-error" class="error-banner" role="alert" hidden></div></div>
+      <div class="help-body"><p id="board-move-context"></p><label class="field">Status<select id="board-move-status"></select></label><label class="field">Epic<select id="board-move-epic" aria-describedby="board-move-note"></select></label><label class="field">Position<select id="board-move-position"><option value="auto">End of column (or keep current)</option><option value="top">Top of column</option><option value="up">Move up one spot</option><option value="down">Move down one spot</option></select></label><p id="board-move-note">Moves to the end of the destination column. Other issues keep their order.</p><div id="board-move-error" class="error-banner" role="alert" hidden></div></div>
       <div class="dialog-footer"><button type="button" id="board-move-cancel" class="button secondary">Cancel</button><button type="submit" class="button primary">Move</button></div>
     </form>
   </dialog>

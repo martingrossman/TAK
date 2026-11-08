@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 const file = new URL('../dist/index.html', import.meta.url);
 const port = Number(process.env.PORT || 4180);
+const host = process.env.HOST || '127.0.0.1';
 const server = http.createServer(async (req, res) => {
   if (req.url === '/favicon.ico') { res.writeHead(204); res.end(); return; }
   if (!['/', '/index.html'].includes(req.url.split('?')[0])) { res.writeHead(404); res.end('Not found'); return; }
@@ -19,4 +20,4 @@ server.on('error', error => {
   process.exitCode = 1;
 });
 
-server.listen(port, '127.0.0.1', () => console.log(`TAK preview: http://127.0.0.1:${port}`));
+server.listen(port, host, () => console.log(`TAK preview: http://${host}:${port}`));

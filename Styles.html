@@ -599,9 +599,15 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .gantt-lane-meta .swimlane-epic-id { flex:none }
 .gantt-lane-meta .status-badge { display:block; min-width:0; padding:0 3px; overflow:hidden; text-overflow:ellipsis }
 .gantt-lane-copy strong { color:var(--ink); font-weight:600 }
+.card-move { display:none }
 
 @media(max-width:700px) {
-  .card-move, .card-priority, .card-assignee-field input { min-height:44px }
+  .card-move { display:inline-flex; align-items:center; gap:3px; min-height:28px; height:28px; padding:0 8px; border:1px solid var(--line); border-radius:4px; background:var(--surface-muted); color:var(--ink); font-size:11.5px; font-weight:600 }
+  .card-priority { min-height:28px; height:28px; padding:2px 8px; font-size:12px }
+  .card-comment-btn { min-height:28px; height:28px; padding:0 7px }
+  .card-assignee-field input { min-height:20px; height:20px }
+  .card-assignee-field:focus-within input, .card-assignee-field input:focus { min-height:30px; height:30px; width:110px; font-size:16px }
+  .card-due-field:focus-within .card-due-input, .card-due-input:focus { height:30px; font-size:16px }
 }
 </style>
 
@@ -721,4 +727,79 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .issue-table.summary-pinned td[data-column-key="summary"],.issue-table.summary-pinned th[data-column-key="summary"]{position:sticky;left:0;z-index:1;background:var(--surface);border-right:1px solid var(--line)}
 .issue-table.summary-pinned th[data-column-key="summary"]{z-index:3;background:var(--canvas)}
 .issue-table.summary-pinned [data-column-key="summary"]{box-sizing:border-box}
+@media(max-width:700px){
+  main{padding:0 6px 10px}
+  .topbar{padding:4px 8px;gap:4px 6px;min-height:34px}
+  .brand-group .brand{font-size:15px}
+  .sync-status{font-size:10px;padding:1px 6px}
+  #create-issue{min-height:26px;height:26px;padding:0 8px;font-size:11px}
+  .view-nav{padding:1px;gap:1px}
+  .view-nav button{min-height:24px;height:24px;padding:2px 7px;font-size:11px}
+  .header-tools .button{width:26px;min-height:26px;height:26px}
+  .toolbar{display:flex;flex-wrap:nowrap;gap:4px;padding:4px 8px;margin:0 -6px}
+  .toolbar .search{flex:1 1 80px;height:26px;min-height:26px;padding:0 6px;gap:4px}
+  .toolbar .search input{font-size:12px}
+  .toolbar .tool-menu>summary,.sheet-columns-menu>summary,.sheet-tool-actions .button{min-height:26px;height:26px;padding:0 6px;font-size:11px}
+  .workspace-controls{padding:2px 0;gap:4px}
+  .kanban-tools,.sheet-tools,.gantt-tools{margin-bottom:4px;gap:4px;font-size:10.5px}
+  .epic-fold-controls .button{min-height:22px;height:22px;padding:0 5px;font-size:10px}
+  .search kbd,.swimlane-drag-grip,.gantt-tools .gantt-range,.gantt-drag-help,.gantt-label-hit[draggable=true]::before,.swimlane-collapse[data-gantt-drag-id]::before{display:none}
+  .swimlanes{gap:8px}
+  .board{grid-template-columns:repeat(5,minmax(126px,31.5vw));gap:5px;scroll-snap-type:x proximity;scroll-padding-inline:4px;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;min-height:140px;padding-bottom:6px}
+  body.touch-card-dragging{overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+  body.touch-card-dragging .board{scroll-snap-type:none}
+  .swimlane>.board{padding:4px}
+  .column{scroll-snap-align:start;min-height:110px;border-radius:6px}
+  .column-header{min-height:24px;padding:3px 5px;gap:3px;font-size:10.5px}
+  .column-header button{min-width:20px;min-height:20px;width:20px;height:20px;font-size:13px}
+  .column-count{padding:0 4px;font-size:9.5px;min-width:14px}
+  .card-list{padding:4px}
+  .card{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:5px 6px;margin-bottom:4px;border-radius:5px}
+  .card-top{gap:3px;margin-bottom:2px}
+  .card-id{font-size:9.5px;gap:2px}
+  .type-icon{width:12px;height:12px;font-size:9px}
+  .task-type-badge{width:13px;height:13px;flex-basis:13px;font-size:8.5px}
+  .card .issue-select{width:13px;height:13px;min-width:13px}
+  .card-title{font-size:11px;line-height:1.25;min-height:14px}
+  .card-parent{font-size:9.5px;margin-top:2px}
+  .card-labels{margin-top:2px;gap:2px}
+  .label-tag{font-size:9px;padding:0 3px}
+  .card-footer{gap:3px 4px;margin-top:4px}
+  .card-priority{min-height:18px;height:18px;padding:0 4px;font-size:9.5px;max-width:62px}
+  .card-assignee-field .avatar,.card-assignee-field input{width:16px;height:16px;min-height:16px;font-size:8.5px}
+  .card-due-field{font-size:9.5px;padding:0 2px}
+  .card-due-badge .icon{width:10px;height:10px}
+  .card-comment-btn{min-height:18px;height:18px;padding:0 3px;font-size:9.5px}
+  .card-comment-btn .icon{width:10px;height:10px}
+  .card-move{min-height:18px;height:18px;padding:0 4px;font-size:9.5px}
+  .ghost-add{min-height:22px;margin:2px 4px 4px;padding:2px 4px;font-size:10px;width:calc(100% - 8px)}
+  .column-empty{padding:10px 4px;font-size:10px}
+  .touch-drag-ghost{position:fixed;top:0;left:0;z-index:80;pointer-events:none;margin:0;opacity:.92;box-shadow:0 12px 28px #0F172A3D;border-color:var(--primary);will-change:transform}
+  .swimlane>.swimlane-header{flex-wrap:wrap;padding:3px 6px;gap:2px 4px}
+  .swimlane>.swimlane-header .swimlane-collapse{flex:1 1 calc(100% - 40px);min-height:24px;padding:1px 2px;gap:4px;font-size:11px}
+  .swimlane>.swimlane-header strong,.sheet-lane-title strong{font-size:11.5px}
+  .swimlane-epic-id,.swimlane-progress,.swimlane-dates{font-size:10px}
+  .swimlane-add,.swimlane-edit{min-height:22px;height:22px;padding:0 5px;font-size:10px}
+  .swimlane-move-btn{width:22px;min-width:22px;height:22px;min-height:22px;font-size:11px}
+  .swimlane>.swimlane-header .swimlane-order-controls{margin-left:auto}
+  .issue-table{font-size:11px}
+  .issue-table th{height:26px;padding:2px 8px 2px 14px;font-size:10px}
+  .issue-table td,.sheet-issue-row td{height:30px;padding:1px 3px}
+  .issue-table .cell-input{font-size:11px;height:24px;padding:1px 3px}
+  .sheet-primary-cell{padding-left:calc(var(--sheet-depth,0)*5px);gap:2px}
+  .sheet-primary-cell .cell-summary{min-width:44px}
+  .sheet-row-controls button{min-width:13px;width:13px;height:22px;min-height:22px;font-size:10px}
+  .sheet-row-select,.sheet-primary-heading input{width:13px;height:13px;min-width:13px}
+  .issue-table .sheet-lane-row td{height:28px;padding:0 6px}
+  .sheet-lane-title{gap:3px}
+  .sheet-lane-title .swimlane-collapse{min-height:26px;padding:2px;gap:3px;font-size:11px}
+  .gantt-row{height:30px}
+  .gantt-bar{top:5px;height:20px;font-size:10px;padding:0 5px}
+  .gantt-row-label strong,.gantt-label-summary{font-size:10.5px}
+  .gantt-row-label .gantt-label-hit{padding-left:calc(2px + var(--row-depth,0)*6px);gap:2px}
+  .gantt-bar .resize-handle{width:12px}
+}
+@media(max-width:420px){
+  .workspace-filters .filters{grid-template-columns:1fr}
+}
 </style>

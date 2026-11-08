@@ -44,6 +44,7 @@ test('hidden columns retain widths, saved views restore layout, sort remains ind
 });
 for(const viewport of [{width:1366,height:768},{width:768,height:900},{width:390,height:844}])test(`compact controls, filters and all views at ${viewport.width}px`,async({page})=>{
  await page.setViewportSize(viewport);await ready(page);expect((await page.locator('.table-wrap').boundingBox()).y).toBeLessThan(viewport.width>1000?180:300);
+ if(viewport.width<=700){const summaryBox=await page.locator('th[data-column-key="summary"]').boundingBox();expect(summaryBox.width).toBeLessThanOrEqual(viewport.width*0.55);}
  await expect(page.locator('td[data-column-key="id"]')).toHaveCount(0);await expect(page.locator('.sheet-primary-cell [data-sheet-select]').first()).toBeVisible();await page.locator('#workspace-filters>summary').click();await expect(page.locator('#priority-filter')).toBeVisible();await page.locator('#priority-filter').selectOption('High');await page.locator('#workspace-filters>summary').click();await expect(page.locator('#active-filter-chips')).toContainText('High');
  for(const view of ['kanban','gantt','sheet']){await page.locator(`[data-view="${view}"]`).click();await expect(page.locator('#priority-filter')).toHaveValue('High');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);}
  await page.locator('[data-remove-filter="priority"]').click();

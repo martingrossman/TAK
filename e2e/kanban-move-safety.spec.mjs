@@ -98,3 +98,22 @@ for (const outcome of ['ok', 'fail', 'conflict']) test(`cloud move handles delay
     expect(await page.evaluate(() => moveHarness.issues.find(i => i.id === 'PRJ-5').parentId)).toBe('PRJ-1');
   }
 });
+
+test('mobile card Move button reorders in-column and moves across status/Epic while desktop hides it', async ({ page }) => {
+  await setup(page);
+  await expect(page.locator('[data-board-move="PRJ-5"]')).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const moveBtn = page.locator('[data-board-move="PRJ-5"]');
+  await expect(moveBtn).toBeVisible();
+  await moveBtn.click();
+  await expect(page.locator('#board-move-dialog')).toBeVisible();
+  await page.locator('#board-move-position').selectOption('top');
+  await page.locator('#board-move-form').getByRole('button', { name: 'Move', exact: true }).click();
+  await expect(page.locator('#board-move-dialog')).toBeHidden();
+  const orderInLane = () => page.locator('.swimlane[data-epic-lane="PRJ-1"] .column[data-status="Backlog"] .card[data-issue]').evaluateAll(els => els.map(el => el.dataset.issue));
+  expect(await orderInLane()).toEqual(['PRJ-5', 'PRJ-3', 'PRJ-4']);
+  await page.locator('[data-board-move="PRJ-5"]').click();
+  await page.locator('#board-move-position').selectOption('down');
+  await page.locator('#board-move-form').getByRole('button', { name: 'Move', exact: true }).click();
+  expect(await orderInLane()).toEqual(['PRJ-3', 'PRJ-5', 'PRJ-4']);
+});

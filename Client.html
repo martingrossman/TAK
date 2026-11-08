@@ -62,7 +62,11 @@
   function normalizeSheetWidths(widths) { return Object.fromEntries(Object.entries(widths && typeof widths === 'object' ? widths : {}).filter(([key,value]) => sheetColumnDefinitions().has(key) && Number.isFinite(Number(value))).map(([key,value]) => [key,clampSheetWidth(key,value)])); }
   const sheetWidth = key => {
     const configured = clampSheetWidth(key, state.sheetColumnWidths[key] || defaultSheetWidths[key] || 140);
-    return key === 'summary' && innerWidth <= 700 ? Math.min(configured, Math.max(sheetMinimumWidth(key), innerWidth - 26)) : configured;
+    if (innerWidth <= 700 && !Object.hasOwn(state.sheetColumnWidths, key)) {
+      const mobileDefaults = { summary: Math.max(125, Math.round(innerWidth * 0.34)), status: 76, assignee: 82, priority: 68, dueDate: 84, startDate: 84, id: 70 };
+      return mobileDefaults[key] || 68;
+    }
+    return key === 'summary' && innerWidth <= 700 ? Math.min(configured, Math.max(125, Math.round(innerWidth * 0.38))) : configured;
   };
   function normalizeSheetColumnOrder(keys) {
     const available = new Set(['taskTypeId', ...C.fields.map(field => field.key)]), seen = new Set();
@@ -106,7 +110,15 @@
     state.collapsedSheetParents = {};
     state.visibleColumns = defaultSheetColumnOrder.slice();
   }
-  function clampGanttLabelWidth(value) { const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max); return Math.round(Math.max(min, Math.min(max, Number(value) || 260))); }
+  function clampGanttLabelWidth(value) {
+    if (window.innerWidth <= 700) {
+      const max = Math.min(200, Math.max(1, window.innerWidth * 0.46)), min = Math.min(115, max);
+      const effective = (!value || Number(value) === 260) ? Math.round(window.innerWidth * 0.36) : Number(value);
+      return Math.round(Math.max(min, Math.min(max, effective)));
+    }
+    const max = Math.min(480, Math.max(1, window.innerWidth * 0.6)), min = Math.min(180, max);
+    return Math.round(Math.max(min, Math.min(max, Number(value) || 260)));
+  }
   // Navigation context is independent of checkbox selection and never follows hover.
   let activeIssueId = '', entrySession = null, entryOrigin = null, entryAnchor = null, entryVisible = false, restoringEntryFocus = false;
   const navigationSelector = '.sheet-row-grip, .card[data-issue], .gantt-label-hit, .swimlane-collapse, .column-header, [data-pending-quick]';
@@ -803,7 +815,7 @@
   function draftKey(input) { return input?.id || input?._draftKey || '__new__'; }
   function draftStorageKeyFor(id) { return state.drafts[id] ? id : Object.keys(state.pendingCreateIds).find(key => state.pendingCreateIds[key] === id && state.drafts[key]) || id || '__new__'; }
   function saveQueueKeyFor(id) { return Object.keys(state.saveQueues).find(key => key === id || state.pendingCreateIds[key] === id) || id || '__new__'; }
-  function newOperationId() { return crypto.randomUUID ? crypto.randomUUID() : `op-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+  function newOperationId() { return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ? crypto.randomUUID.call(crypto) : `op-${Date.now()}-${Math.random().toString(36).slice(2)}`; }
   function saveDraft(input, version, operationId) {
     const key = draftKey(input); if (!key) return;
     state.drafts[key] = { input: { ...input }, version, operationId, savedAt: new Date().toISOString() };
@@ -833,7 +845,7 @@
   function getLocal() {
     const raw = localStorage.getItem(storageKey);
     if (raw === null) {
-      const issues = C.sample(today()).map(i => ({ ...i, version: crypto.randomUUID() }));
+      const issues = C.sample(today()).map(i => ({ ...i, version: newOperationId() }));
       const db = { issues, comments: [], sequence: issues.length };
       localStorage.setItem(storageKey, JSON.stringify(db));
       return db;
@@ -892,7 +904,7 @@
         issue.taskTypeId = original.taskTypeId || 'algo'; issue.status = 'Backlog'; issue.progress = 0; issue.timeSpent = 0; issue.completedDate = ''; issue.createdAt = now; issue.updatedAt = now;
         const existing = [...db.issues, ...copies.map(entry => entry.issue)].filter(item => item.parentId === issue.parentId && item.status === issue.status);
         issue.rank = existing.reduce((max, item) => Math.max(max, Number(item.rank) || 0), 0) + 1000;
-        issue.version = crypto.randomUUID(); idMap[original.id] = issue.id; copies.push({ sourceId: original.id, issue });
+        issue.version = newOperationId(); idMap[original.id] = issue.id; copies.push({ sourceId: original.id, issue });
       });
       const projected = [...db.issues, ...copies.map(entry => entry.issue)];
       copies.forEach(entry => C.validate(entry.issue, projected));
@@ -978,7 +990,7 @@
         prepared.forEach(entry => { try { C.validate(entry.issue, projected); } catch (error) { errors.push({ id: entry.current.id, message: error.message || String(error) }); } });
       }
       if (errors.length) return { items: [], errors, rejected: true };
-      prepared.forEach(entry => { entry.issue.version = crypto.randomUUID(); receipts[entry.item.operationId] = entry.issue; });
+      prepared.forEach(entry => { entry.issue.version = newOperationId(); receipts[entry.item.operationId] = entry.issue; });
       db.issues = db.issues.map(issue => prepared.find(entry => entry.current.id === issue.id)?.issue || issue);
       localStorage.setItem(storageKey, JSON.stringify(db)); localStorage.setItem(localReceiptStorageKey, JSON.stringify(receipts));
       return { items: prepared.map(entry => ({ id: entry.issue.id, issue: entry.issue })), errors: [] };
@@ -987,7 +999,7 @@
     if (method === 'getProject') return { issues: db.issues, comments: db.comments.reduce((map, comment) => { (map[comment.taskId] ||= []).push(comment); return map; }, {}), settings: [], spreadsheetUrl: '', name: 'Sample project' };
     if (method === 'getTaskComments') return db.comments.filter(comment => comment.taskId === args[0]);
     if (method === 'addTaskComment') {
-      const [taskId, body] = args, comment = { id: 'COM-' + crypto.randomUUID(), taskId, authorId: 'browser-user', body: body.trim(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), editedBy: '' };
+      const [taskId, body] = args, comment = { id: 'COM-' + newOperationId(), taskId, authorId: 'browser-user', body: body.trim(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), editedBy: '' };
       if (!comment.body || comment.body.length > 5000) throw new Error('Comment must contain between 1 and 5,000 characters.');
       db.comments.push(comment); localStorage.setItem(storageKey, JSON.stringify(db)); return comment;
     }
@@ -1003,7 +1015,7 @@
       if (current && current.version !== version) throw new Error('This issue changed elsewhere. Refresh, then apply your changes again.');
       const issue = C.prepare(input, current, today(), new Date().toISOString());
       if (!current) { db.sequence = Math.max(db.sequence, ...db.issues.map(i => Number(/^PRJ-(\d+)$/.exec(i.id)?.[1]) || 0)); issue.id = 'PRJ-' + (++db.sequence); }
-      C.validate(issue, db.issues); issue.version = crypto.randomUUID();
+      C.validate(issue, db.issues); issue.version = newOperationId();
       db.issues = current ? db.issues.map(i => i.id === issue.id ? issue : i) : [...db.issues, issue];
       localStorage.setItem(storageKey, JSON.stringify(db));
       return issue;
@@ -1888,6 +1900,7 @@
           <span class="card-due-badge">${isMilestone ? '<span style="color:#d97706;font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
           <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="${isMilestone ? 'Target date' : 'Due date'} for ${escape(issue.summary)}">
         </label>
+        <button type="button" class="card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.summary)}" title="Move or reorder">⇄ Move</button>
         <button type="button" class="card-comment-btn" data-card-comment-toggle="${escape(issue.id)}" title="${commentsCount ? commentsCount + ' comments · Click to add' : 'Add quick comment'}" aria-label="Add comment to ${escape(issue.id)}">
           ${icon('message')}
           ${commentsCount ? `<span class="card-comment-count">${commentsCount}</span>` : ''}
@@ -2511,20 +2524,22 @@
     C.validate(C.prepare(input, issue, today(), new Date().toISOString()), state.issues);
     return persist(input, issue.version, typeChanged ? 'Converted to Task · Board updated' : 'Board updated', 'moveIssue');
   }
-  let boardMoveIssue = null;
+  let boardMoveIssue = null, boardMoveFromButton = false;
   function focusBoardIssue(id) {
     const card = $$('.card').find(element => element.dataset.issue === id);
-    (card?.querySelector('[data-board-move]') || card || $('#swimlanes-toggle')).focus();
+    const moveBtn = boardMoveFromButton ? card?.querySelector('[data-board-move]') : null;
+    ((moveBtn?.getClientRects().length ? moveBtn : null) || card || $('#swimlanes-toggle')).focus();
   }
   function closeBoardMove() {
-    const id = boardMoveIssue?.id; $('#board-move-dialog').close(); boardMoveIssue = null; focusBoardIssue(id);
+    const id = boardMoveIssue?.id; $('#board-move-dialog').close(); boardMoveIssue = null; focusBoardIssue(id); boardMoveFromButton = false;
   }
-  function openBoardMove(id) {
+  function openBoardMove(id, fromButton = false) {
     const issue = issueById(id); if (!issue || state.busy) return;
-    boardMoveIssue = { ...issue };
+    boardMoveIssue = { ...issue }; boardMoveFromButton = Boolean(fromButton);
     $('#board-move-context').textContent = `${id} · ${issue.summary}`;
     $('#board-move-status').innerHTML = options(C.statuses, issue.status);
     $('#board-move-epic').innerHTML = options(state.issues.filter(item => item.type === 'Epic').map(item => ({ value: item.id, label: item.summary })), boardEpicId(issue), 'No Epic');
+    if ($('#board-move-position')) $('#board-move-position').value = 'auto';
     const nested = issue.parentId && issueById(issue.parentId)?.type !== 'Epic';
     $('#board-move-epic').disabled = issue.type === 'Epic' || Boolean(nested);
     $('#board-move-note').textContent = nested ? 'Status changes preserve this issue’s parent. To change Epic, move its parent or explicitly reparent it in the issue editor.' : issue.type === 'Epic' ? 'Epics stay at the top level.' : 'Moves to the end of the destination column. Other issues keep their order.';
@@ -2538,10 +2553,28 @@
     event.preventDefault(); const issue = boardMoveIssue; if (!issue || state.busy) return;
     try {
       // Keep the revision captured when the user opened the dialog.
-      const status = $('#board-move-status').value, epicId = $('#board-move-epic').value;
+      const status = $('#board-move-status').value, epicId = $('#board-move-epic').value, position = $('#board-move-position')?.value || 'auto';
       const parentId = boardMoveParent(issue, epicId);
-      if (status === issue.status && parentId === issue.parentId) { closeBoardMove(); return; }
-      const rank = (boardScopeItems(status, epicId, issue.id).at(-1)?.rank || 0) + 1000;
+      const sameColumn = status === issue.status && parentId === issue.parentId;
+      if (sameColumn && position === 'auto') { closeBoardMove(); return; }
+      const laneKey = issue.type === 'Milestone' && state.milestonesOnTop ? '__milestones__' : epicId;
+      let rank = issue.rank;
+      if (sameColumn && (position === 'up' || position === 'down')) {
+        const siblings = boardScopeItems(status, laneKey), index = siblings.findIndex(item => item.id === issue.id);
+        if (position === 'up' && index > 0) {
+          const targetRank = Number(siblings[index - 1].rank) || 0, previousRank = index > 1 ? Number(siblings[index - 2].rank) || 0 : targetRank - 1000;
+          rank = (targetRank + previousRank) / 2;
+        } else if (position === 'down' && index >= 0 && index < siblings.length - 1) {
+          const targetRank = Number(siblings[index + 1].rank) || 0, nextRank = index + 2 < siblings.length ? Number(siblings[index + 2].rank) || 0 : targetRank + 1000;
+          rank = (targetRank + nextRank) / 2;
+        } else { closeBoardMove(); return; }
+      } else {
+        const neighbors = boardScopeItems(status, laneKey, issue.id);
+        if (position === 'top' || (!sameColumn && position === 'up')) {
+          rank = neighbors.length ? (Number(neighbors[0].rank) || 0) - 500 : 1000;
+          if (sameColumn && neighbors.length && Number(issue.rank) < Number(neighbors[0].rank)) { closeBoardMove(); return; }
+        } else rank = (neighbors.at(-1)?.rank || 0) + 1000;
+      }
       const saving = saveBoardMove(issue, status, parentId, rank);
       closeBoardMove();
       try { await saving; } catch (error) { notify(error.message, true); }
@@ -2585,7 +2618,7 @@
     state.ganttLabelWidth = clampGanttLabelWidth(width);
     const grid = $('#view-content .gantt-grid'), resizer = $('#view-content .gantt-resizer');
     if (grid) grid.style.setProperty('--label-width', `${state.ganttLabelWidth}px`);
-    if (resizer) { const max = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
+    if (resizer) { const max = window.innerWidth <= 700 ? Math.min(220, Math.max(1, Math.round(window.innerWidth * 0.5))) : Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))); resizer.setAttribute('aria-valuemin', Math.min(window.innerWidth <= 700 ? 140 : 180, max)); resizer.setAttribute('aria-valuemax', max); resizer.setAttribute('aria-valuenow', state.ganttLabelWidth); }
   }
   function addEpicViewControls(view, epicIds, mount) {
     const ids = [...new Set(epicIds)];
@@ -2784,10 +2817,10 @@
       links += `<path d="M${from.right},${from.y} H${turn} V${to.y} H${to.left}" fill="none" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`;
     }));
     const todayOffset = C.dateNumber(today()) - C.dateNumber(start);
-    const labelMin = Math.min(180, Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)))), labelMax = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)));
+    const labelWidth = clampGanttLabelWidth(state.ganttLabelWidth), labelMax = window.innerWidth <= 700 ? Math.min(220, Math.max(1, Math.round(window.innerWidth * 0.5))) : Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6))), labelMin = Math.min(window.innerWidth <= 700 ? 140 : 180, labelMax);
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
-    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${labelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${labelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
     addEpicViewControls('gantt', epicIds, $('#view-content .gantt-tools .left'));
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
@@ -3425,7 +3458,7 @@
     }
     if (event.target.closest('[data-card-priority], .card-assignee-field, .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment')) return;
     const cardTitle = event.target.closest('[data-card-title]');
-    if (cardTitle) {
+    if (cardTitle && !matchMedia('(max-width: 700px)').matches) {
       event.stopPropagation();
       const id = cardTitle.dataset.cardTitle;
       const input = document.querySelector(`[data-card-title-input="${CSS.escape(id)}"]`);
@@ -3458,9 +3491,11 @@
     }
     if (state.view === 'sheet' && event.target.closest('.sheet-columns-menu > summary')) { state.sheetColumnsMenuOpen = !state.sheetColumnsMenuOpen; return; }
     const boardMove = event.target.closest('[data-board-move]');
-    if (boardMove) { openBoardMove(boardMove.dataset.boardMove); return; }
+    if (boardMove) { openBoardMove(boardMove.dataset.boardMove, true); return; }
     const sheetMove = event.target.closest('[data-sheet-move]');
     if (state.view === 'sheet' && sheetMove) { moveSheetWithKeyboard(sheetMove.dataset.sheetMoveId, sheetMove.dataset.sheetMove); return; }
+    const sheetGrip = event.target.closest('[data-sheet-drag-id]');
+    if (state.view === 'sheet' && sheetGrip && matchMedia('(max-width: 700px)').matches) { openIssue(sheetGrip.dataset.sheetDragId); return; }
     const storyLabel = event.target.closest('.gantt-row-label.has-story-toggle');
     if (ganttStoryClickTimer && (!storyLabel || storyLabel.dataset.open !== ganttStoryClickTimer.id || event.detail > 1)) cancelGanttStoryClick();
     const swimlaneMove = event.target.closest('[data-swimlane-move]');
@@ -3517,13 +3552,13 @@
       const step = { days: 28, weeks: 28, twoWeeks: 56, months: 182 }[state.zoom] || 28;
       const next = target.dataset.timeline === 'today' ? C.addDays(today(), -7) : C.addDays(state.timelineStart, Number(target.dataset.timeline) * step);
       if (C.validDate(next) && next <= '2200-01-01') { state.timelineStart = next; render(); }
-    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-tree-toggle, .gantt-add-button')) {
+    } else if (state.view === 'gantt' && storyLabel && !target.closest('.gantt-tree-toggle, .gantt-add-button') && !matchMedia('(max-width: 700px)').matches) {
       if (event.detail === 1) {
         cancelGanttStoryClick(); const id = storyLabel.dataset.open;
         ganttStoryClickTimer = { id, timer: setTimeout(() => { ganttStoryClickTimer = null; setGanttStoryCollapsed(id, !state.collapsedGanttStories[id]); render(); }, 350) };
       }
       return;
-    } else if (state.view === 'gantt' && target.closest('.gantt-row-label, .gantt-bar') && !target.closest('.swimlane-edit')) return;
+    } else if (state.view === 'gantt' && target.closest('.gantt-row-label, .gantt-bar') && !target.closest('.swimlane-edit') && !matchMedia('(max-width: 700px)').matches) return;
     else openIssue(target.dataset.open || target.dataset.issue || target.dataset.bar);
   });
   $('#view-content').addEventListener('dblclick', event => {
@@ -3760,7 +3795,7 @@
       sheetSource.closest('.sheet-issue-row')?.classList.add('sheet-dragging'); return;
     }
     if (event.target.closest('[data-card-priority], [data-card-assignee], .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment, [data-card-title-input]')) { event.preventDefault(); return; }
-    const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
+    const card = event.target.closest('.card[data-issue]'); if (!card || state.busy || touchCardDrag) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
   function clearDragStyle(includeSource = true) {
@@ -3959,6 +3994,154 @@
     if (resize.element.hasPointerCapture(event.pointerId)) resize.element.releasePointerCapture(event.pointerId);
     saveUiState(); return true;
   }
+  let touchCardDrag = null;
+  function previewTouchCardTarget(x, y) {
+    if (!touchCardDrag?.active || state.busy) return;
+    const el = document.elementFromPoint(x, y), column = el?.closest('.column'), card = el?.closest('.card[data-issue]');
+    const issue = issueById(touchCardDrag.id);
+    if (!column || !issue) { clearDragStyle(false); return; }
+    const targetIssue = card && card.dataset.issue !== touchCardDrag.id ? issueById(card.dataset.issue) : null;
+    const cardZone = kanbanCardDropZone(issue, targetIssue, card, y);
+    if (cardZone !== 'parent') {
+      try { boardMoveParent(issue, state.swimlanes ? column.closest('.swimlane')?.dataset.epicLane || '' : boardEpicId(issue)); }
+      catch (error) { clearDragStyle(false); if ($('#toast').hidden || $('#toast').textContent !== error.message) notify(error.message, true); return; }
+    }
+    clearDragStyle(false);
+    column.classList.add('drag-over');
+    if (card && card.dataset.issue !== touchCardDrag.id) {
+      card.classList.add(cardZone === 'parent' ? 'drop-parent' : cardZone === 'after' ? 'drop-after' : 'drop-before');
+    }
+  }
+  function stepTouchCardAutoScroll() {
+    if (!touchCardDrag?.active) return;
+    const { x, y } = touchCardDrag, edge = 56, maxStep = 14;
+    const el = document.elementFromPoint(x, y);
+    const board = el?.closest('.board') || touchCardDrag.card.closest('.board') || $('#view-content .board');
+    let scrolled = false;
+    if (board) {
+      const rect = board.getBoundingClientRect();
+      if (x < rect.left + edge && board.scrollLeft > 0) {
+        board.scrollLeft -= Math.ceil(((rect.left + edge - x) / edge) * maxStep);
+        scrolled = true;
+      } else if (x > rect.right - edge && board.scrollLeft < board.scrollWidth - board.clientWidth) {
+        board.scrollLeft += Math.ceil(((x - (rect.right - edge)) / edge) * maxStep);
+        scrolled = true;
+      }
+    }
+    if (y < edge && window.scrollY > 0) {
+      window.scrollBy(0, -Math.ceil(((edge - y) / edge) * maxStep));
+      scrolled = true;
+    } else if (y > window.innerHeight - edge) {
+      window.scrollBy(0, Math.ceil(((y - (window.innerHeight - edge)) / edge) * maxStep));
+      scrolled = true;
+    }
+    if (scrolled) previewTouchCardTarget(x, y);
+    touchCardDrag.scrollFrame = requestAnimationFrame(stepTouchCardAutoScroll);
+  }
+  function cleanupTouchCardDrag() {
+    if (!touchCardDrag) return;
+    clearTimeout(touchCardDrag.timer);
+    cancelAnimationFrame(touchCardDrag.scrollFrame);
+    touchCardDrag.ghost?.remove();
+    document.body.classList.remove('touch-card-dragging');
+    touchCardDrag = null;
+    draggingId = null;
+    clearDragStyle();
+  }
+  $('#view-content').addEventListener('contextmenu', event => {
+    if (touchCardDrag?.active) event.preventDefault();
+  });
+  $('#view-content').addEventListener('touchstart', event => {
+    if (state.view !== 'kanban' || state.busy || event.touches.length !== 1) return;
+    if (event.target.closest('[data-card-priority], [data-card-assignee], .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment, [data-card-title-input], [data-issue-select], [data-board-move]')) return;
+    const card = event.target.closest('.card[data-issue]');
+    if (!card) return;
+    const touch = event.touches[0], rect = card.getBoundingClientRect(), width = Math.min(rect.width, 250);
+    cleanupTouchCardDrag();
+    touchCardDrag = {
+      id: card.dataset.issue,
+      card,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      x: touch.clientX,
+      y: touch.clientY,
+      offsetX: Math.min(Math.max(24, touch.clientX - rect.left), width - 24),
+      offsetY: Math.min(Math.max(18, touch.clientY - rect.top), Math.max(36, rect.height - 18)),
+      width,
+      active: false,
+      ghost: null,
+      scrollFrame: 0,
+      timer: setTimeout(() => {
+        if (!touchCardDrag || state.busy) return;
+        touchCardDrag.active = true;
+        draggingId = touchCardDrag.id;
+        document.body.classList.add('touch-card-dragging');
+        card.classList.add('dragging');
+        if (navigator.vibrate) try { navigator.vibrate(15); } catch (ignore) {}
+        const ghost = card.cloneNode(true);
+        ghost.className = 'card touch-drag-ghost';
+        ghost.removeAttribute('data-issue');
+        ghost.removeAttribute('draggable');
+        ghost.style.width = touchCardDrag.width + 'px';
+        ghost.style.transform = `translate3d(${Math.round(touchCardDrag.x - touchCardDrag.offsetX)}px, ${Math.round(touchCardDrag.y - touchCardDrag.offsetY)}px, 0) scale(1.02)`;
+        document.body.append(ghost);
+        touchCardDrag.ghost = ghost;
+        previewTouchCardTarget(touchCardDrag.x, touchCardDrag.y);
+        touchCardDrag.scrollFrame = requestAnimationFrame(stepTouchCardAutoScroll);
+      }, 200)
+    };
+  }, { passive: true });
+  $('#view-content').addEventListener('touchmove', event => {
+    if (!touchCardDrag) return;
+    const touch = event.touches[0];
+    if (!touch) { cleanupTouchCardDrag(); return; }
+    touchCardDrag.x = touch.clientX;
+    touchCardDrag.y = touch.clientY;
+    if (!touchCardDrag.active) {
+      if (Math.hypot(touch.clientX - touchCardDrag.startX, touch.clientY - touchCardDrag.startY) > 10) cleanupTouchCardDrag();
+      return;
+    }
+    if (event.cancelable) event.preventDefault();
+    if (touchCardDrag.ghost) {
+      touchCardDrag.ghost.style.transform = `translate3d(${Math.round(touch.clientX - touchCardDrag.offsetX)}px, ${Math.round(touch.clientY - touchCardDrag.offsetY)}px, 0) scale(1.02)`;
+    }
+    previewTouchCardTarget(touch.clientX, touch.clientY);
+  }, { passive: false });
+  $('#view-content').addEventListener('touchend', async event => {
+    if (!touchCardDrag) return;
+    if (!touchCardDrag.active) { cleanupTouchCardDrag(); return; }
+    if (event.cancelable) event.preventDefault();
+    const { id, x, y } = touchCardDrag;
+    const el = document.elementFromPoint(x, y), column = el?.closest('.column'), target = el?.closest('.card[data-issue]');
+    const issue = issueById(id);
+    const targetIssue = target && target.dataset.issue !== id ? issueById(target.dataset.issue) : null;
+    const cardZone = kanbanCardDropZone(issue, targetIssue, target, y);
+    cleanupTouchCardDrag();
+    suppressClickUntil = Date.now() + 450;
+    if (!column || !issue || target?.dataset.issue === id) return;
+    const lane = column.closest('.swimlane'), laneId = lane?.dataset.epicLane || '';
+    const neighbors = boardScopeItems(column.dataset.status, laneId, id);
+    const targetIndex = target ? neighbors.findIndex(i => i.id === target.dataset.issue) : -1;
+    let rank;
+    if (targetIndex >= 0) {
+      if (cardZone === 'after' || cardZone === 'parent') {
+        const nextRank = targetIndex + 1 < neighbors.length ? neighbors[targetIndex + 1].rank : neighbors[targetIndex].rank + 1000;
+        rank = (neighbors[targetIndex].rank + nextRank) / 2;
+      } else {
+        const prevRank = targetIndex > 0 ? neighbors[targetIndex - 1].rank : 0;
+        rank = (neighbors[targetIndex].rank + prevRank) / 2;
+      }
+    } else {
+      rank = (neighbors.at(-1)?.rank || 0) + 1000;
+    }
+    try {
+      const parentId = cardZone === 'parent' && targetIssue ? targetIssue.id : boardMoveParent(issue, state.swimlanes ? laneId : boardEpicId(issue));
+      const nextType = cardZone === 'parent' && issue.type === 'Story' ? 'Task' : issue.type;
+      await saveBoardMove(issue, column.dataset.status, parentId, rank, nextType);
+    }
+    catch (error) { notify(error.message, true); }
+  }, { passive: false });
+  $('#view-content').addEventListener('touchcancel', () => cleanupTouchCardDrag());
   $('#view-content').addEventListener('pointerup', event => { if (!endGanttResize(event)) endTimeline(event); });
   $('#view-content').addEventListener('pointercancel', event => { if (!endGanttResize(event)) endTimeline(event, true); });
   window.addEventListener('resize', () => { if (state.view === 'gantt') applyGanttLabelWidth(state.ganttLabelWidth); if (entryVisible) positionGhostEntry(); if (!triagePopover.hidden) positionTriage(triageReturnFocus); });
