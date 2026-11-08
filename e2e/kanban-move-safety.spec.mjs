@@ -9,7 +9,7 @@ const initial = [
   { id: 'PRJ-5', summary: 'Direct task', parentId: 'PRJ-1' },
   { id: 'PRJ-6', summary: 'Hidden sibling', parentId: 'PRJ-2', status: 'Review' }
 ].map((issue, index) => ({ ...C.blank(), rank: (index + 1) * 1000, version: `v${index}`, ...issue }));
-async function setup(page, cloud = false) {
+async function setup(page, cloud = false, seed = initial) {
   await page.addInitScript(({ initial, cloud }) => {
     if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues: initial, comments: [], sequence: 6 }));
     if (!cloud) return;
@@ -27,12 +27,13 @@ async function setup(page, cloud = false) {
       getProject() { queueMicrotask(() => this.success({ issues: structuredClone(h.issues), settings: [], comments: {}, mode: 'personal', spreadsheetUrl: '' })); },
       moveIssue(id, updates, version, operationId) { h.requests.push({ id, updates, version, operationId, success: this.success, failure: this.failure }); }
     }; } });
-  }, { initial, cloud });
+  }, { initial: seed, cloud });
   await page.goto('/#kanban');
   await page.locator('#swimlanes-toggle').check();
   await expect(page.locator('.card[data-issue="PRJ-4"]')).toBeVisible();
 }
 const issues = page => page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues);
+const rankedTasks = ranks => ranks.map((rank, index) => ({ ...C.blank(), id: `PRJ-${index + 1}`, summary: `Task ${index + 1}`, rank, version: `v${index + 1}` }));
 async function drop(page, id, epic, status) {
   const transfer = await page.evaluateHandle(() => new DataTransfer());
   await page.locator(`.card[data-issue="${id}"]`).dispatchEvent('dragstart', { dataTransfer: transfer });
@@ -52,6 +53,22 @@ test('dragging within an Epic changes status without detaching a Story child', a
   await setup(page); await drop(page, 'PRJ-4', 'PRJ-1', 'Review');
   await expect.poll(async () => (await issues(page)).find(i => i.id === 'PRJ-4').status).toBe('Review');
   await page.reload(); expect((await issues(page)).find(i => i.id === 'PRJ-4').parentId).toBe('PRJ-3');
+});
+test('keyboard reorder crosses an equal-rank card when a safe gap exists', async ({ page }) => {
+  await setup(page, false, rankedTasks([1000, 2000, 2000, 3000]));
+  const card = page.locator('.card[data-issue="PRJ-3"]');
+  await card.focus(); await page.keyboard.press('Alt+ArrowUp');
+  await expect.poll(async () => (await issues(page)).find(item => item.id === 'PRJ-3').rank).toBe(1500);
+  await expect(card).toBeFocused();
+  const order = await page.locator('.column[data-status="Backlog"] .card[data-issue]').evaluateAll(cards => cards.map(card => card.dataset.issue));
+  expect(order).toEqual(['PRJ-1', 'PRJ-3', 'PRJ-2', 'PRJ-4']);
+});
+test('keyboard reorder reports a rank collision without writing an unsafe value', async ({ page }) => {
+  await setup(page, false, rankedTasks([1000, 2000, 2000, 2000, 3000]));
+  const before = await issues(page), card = page.locator('.card[data-issue="PRJ-4"]');
+  await card.focus(); await page.keyboard.press('Alt+ArrowUp');
+  await expect(page.locator('#toast')).toContainText('No safe order position');
+  expect(await issues(page)).toEqual(before);
 });
 test('cross-Epic drag rejects nested children without modifying their data', async ({ page }) => {
   await setup(page); await drop(page, 'PRJ-4', 'PRJ-2', 'Review');

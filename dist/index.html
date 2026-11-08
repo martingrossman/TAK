@@ -3922,12 +3922,18 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const laneId = source.closest('.swimlane')?.dataset.epicLane || '';
     const statusIndex = C.statuses.indexOf(issue.status), siblings = boardScopeItems(issue.status, laneId), index = siblings.findIndex(item => item.id === id);
     let status = issue.status, rank = issue.rank;
-    if (direction === 'up' && index > 0) {
-      const targetRank = Number(siblings[index - 1].rank) || 0, previousRank = index > 1 ? Number(siblings[index - 2].rank) || 0 : Math.max(0, targetRank - 1000);
-      rank = (targetRank + previousRank) / 2;
-    } else if (direction === 'down' && index >= 0 && index < siblings.length - 1) {
-      const targetRank = Number(siblings[index + 1].rank) || 0, nextRank = index + 2 < siblings.length ? Number(siblings[index + 2].rank) || 0 : targetRank + 1000;
-      rank = (targetRank + nextRank) / 2;
+    if ((direction === 'up' && index > 0) || (direction === 'down' && index >= 0 && index < siblings.length - 1)) {
+      const remaining = siblings.filter(item => item.id !== id);
+      const insertAt = direction === 'up' ? index - 1 : index + 1;
+      const left = insertAt > 0 ? Number(remaining[insertAt - 1].rank) : null;
+      const right = insertAt < remaining.length ? Number(remaining[insertAt].rank) : null;
+      const gap = left !== null && right !== null ? right - left : Infinity;
+      const floor = Number.EPSILON * Math.max(1, Math.abs(left || 0), Math.abs(right || 0)) * 8;
+      rank = gap <= floor ? null : left === null ? (right > 0 ? right / 2 : null) : right === null ? left + 1000 : left + gap / 2;
+      if (rank === null || !Number.isFinite(rank) || rank === issue.rank) {
+        notify('No safe order position is available here. Move a different card first.', true);
+        return;
+      }
     } else if (direction === 'left' && statusIndex > 0) status = C.statuses[statusIndex - 1];
     else if (direction === 'right' && statusIndex >= 0 && statusIndex < C.statuses.length - 1) status = C.statuses[statusIndex + 1];
     if (status !== issue.status) rank = (boardScopeItems(status, laneId).at(-1)?.rank || 0) + 1000;
