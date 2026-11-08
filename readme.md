@@ -16,7 +16,9 @@ Your copy starts with a simple example: three Epics, three Stories, and seven Ta
 
 The shared app requests Google Sheets access and your email identity, then runs using your own Google permissions. Google may show an **unverified-app warning** during this initial release; Google verification is not yet complete. The [browser demo](https://martingrossman.github.io/TAK/) remains separate and saves only in your browser. Developers attaching TAK to a different blank spreadsheet can use the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md).
 
-[**Kanban board**](https://martingrossman.github.io/TAK/#kanban) · [**Editable Sheet**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt timeline**](https://martingrossman.github.io/TAK/#gantt) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local setup**](#project-setup)
+[**Choose your setup**](#choose-how-to-run-tak) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local development**](#project-setup) · [**Publishing and updates**](#publishing-and-updates) · [**Independent installation**](docs/INSTALL_FROM_SOURCE.md)
+
+[**Kanban demo**](https://martingrossman.github.io/TAK/#kanban) · [**Sheet demo**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt demo**](https://martingrossman.github.io/TAK/#gantt)
 
 [![TAK Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/TAK/#kanban)
 
@@ -25,6 +27,63 @@ The shared app requests Google Sheets access and your email identity, then runs 
 | [![TAK editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/TAK/#sheet) | [![TAK Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/TAK/#gantt) |
 
 *Screenshots show the standalone app with sample data. Click a preview to open that view in the live demo.*
+
+## Choose how to run TAK
+
+**For normal use, copy the starter Google Sheet and choose Open tracker. You do not deploy anything yourself.** The other setups below are for trying TAK, developing it, or maintaining an independent installation.
+
+There are two ways to store tasks: in a browser or in a Google spreadsheet. There are four ways to run the app:
+
+| Setup | Intended use | Where tasks are saved | Who updates the app? |
+| --- | --- | --- | --- |
+| **Shared Google app + your copied Sheet** | Normal TAK use | Your own Google spreadsheet | The TAK maintainer updates the shared app centrally |
+| **GitHub Pages demo** | Try TAK without signing in | That browser's storage for the demo website | The TAK maintainer publishes the demo through GitHub |
+| **Local preview** at `http://127.0.0.1:4180` | Develop and test TAK on your computer | That browser's storage for the local preview | You rebuild the local source |
+| **Independent Google installation** | Maintain your own app, or continue using an older installation | Its configured Google spreadsheet | The owner updates that installation's Apps Script project |
+
+The browser demo and local preview do **not** synchronize with Google Sheets or with each other. Different browsers, devices and site addresses have separate browser storage. Export CSV to keep a portable copy of browser data.
+
+### Shared Google app: the recommended setup
+
+Three pieces work together:
+
+1. **Public starter template:** the spreadsheet people copy. It contains example tasks, supporting tabs and an attached script with the Open tracker menu and native Sheet validation.
+2. **Your copied spreadsheet:** the file you own, containing your tasks. Its Open tracker menu passes that copy's spreadsheet ID to the shared app.
+3. **Shared TAK app:** a separate Apps Script project maintained centrally. It serves the interface and reads or writes the selected spreadsheet using the signed-in user's Google permissions.
+
+```mermaid
+flowchart TD
+    template["Public starter spreadsheet"] -->|Make a copy| alice["Alice's own spreadsheet"]
+    template -->|Make a copy| bob["Bob's own spreadsheet"]
+    alice -->|Open tracker| app["One centrally maintained TAK app"]
+    bob -->|Open tracker| app
+    app -->|"Read and save using Alice's permissions"| alice
+    app -->|"Read and save using Bob's permissions"| bob
+```
+
+**The app is shared; your tasks stay in your spreadsheet.** Opening TAK does not make your spreadsheet public or share it with other TAK users. Each request selects one spreadsheet, and Google checks the signed-in user's access. Users authorize TAK as an application provider; its maintainer controls the centrally served code.
+
+The shared app uses one stable address. Publishing a new version there updates the app that current starter copies open after a reload. **The attached script inside an existing spreadsheet copy does not update automatically.** It retains its launcher and native Sheet code from the day it was copied.
+
+The current shared app accepts prepared starter copies using the `Issues` tab. Older copies and installations migrated to v2 storage keep their existing app. Copying an old file again does not upgrade it to the current starter setup.
+
+See the [shared-app access model](docs/SHARED_APP_DESIGN.md) and [release verification record](docs/SHARED_APP_RELEASE.md) for technical details and outstanding verification checks.
+
+### Independent Google installation
+
+In an independent installation, the owner installs TAK's source into their own Apps Script project attached to a spreadsheet. The app can open inside Sheets; the owner can optionally publish a separate browser-tab link. App updates must be installed by that owner.
+
+This is the route described by [Install TAK from source](docs/INSTALL_FROM_SOURCE.md) and [Optional full-screen web app](#optional-full-screen-web-app). Instructions such as **Deploy → New deployment**, **Execute as: Me** and **Only myself** apply to this route. They are not steps for people copying the current shared-app starter.
+
+### What the other names mean
+
+| Term | Meaning |
+| --- | --- |
+| **Deployment / published version** | A version of the Google app served at a browser address. Updating its source and publishing a version are separate steps. |
+| **Development / test / production** | Places for developing changes, verifying them and using real data. Use separate Google projects and spreadsheets for isolation. |
+| **Personal / team mode** | Server behaviour for history, refreshing and saves in independent installations. These are not separate websites or Google sharing permissions. The shared host uses team mode. |
+| **Legacy / v2 storage** | Spreadsheet layouts: `Issues`, or the migrated `Tasks` and `Projects and Epics` tabs. Storage v2 is unrelated to an app deployment's version number. |
+| **Sheet / Kanban / Gantt** | Three views of the same tasks inside one running TAK app. |
 
 ## Keyboard shortcuts
 
@@ -131,6 +190,8 @@ Smart syntax applies only to single-title capture. Multiline paste remains a lit
 
 ## Project setup
 
+**For developers:** this section runs the standalone browser preview on your computer. To use TAK with your own Google Sheet, follow [Start with Google Sheets](#start-with-google-sheets).
+
 Requires Node.js 20 or newer for the development tools and an installed Microsoft Edge for browser tests. The built app has no external runtime dependencies; Playwright is a development-only dependency.
 
 Clone the repository and enter the project directory:
@@ -175,32 +236,72 @@ Useful commands:
 | `npm run test:browser` | Build and run the isolated Playwright regression suite in Microsoft Edge. |
 | `npm start` | Serve the standalone demo at `http://127.0.0.1:4180` (`PORT` overrides the default). |
 | `npm run stop` | Stop the TAK preview on port `4180` (`PORT` overrides the default). |
-| `clasp show-file-status` | Compare local Apps Script files with the configured script project. |
-| `clasp push` | Upload the Apps Script source files selected by `.claspignore`. |
+| `clasp show-file-status` | Compare local Apps Script files with the configured Google script project. |
+| `clasp push` | Upload source to the configured Google script project; this does not publish a new version at its `/exec` address. |
 
-## Publish the standalone version on GitHub Pages
+The Google commands require a verified target project. The repository's normal manifest is for an independent owner-only installation; the shared app uses a separately generated package, as explained below.
 
-This repository includes a GitHub Actions workflow at `.github/workflows/pages.yml`. Push to `implement_mvp` (the default branch), then open **Settings → Pages** and choose **GitHub Actions** as the source if GitHub asks you to configure Pages. The workflow builds `dist/index.html` and publishes it at:
+## Publishing and updates
+
+**For maintainers:** publishing the browser demo, shared Google app and starter template are separate actions. Choose the destination that should receive the change.
+
+| Action | What changes | Who receives it? |
+| --- | --- | --- |
+| Run `npm run build` | Generated files on your computer | Local development only; nothing is published |
+| Publish GitHub Pages | The standalone demo website | Demo visitors after reloading; their data stays in browser storage |
+| Publish a new version of the shared Google app | The centrally served interface and server code | Users opening the shared app from compatible starter copies |
+| Update the public starter template | Its example data, supporting tabs and attached code | People making a new copy afterward; existing copies are unchanged |
+| Update an independent Google installation | That installation's code and, when used, its published version | Only users of that installation |
+
+```mermaid
+flowchart TD
+    source["TAK source code"] --> build["Local build"]
+    build --> local["Local browser preview"]
+    build --> pages["Publish GitHub Pages demo"]
+    build --> host["Package and publish shared Google app"]
+    host --> users["Compatible starter users reload the shared app"]
+    build --> starter["Package and update public starter template"]
+    starter --> copies["Future spreadsheet copies"]
+    build --> independent["Install into an independent Google project"]
+    independent --> owner["That installation only"]
+```
+
+The Google packages also need the current generated `CoreScript.html`; run the build and checks before preparing a release. There is no automatic publishing connection from GitHub Pages to Apps Script.
+
+### Publish the standalone version on GitHub Pages
+
+The [Pages workflow](.github/workflows/pages.yml) runs for pushes to `implement_mvp`, or a manual run on that branch. In GitHub **Settings → Pages**, choose **GitHub Actions** as the source if it is not configured yet. The workflow builds `dist/index.html` and publishes it at:
 
 ```text
 https://martingrossman.github.io/TAK/
 ```
 
-GitHub Pages is the portable browser demo: it stores changes in that browser's local storage. It cannot call `google.script.run`, so it does not share data with the Google Sheet. Use the tracker inside Google Sheets, or a separately deployed Apps Script web app, when you need spreadsheet storage; both versions use the same project model and views.
+This updates only the browser demo. Google-backed TAK updates require a separate Apps Script release.
 
-## More about Google Sheets copies
+### Update the shared Google app
 
-### Copy the starter template
+Use the shared app's separate Apps Script project and retain its stable deployment URL. The [Google packaging script](scripts/google-package.mjs) produces a `host` package containing the shared configuration and its manifest.
 
-The [starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) contains the example project, supporting tabs, and a bound script with one menu item: **Open tracker**. That item launches the shared TAK app with the ID of your copy. Each browser request uses that spreadsheet and the signed-in user's Google access. The app does not keep a global active spreadsheet or fall back to the developer's tracker.
+| Google setting | Shared app | Independent owner-only web app |
+| --- | --- | --- |
+| Executes as | **User accessing the web app** (`USER_ACCESSING`) | **Me**, the deploying owner (`USER_DEPLOYING`) |
+| App access | Signed-in Google users (`ANYONE`); no anonymous access | Only the owner (`MYSELF`) |
+| Spreadsheet selection | Each request names the user's selected copy; Google checks their access | The installation's configured spreadsheet |
+| Configuration source | Generated `host` package | Repository `appsscript.json` |
 
-New starter copies do not need their own web-app deployment. The shared app serves updates from a stable address. Existing copies of an older template retain their previous attached code; copying that older file again does not upgrade it. Start from the current public starter for the new browser-tab launch flow.
+The repository's owner-only manifest must not replace the shared host's manifest. Preparing a package does not upload or deploy it. Verify the target project and test the package against isolated copies before publishing. Updating an existing deployment to a new version preserves the URL already used by starter copies.
 
-The initial shared-app release supports new starter copies using the `Issues` tab. Existing migrated v2 trackers keep their own app; the shared app rejects them rather than reading a retained snapshot. A shared app does not automatically share your spreadsheet with anyone. Google file permissions still control who can read and edit it.
+The [shared-app design](docs/SHARED_APP_DESIGN.md) covers permissions, isolation, verification and rollback. Google OAuth verification remains an outstanding release item in the [release record](docs/SHARED_APP_RELEASE.md); broad public onboarding must account for that limitation.
+
+### Update the starter template
+
+Use the packaging script's `template` package with the verified shared app URL. Test a fresh private copy before changing the public starter. Template updates affect future copies, including their attached launcher and native Sheet validation; they do not replace code or task data in existing copies.
+
+A normal shared-app update at the same URL does not require users to copy the template again. A change to the attached launcher or spreadsheet layout needs a separate compatibility and update plan for existing copies.
 
 ### Optional full-screen web app
 
-**New starter copies already open the shared app in a full browser tab.** No publishing step is needed. The steps below apply only to an independent source installation or an older tracker that you administer yourself.
+**For independent installations only.** New starter copies already open the shared app in a full browser tab. The steps below apply to a source installation or an older tracker that you administer yourself.
 
 For a separate browser tab, first choose **🔷 TAK → Open tracker** once to initialize your copy. Then open **Extensions → Apps Script → Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Only myself**. Deploy and review any permission prompt. Open and bookmark the **Web app URL returned by that deployment**. Confirm that it shows **Synced with Sheets** and the tasks from your own copy.
 
@@ -212,24 +313,9 @@ The [source-install guide](docs/INSTALL_FROM_SOURCE.md) covers attaching TAK to 
 
 Before sharing one team tracker, test identity, roles, direct Sheet permissions, and concurrent edits in a separate workbook. A private copy per person is the supported first release.
 
-## How it works
+#### Separate development, test, and production targets
 
-TAK has one shared issue model and two storage adapters:
-
-1. The browser demo loads sample issues into `localStorage`. It is useful for UI development and does not share data with other browsers or Google Sheets.
-2. The Apps Script version calls server functions through `google.script.run`. It starts on `Issues` for compatibility. After an administrator completes and activates migration, the server reads and writes the versioned `Tasks` and `Projects and Epics` tabs. Both paths serialize dates, validate relationships, and use a script lock plus content versions.
-3. `Core.js` contains the shared model and validation rules. `scripts/build.mjs` copies it into `CoreScript.html` for the browser and bundles the standalone `dist/index.html`.
-4. `Index.html`, `Client.html`, and `Styles.html` provide the web app shell, views, interactions, and responsive styling. Apps Script serves the same client with the Google Sheets adapter enabled.
-5. The three views render the same issue collection: Sheet for direct editing, Kanban for status and epic swimlanes, and Gantt for date scheduling. Filters and issue details are shared across views.
-
-In the Kanban view, each epic is rendered as a horizontal swimlane containing the status columns. Lanes show item totals and completion percentage, can be collapsed, and remember their collapsed state in the browser. Dropping a card into another epic lane updates its parent relationship. Server-side atomic ordering, keyboard lane movement, dependency indicators, and WIP limits are not yet implemented.
-
-## What you can do
-
-- **Quick add:** use the tracker's quick-entry field for title-and-Enter creation, or **New task** for more fields.
-- **Paste list:** use **Paste list** to preview one Task title per line and submit up to 100 items. A pending batch is stored locally and can be retried with the same per-item operation IDs.
-
-### Separate development, test, and production targets
+**Administration of independent installations:** the shared app selects a spreadsheet per request and does not use a global active spreadsheet. Its test host and test copies should also be kept separate from the live shared service.
 
 The Apps Script project supports three explicit environment names: `development`, `test`, and `production`. Configure separate Apps Script projects and workbook IDs for each environment; environment names inside one script project alone do not isolate triggers or credentials. Configure the target spreadsheet from the Apps Script editor before running setup:
 
@@ -243,13 +329,32 @@ After setup, administrators can run `openHelpSetup` or `startupHealthCheck` in t
 
 The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, quick-add and selected-item deletion retries; the separate single-item delete and comment mutations still need the same idempotency treatment.
 
-### Authorization foundation
+#### Authorization foundation
+
+This section describes the independent installation's role foundation. The shared app uses the accessing user's Google permissions and its restricted request dispatcher, as described in the [shared-app design](docs/SHARED_APP_DESIGN.md).
 
 The server exposes `getTrackerActor`, `configureTrackerRole(email, role)`, and `setTrackerAuthorizationEnforced(true|false)`. Roles are `administrator`, `editor`, `viewer`, and `agent`; writes require editor/agent/admin, configuration requires admin, and acceptance is admin-only. Enforcement remains disabled by default for the owner-only deployment. When enabled, an unavailable Google identity is rejected, unmapped users are viewers (even if the configured default is administrator), and enabling enforcement requires an available active-user email. Verify this in the separate test deployment before sharing. This app role model does not override direct Google Sheets sharing permissions.
 
 The migration seeds stable task-type settings (`algo`, `data`, `requirements`, and `bug`) plus default workflow values. Read them with `getTrackerSettings()` and update an existing setting with the administrator-only `updateTrackerSetting(id, value, active)` function. Type associations use stable IDs so labels can be renamed without rewriting task history.
 
 The ordering foundation exposes `reorderIssue(id, beforeId, expectedVersion)`. It normalizes the affected status scope to stable rank gaps, checks the moved task revision, and records a reorder history event. The current board still uses its legacy client path; future table, board, and Gantt controls will call this shared operation.
+
+## How it works
+
+TAK has one shared issue model and two storage adapters:
+
+1. The browser demo loads sample issues into `localStorage`. It is useful for UI development and does not share data with other browsers or Google Sheets.
+2. The Apps Script version calls server functions through `google.script.run`. Current shared-app starter copies use `Issues`. An independent installation can use `Issues` or, after a separately tested and activated migration, the versioned `Tasks` and `Projects and Epics` tabs. Both storage paths serialize dates, validate relationships, and use a script lock plus content versions. The shared host rejects migrated v2 trackers.
+3. `Core.js` contains the shared model and validation rules. `scripts/build.mjs` copies it into `CoreScript.html` for the browser and bundles the standalone `dist/index.html`.
+4. `Index.html`, `Client.html`, and `Styles.html` provide the web app shell, views, interactions, and responsive styling. Apps Script serves the same client with the Google Sheets adapter enabled.
+5. The three views render the same issue collection: Sheet for direct editing, Kanban for status and epic swimlanes, and Gantt for date scheduling. Filters and issue details are shared across views.
+
+In the Kanban view, each epic is rendered as a horizontal swimlane containing the status columns. Lanes show item totals and completion percentage, can be collapsed, and remember their collapsed state in the browser. Dropping a card into another epic lane updates its parent relationship. Server-side atomic ordering, keyboard lane movement, dependency indicators, and WIP limits are not yet implemented.
+
+## What you can do
+
+- **Quick add:** use the tracker's quick-entry field for title-and-Enter creation, or **New task** for more fields.
+- **Paste list:** use **Paste list** to preview one Task title per line and submit up to 100 items. A pending batch is stored locally and can be retried with the same per-item operation IDs.
 
 - **Sheet:** edit cells directly, sort columns, and toggle all 21 fields. Title is the pinned default column and owns selection, hierarchy, and reorder controls; stable issue IDs remain available from **Columns** and in issue details. The app's Title column maps to the unchanged `summary` field and native Google Sheets **Summary** header.
 - **Kanban:** view status columns grouped into epic swimlanes, collapse lanes, move cards through Backlog, To Do, In Progress, Review, and Done, and drop a card into another epic lane to reparent it. Routine cards emphasize titles and type rather than stable issue IDs. Drop on a card to insert before it; drop on a column header or empty area to append. Status is also editable in the issue drawer, including on touch devices.
@@ -388,7 +493,7 @@ tests/               Model and mocked server tests
 dist/index.html      Self-contained standalone browser demo
 ```
 
-This is a Jira-style tracker; it does not connect to Atlassian Jira. The checked-in manifest preserves the current personal web-app settings (execute as the deploying user, accessible only to that user). Publishing to GitHub or building locally does not update Apps Script; use the deployment steps above to release future changes.
+This is a Jira-style tracker; it does not connect to Atlassian Jira. For release destinations and the different Google manifests, see [Publishing and updates](#publishing-and-updates).
 
 ## Naming and compatibility
 
