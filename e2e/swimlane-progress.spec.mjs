@@ -17,10 +17,8 @@ test('first-use flat board and filtered Epic progress count overall leaf work', 
   }, { issues, comments: [], sequence: 7 });
   await page.goto('/#kanban');
   const toggle = page.locator('#swimlanes-toggle');
-  await expect(toggle).not.toBeChecked();
-  await expect(page.locator('.swimlane')).toHaveCount(0);
-
-  await toggle.check();
+  await expect(toggle).toBeChecked();
+  await expect(page.locator('.swimlane')).not.toHaveCount(0);
   const epic = page.locator('.swimlane[data-epic-lane="PRJ-1"]');
   await expect(epic.locator('.swimlane-progress')).toHaveText('4 visible items · 2/3 leaf work done · 67% complete');
   await expect(page.locator('.swimlane[data-epic-lane="PRJ-2"] .swimlane-progress')).toHaveText('0 visible items · 0/0 leaf work done · 0% complete');

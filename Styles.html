@@ -316,37 +316,74 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   transition:border-color .12s, box-shadow .12s;
 }
 .card:hover { border-color:var(--control-border); box-shadow:0 2px 5px rgba(15,23,42,0.06) }
-.card-top { flex-wrap:nowrap; margin-bottom:4px }
+.card-top { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; margin-bottom:5px }
+.card-top .card-meta { margin-right:auto; display:inline-flex; align-items:center; gap:4px; min-width:0 }
+.card-top .issue-select { margin:0; flex:none }
+.card-type-field, .card-activity-field { position:relative; display:inline-flex; align-items:center; cursor:pointer; border-radius:3px }
+.card-type-field select, .card-activity-field select { position:absolute; inset:0; width:100%; height:100%; background:transparent; color:transparent; border:0; cursor:pointer; appearance:none; -webkit-appearance:none }
+.card-type-field select option, .card-activity-field select option { color:var(--ink); background:var(--surface) }
+.card-type-field:hover, .card-activity-field:hover { background:var(--surface-muted) }
+.card-type-field.card-type-static { cursor:default }
+.card-type-field.card-type-static:hover { background:transparent }
+.task-type-badge.task-type-empty { border:1px dashed var(--line); background:transparent; color:var(--muted); padding:0 4px; font-size:10px; font-weight:600; border-radius:3px }
 .card-id { min-width:0; gap:5px; font-variant-numeric:tabular-nums }
 .card-id .task-type-badge { margin-left:2px }
-.card-title { margin:0; font-size:var(--text-body); font-weight:600; line-height:1.4 }
+.card-title { margin:0; font-size:var(--text-body); font-weight:600; line-height:1.4; min-height:20px }
+.card-title-text { display:block; cursor:text; border-radius:3px; padding:1px 2px; margin:-1px -2px; transition:background .12s }
+.card:hover .card-title-text { background:var(--surface-muted) }
+.card-title-input { width:100%; margin:0; padding:2px 4px; font:inherit; font-weight:600; border:1px solid var(--primary); border-radius:4px; background:var(--surface); color:var(--ink); outline:none; box-shadow:0 0 0 2px var(--primary-soft) }
 .card-parent { display:block; margin:4px 0 0; color:var(--muted) }
 .card-labels { margin:4px 0 0 }
 .card-labels .label-tag { background:var(--surface-muted); color:var(--muted); padding:0 5px }
 .card-priority {
   appearance:none; -webkit-appearance:none; max-width:95px; min-height:22px; height:22px; padding:1px 6px;
   border:1px solid transparent; border-radius:4px; background:var(--surface-muted); color:var(--muted);
-  font:600 11.5px/1.3 var(--font); cursor:pointer; transition:border-color .12s, background .12s;
+  font:600 11.5px/1.3 var(--font); cursor:pointer; transition:border-color .12s, background .12s; flex:none;
 }
 .card-priority.high { color:var(--gold); background:var(--gold-soft) }
 .card-priority.highest { color:var(--red); background:var(--red-soft) }
 .card-priority:hover, .card-priority:focus-visible { border-color:var(--control-border); background:var(--surface) }
-.card-footer { flex-wrap:wrap; justify-content:flex-start; gap:4px 6px; margin-top:6px; padding-top:0; border-top:0 }
-.card-assignee-field { display:flex; flex:1 1 76px; min-width:0; align-items:center; gap:2px; margin:0 }
-.card-assignee-field .avatar { width:20px; height:20px; border:0; font-size:10.5px }
+.card-footer { display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin-top:6px; padding-top:0; border-top:0 }
+.card-assignee-field { position:relative; display:inline-flex; align-items:center; margin:0; cursor:pointer; flex:none }
+.card-assignee-field .avatar { width:20px; height:20px; flex:none; border:0; font-size:10.5px }
 .card-assignee-field input {
-  width:0; min-width:0; flex:1; height:22px; padding:0 3px; border:1px solid transparent;
-  border-radius:4px; background:transparent; color:var(--muted); font-size:12px; text-overflow:ellipsis;
-  transition:border-color .12s, background .12s, color .12s;
+  position:absolute; left:0; top:0; width:20px; height:20px; cursor:pointer;
+  border:1px solid transparent; border-radius:4px; background:transparent; font-size:12px; color:transparent;
+  outline:none; transition:width .15s ease, background .15s ease, border-color .15s ease; z-index:2;
 }
-.card-assignee-field input:hover, .card-assignee-field input:focus { border-color:var(--control-border); background:var(--surface); color:var(--ink) }
-.card-due { white-space:nowrap; font-variant-numeric:tabular-nums; font-size:11.5px }
-.card-move { min-height:24px; height:auto; padding:0 4px; font-size:var(--text-meta) }
-.card .card-move, .card .issue-select { opacity:.45; transition:opacity .12s }
-.card:hover .card-move, .card:hover .issue-select,
-.card:focus-within .card-move, .card:focus-within .issue-select,
-.card.selected .card-move, .card.selected .issue-select { opacity:1 }
-@media(max-width:700px){ .card .card-move, .card .issue-select { opacity:1 } }
+.card-assignee-field:hover input, .card-assignee-field:focus-within input, .card-assignee-field input:focus {
+  position:relative; width:96px; height:22px; padding:1px 5px; border:1px solid var(--control-border);
+  background:var(--surface); color:var(--ink); margin-left:4px; z-index:5; cursor:text;
+}
+.card-assignee-field input:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-soft) }
+.card-due-field { position:relative; display:inline-flex; align-items:center; margin:0; cursor:pointer; font-size:11.5px; font-variant-numeric:tabular-nums; border-radius:4px; padding:1px 3px; color:var(--muted); transition:background .12s }
+.card-due-field:hover { background:var(--surface-muted) }
+.card-due-field.overdue { color:var(--red) }
+.card-due-badge { display:inline-flex; align-items:center; gap:3px }
+.card-due-badge .icon { width:12px; height:12px }
+.card-due-input { position:absolute; inset:0; width:100%; height:100%; background:transparent; color:transparent; border:0; cursor:pointer; font:500 11.5px/1.2 var(--font) }
+.card-due-input::-webkit-calendar-picker-indicator { opacity:0 }
+.card-due-field:focus-within { padding:0 }
+.card-due-field:focus-within .card-due-badge { display:none }
+.card-due-field:focus-within .card-due-input, .card-due-input:focus {
+  position:relative; width:126px; height:24px; padding:1px 5px; border:1px solid var(--primary);
+  border-radius:4px; background:var(--surface); color:var(--ink); outline:none;
+  box-shadow:0 0 0 2px var(--primary-soft); cursor:text;
+}
+.card-due-field:focus-within .card-due-input::-webkit-calendar-picker-indicator, .card-due-input:focus::-webkit-calendar-picker-indicator { opacity:.75; cursor:pointer }
+.card-comment-btn { margin-left:auto; display:inline-flex; align-items:center; gap:3px; height:22px; padding:0 5px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; cursor:pointer; transition:all .12s }
+.card-comment-btn .icon { width:13px; height:13px }
+.card-comment-btn:hover, .card-comment-btn:focus-visible { border-color:var(--control-border); background:var(--surface-muted); color:var(--ink) }
+.card-comment-count { font-weight:600 }
+.card-quick-comment { display:flex; align-items:center; gap:4px; width:100%; margin-top:6px; padding-top:6px; border-top:1px solid var(--line-subtle, #edf2f7) }
+.card-comment-input { flex:1; min-width:0; height:26px; padding:2px 6px; font-size:12px; border:1px solid var(--control-border); border-radius:4px; background:var(--surface); color:var(--ink); outline:none }
+.card-comment-input:focus { border-color:var(--primary) }
+.card-comment-submit { height:26px; padding:0 8px; font-size:11.5px; font-weight:600; flex:none }
+.card .issue-select { opacity:.45; transition:opacity .12s }
+.card:hover .issue-select,
+.card:focus-within .issue-select,
+.card.selected .issue-select { opacity:1 }
+@media(max-width:700px){ .card .issue-select { opacity:1 } }
 /* Shared Epic section treatment; ungrouped work keeps a neutral header. */
 .swimlane[data-epic-lane=""], .sheet-lane-row[data-sheet-parent-target=""], .gantt-swimlane[data-epic-lane=""] {
   --epic-lane-surface:var(--surface-muted); --epic-lane-accent:var(--muted);

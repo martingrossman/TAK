@@ -30,7 +30,7 @@ async function setup(page, cloud = false) {
   }, { initial, cloud });
   await page.goto('/#kanban');
   await page.locator('#swimlanes-toggle').check();
-  await expect(page.locator('[data-board-move="PRJ-4"]')).toBeVisible();
+  await expect(page.locator('.card[data-issue="PRJ-4"]')).toBeVisible();
 }
 const issues = page => page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.project.v1')).issues);
 async function drop(page, id, epic, status) {
@@ -40,7 +40,9 @@ async function drop(page, id, epic, status) {
   await transfer.dispose();
 }
 async function move(page, id, epic, status) {
-  await page.locator(`[data-board-move="${id}"]`).click();
+  const card = page.locator(`.card[data-issue="${id}"]`);
+  await card.focus();
+  await page.keyboard.press('Shift+M');
   await expect(page.locator('#issue-dialog')).not.toBeVisible();
   await page.locator('#board-move-status').selectOption(status);
   if (epic !== null) await page.locator('#board-move-epic').selectOption(epic);
@@ -57,11 +59,11 @@ test('cross-Epic drag rejects nested children without modifying their data', asy
   expect((await issues(page)).find(i => i.id === 'PRJ-4')).toEqual(initial[3]);
 });
 test('Move dialog preserves nested parent and supports keyboard cancel and status changes', async ({ page }) => {
-  await setup(page); const trigger = page.locator('[data-board-move="PRJ-4"]');
-  await trigger.focus(); await page.keyboard.press('Enter');
+  await setup(page); const card = page.locator('.card[data-issue="PRJ-4"]');
+  await card.focus(); await page.keyboard.press('Shift+M');
   await expect(page.locator('#board-move-epic')).toBeDisabled();
   await expect(page.locator('#board-move-note')).toContainText('preserve');
-  await page.keyboard.press('Escape'); await expect(trigger).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(card).toBeFocused();
   await move(page, 'PRJ-4', null, 'Review');
   await expect.poll(async () => (await issues(page)).find(i => i.id === 'PRJ-4').status).toBe('Review');
   expect((await issues(page)).find(i => i.id === 'PRJ-4').parentId).toBe('PRJ-3');

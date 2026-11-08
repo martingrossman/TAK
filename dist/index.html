@@ -323,37 +323,74 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   transition:border-color .12s, box-shadow .12s;
 }
 .card:hover { border-color:var(--control-border); box-shadow:0 2px 5px rgba(15,23,42,0.06) }
-.card-top { flex-wrap:nowrap; margin-bottom:4px }
+.card-top { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; margin-bottom:5px }
+.card-top .card-meta { margin-right:auto; display:inline-flex; align-items:center; gap:4px; min-width:0 }
+.card-top .issue-select { margin:0; flex:none }
+.card-type-field, .card-activity-field { position:relative; display:inline-flex; align-items:center; cursor:pointer; border-radius:3px }
+.card-type-field select, .card-activity-field select { position:absolute; inset:0; width:100%; height:100%; background:transparent; color:transparent; border:0; cursor:pointer; appearance:none; -webkit-appearance:none }
+.card-type-field select option, .card-activity-field select option { color:var(--ink); background:var(--surface) }
+.card-type-field:hover, .card-activity-field:hover { background:var(--surface-muted) }
+.card-type-field.card-type-static { cursor:default }
+.card-type-field.card-type-static:hover { background:transparent }
+.task-type-badge.task-type-empty { border:1px dashed var(--line); background:transparent; color:var(--muted); padding:0 4px; font-size:10px; font-weight:600; border-radius:3px }
 .card-id { min-width:0; gap:5px; font-variant-numeric:tabular-nums }
 .card-id .task-type-badge { margin-left:2px }
-.card-title { margin:0; font-size:var(--text-body); font-weight:600; line-height:1.4 }
+.card-title { margin:0; font-size:var(--text-body); font-weight:600; line-height:1.4; min-height:20px }
+.card-title-text { display:block; cursor:text; border-radius:3px; padding:1px 2px; margin:-1px -2px; transition:background .12s }
+.card:hover .card-title-text { background:var(--surface-muted) }
+.card-title-input { width:100%; margin:0; padding:2px 4px; font:inherit; font-weight:600; border:1px solid var(--primary); border-radius:4px; background:var(--surface); color:var(--ink); outline:none; box-shadow:0 0 0 2px var(--primary-soft) }
 .card-parent { display:block; margin:4px 0 0; color:var(--muted) }
 .card-labels { margin:4px 0 0 }
 .card-labels .label-tag { background:var(--surface-muted); color:var(--muted); padding:0 5px }
 .card-priority {
   appearance:none; -webkit-appearance:none; max-width:95px; min-height:22px; height:22px; padding:1px 6px;
   border:1px solid transparent; border-radius:4px; background:var(--surface-muted); color:var(--muted);
-  font:600 11.5px/1.3 var(--font); cursor:pointer; transition:border-color .12s, background .12s;
+  font:600 11.5px/1.3 var(--font); cursor:pointer; transition:border-color .12s, background .12s; flex:none;
 }
 .card-priority.high { color:var(--gold); background:var(--gold-soft) }
 .card-priority.highest { color:var(--red); background:var(--red-soft) }
 .card-priority:hover, .card-priority:focus-visible { border-color:var(--control-border); background:var(--surface) }
-.card-footer { flex-wrap:wrap; justify-content:flex-start; gap:4px 6px; margin-top:6px; padding-top:0; border-top:0 }
-.card-assignee-field { display:flex; flex:1 1 76px; min-width:0; align-items:center; gap:2px; margin:0 }
-.card-assignee-field .avatar { width:20px; height:20px; border:0; font-size:10.5px }
+.card-footer { display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin-top:6px; padding-top:0; border-top:0 }
+.card-assignee-field { position:relative; display:inline-flex; align-items:center; margin:0; cursor:pointer; flex:none }
+.card-assignee-field .avatar { width:20px; height:20px; flex:none; border:0; font-size:10.5px }
 .card-assignee-field input {
-  width:0; min-width:0; flex:1; height:22px; padding:0 3px; border:1px solid transparent;
-  border-radius:4px; background:transparent; color:var(--muted); font-size:12px; text-overflow:ellipsis;
-  transition:border-color .12s, background .12s, color .12s;
+  position:absolute; left:0; top:0; width:20px; height:20px; cursor:pointer;
+  border:1px solid transparent; border-radius:4px; background:transparent; font-size:12px; color:transparent;
+  outline:none; transition:width .15s ease, background .15s ease, border-color .15s ease; z-index:2;
 }
-.card-assignee-field input:hover, .card-assignee-field input:focus { border-color:var(--control-border); background:var(--surface); color:var(--ink) }
-.card-due { white-space:nowrap; font-variant-numeric:tabular-nums; font-size:11.5px }
-.card-move { min-height:24px; height:auto; padding:0 4px; font-size:var(--text-meta) }
-.card .card-move, .card .issue-select { opacity:.45; transition:opacity .12s }
-.card:hover .card-move, .card:hover .issue-select,
-.card:focus-within .card-move, .card:focus-within .issue-select,
-.card.selected .card-move, .card.selected .issue-select { opacity:1 }
-@media(max-width:700px){ .card .card-move, .card .issue-select { opacity:1 } }
+.card-assignee-field:hover input, .card-assignee-field:focus-within input, .card-assignee-field input:focus {
+  position:relative; width:96px; height:22px; padding:1px 5px; border:1px solid var(--control-border);
+  background:var(--surface); color:var(--ink); margin-left:4px; z-index:5; cursor:text;
+}
+.card-assignee-field input:focus { border-color:var(--primary); box-shadow:0 0 0 2px var(--primary-soft) }
+.card-due-field { position:relative; display:inline-flex; align-items:center; margin:0; cursor:pointer; font-size:11.5px; font-variant-numeric:tabular-nums; border-radius:4px; padding:1px 3px; color:var(--muted); transition:background .12s }
+.card-due-field:hover { background:var(--surface-muted) }
+.card-due-field.overdue { color:var(--red) }
+.card-due-badge { display:inline-flex; align-items:center; gap:3px }
+.card-due-badge .icon { width:12px; height:12px }
+.card-due-input { position:absolute; inset:0; width:100%; height:100%; background:transparent; color:transparent; border:0; cursor:pointer; font:500 11.5px/1.2 var(--font) }
+.card-due-input::-webkit-calendar-picker-indicator { opacity:0 }
+.card-due-field:focus-within { padding:0 }
+.card-due-field:focus-within .card-due-badge { display:none }
+.card-due-field:focus-within .card-due-input, .card-due-input:focus {
+  position:relative; width:126px; height:24px; padding:1px 5px; border:1px solid var(--primary);
+  border-radius:4px; background:var(--surface); color:var(--ink); outline:none;
+  box-shadow:0 0 0 2px var(--primary-soft); cursor:text;
+}
+.card-due-field:focus-within .card-due-input::-webkit-calendar-picker-indicator, .card-due-input:focus::-webkit-calendar-picker-indicator { opacity:.75; cursor:pointer }
+.card-comment-btn { margin-left:auto; display:inline-flex; align-items:center; gap:3px; height:22px; padding:0 5px; border:1px solid transparent; border-radius:4px; background:transparent; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; cursor:pointer; transition:all .12s }
+.card-comment-btn .icon { width:13px; height:13px }
+.card-comment-btn:hover, .card-comment-btn:focus-visible { border-color:var(--control-border); background:var(--surface-muted); color:var(--ink) }
+.card-comment-count { font-weight:600 }
+.card-quick-comment { display:flex; align-items:center; gap:4px; width:100%; margin-top:6px; padding-top:6px; border-top:1px solid var(--line-subtle, #edf2f7) }
+.card-comment-input { flex:1; min-width:0; height:26px; padding:2px 6px; font-size:12px; border:1px solid var(--control-border); border-radius:4px; background:var(--surface); color:var(--ink); outline:none }
+.card-comment-input:focus { border-color:var(--primary) }
+.card-comment-submit { height:26px; padding:0 8px; font-size:11.5px; font-weight:600; flex:none }
+.card .issue-select { opacity:.45; transition:opacity .12s }
+.card:hover .issue-select,
+.card:focus-within .issue-select,
+.card.selected .issue-select { opacity:1 }
+@media(max-width:700px){ .card .issue-select { opacity:1 } }
 /* Shared Epic section treatment; ungrouped work keeps a neutral header. */
 .swimlane[data-epic-lane=""], .sheet-lane-row[data-sheet-parent-target=""], .gantt-swimlane[data-epic-lane=""] {
   --epic-lane-surface:var(--surface-muted); --epic-lane-accent:var(--muted);
@@ -600,7 +637,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
         </div>
 
         <div id="sheet-actions"></div><div class="workspace-tools">
-          <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox">Group by epic</label>
+          <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox" checked>Group by epic</label>
 
 
           <details class="workspace-saved-views tool-menu">
@@ -1158,7 +1195,8 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     check: '<path d="m5 12 4 4L19 6"/>',
     circle: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
     stack: '<path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/>',
-    flag: '<path d="M5 21V4c4-5 10 5 14 0v10c-4 5-10-5-14 0"/>'
+    flag: '<path d="M5 21V4c4-5 10 5 14 0v10c-4 5-10-5-14 0"/>',
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
@@ -1208,7 +1246,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (!order.includes('summary')) order.unshift('summary');
     return order;
   }
-  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: false, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
+  const state = { singleKeyShortcuts: true, issues: [], comments: {}, settings: [], drafts: {}, saveQueues: {}, pendingCreateIds: {}, activeSaves: 0, quickQueue: [], undoStack: [], selectedIssueIds: [], bulkEditDraft: null, pendingDuplicate: null, savedViews: [], activeSavedView: '', visibleColumns: defaultSheetColumnOrder.slice(), sheetColumnWidths: {}, collapsedEpics: {}, collapsedGanttStories: {}, collapsedSheetParents: {}, swimlanes: true, ganttLabelWidth: 260, ready: false, busy: false, view: 'kanban', query: '', types: [], priority: '', tag: '', startAfter: '', dueBefore: '', assignee: '', status: '', sprint: '', epic: '', sort: 'rank', ascending: true, timelineStart: C.addDays(today(), -7), zoom: 'weeks', spreadsheetUrl: '' };
   const quickSavesInFlight = new Set();
   let issueIndex = null;
   let leafProgressCache = { issues: null, counts: null };
@@ -1234,7 +1272,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.collapsedSheetParents = ui.collapsedSheetParents || {};
     state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
     state.sheetColumnWidths = normalizeSheetWidths(ui.sheetColumnWidths);
-    state.swimlanes = ui.swimlanes === true;
+    state.swimlanes = ui.swimlanes !== false;
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
     state.collapsedEpics = {};
@@ -1728,7 +1766,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.sort = view.sort === 'taskTypeId' || C.fields.some(field => field.key === view.sort) ? view.sort : 'rank'; state.ascending = view.ascending !== false;
     state.visibleColumns = normalizeSheetColumnOrder(Array.isArray(view.visibleColumns) ? view.visibleColumns : view.allColumns ? ['id', 'type', 'taskTypeId', ...C.fields.map(field => field.key)] : defaultSheetColumnOrder);
     state.sheetColumnWidths = normalizeSheetWidths(view.sheetColumnWidths);
-    state.swimlanes = view.swimlanes === true;
+    state.swimlanes = view.swimlanes !== false;
     state.collapsedEpics = view.collapsedEpics && typeof view.collapsedEpics === 'object' ? { ...view.collapsedEpics } : {};
     state.collapsedSheetParents = view.collapsedSheetParents && typeof view.collapsedSheetParents === 'object' ? { ...view.collapsedSheetParents } : {};
     state.collapsedGanttStories = view.collapsedGanttStories && typeof view.collapsedGanttStories === 'object' ? { ...view.collapsedGanttStories } : {};
@@ -2923,21 +2961,41 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const { dueDate } = effectiveDates(issue);
     const overdue = dueDate && dueDate < today() && issue.status !== 'Done';
     const labels = C.split(issue.labels).slice(0, 2).map(label => `<span class="label-tag">${escape(label)}</span>`).join('');
+    const commentsCount = (state.comments[issue.id] || []).length;
+    const currentActivity = issue.taskTypeId && issue.taskTypeId !== 'none' ? C.taskTypePresentation(issue.taskTypeId, state.settings).name : 'None';
     return `<article class="card" draggable="true" tabindex="0" role="group" data-issue="${escape(issue.id)}"
         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"
-        aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status.')}"
-        title="Alt + ↑/↓ reorder · Alt + ←/→ change status">
+        aria-label="${escape(issue.id + ': ' + issue.summary + '. Press Enter to open. Hold Alt and use arrows to reorder or change status. Press m to move.')}"
+        title="Alt + ↑/↓ reorder · Alt + ←/→ change status · m move">
       <div class="card-top">
-        <span class="card-meta">${typeIcon(issue.type)}${taskTypeBadge(issue.taskTypeId)}</span>
+        <span class="card-meta">
+          ${['Task', 'Bug'].includes(issue.type)
+            ? `<label class="card-type-field" title="Type: ${escape(issue.type)}">${typeIcon(issue.type)}<select class="card-type-select" data-card-type="${escape(issue.id)}" data-field="type" data-id="${escape(issue.id)}" aria-label="Type for ${escape(issue.summary)}">${options(['Task', 'Bug'], issue.type)}</select></label>`
+            : `<span class="card-type-field card-type-static" title="Type: ${escape(issue.type)}">${typeIcon(issue.type)}</span>`}
+          <label class="card-activity-field" title="Activity: ${escape(currentActivity)}">${taskTypeBadge(issue.taskTypeId) || `<span class="task-type-badge task-type-empty" title="Set activity">+</span>`}<select class="card-activity-select" data-card-activity="${escape(issue.id)}" data-field="taskTypeId" data-id="${escape(issue.id)}" aria-label="Activity for ${escape(issue.summary)}">${options(activityTypes(), issue.taskTypeId || 'none')}</select></label>
+        </span>
         <select class="card-priority ${priorityClass}" data-card-priority="${escape(issue.id)}" aria-label="Priority for ${escape(issue.summary)}">${options(C.priorities, issue.priority)}</select>
       </div>
-      <h3 class="card-title">${escape(issue.summary)}</h3>
+      <h3 class="card-title">
+        <span class="card-title-text" data-card-title="${escape(issue.id)}" title="Click to edit title">${escape(issue.summary)}</span>
+        <input type="text" class="card-title-input" data-card-title-input="${escape(issue.id)}" value="${escape(issue.summary)}" aria-label="Edit title for ${escape(issue.id)}" hidden>
+      </h3>
       ${showParent ? `<div class="card-parent" title="${escape(parent.summary)}">↳ ${escape(parent.summary)}</div>` : ''}
       ${labels ? `<div class="card-labels">${labels}</div>` : ''}
       <div class="card-footer">
-        <label class="card-assignee-field" title="Edit assignee">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Unassigned" aria-label="Assignee for ${escape(issue.id)}"></label>
-        ${dueDate ? `<span class="card-due${overdue ? ' overdue' : ''}">${icon(issue.status === 'Done' ? 'check' : 'calendar')}${escape(shortDate(dueDate))}</span>` : ''}
-        <button type="button" class="button subtle card-move" data-board-move="${escape(issue.id)}" aria-label="Move ${escape(issue.id)}">Move</button>
+        <label class="card-assignee-field" title="Assignee: ${escape(issue.assignee || 'Unassigned')}">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Assignee" aria-label="Assignee for ${escape(issue.id)}"></label>
+        <label class="card-due-field${overdue ? ' overdue' : ''}" title="${dueDate ? 'Due: ' + escape(dueDate) : 'Set due date'}">
+          <span class="card-due-badge">${icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : '+Date'}</span></span>
+          <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="Due date for ${escape(issue.summary)}">
+        </label>
+        <button type="button" class="card-comment-btn" data-card-comment-toggle="${escape(issue.id)}" title="${commentsCount ? commentsCount + ' comments · Click to add' : 'Add quick comment'}" aria-label="Add comment to ${escape(issue.id)}">
+          ${icon('message')}
+          ${commentsCount ? `<span class="card-comment-count">${commentsCount}</span>` : ''}
+        </button>
+      </div>
+      <div class="card-quick-comment" data-card-comment-box="${escape(issue.id)}" hidden>
+        <input type="text" class="card-comment-input" data-card-comment-input="${escape(issue.id)}" placeholder="Write comment… (Enter to post, Esc to close)" aria-label="Comment text for ${escape(issue.id)}">
+        <button type="button" class="button primary card-comment-submit" data-card-comment-submit="${escape(issue.id)}">Post</button>
       </div>
     </article>`;
   }
@@ -4185,7 +4243,39 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       retryQuickDraft(retryQuick.dataset.retryQuick);
       return;
     }
-    if (event.target.closest('[data-card-priority], .card-assignee-field')) return;
+    if (event.target.closest('[data-card-priority], .card-assignee-field, .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment')) return;
+    const cardTitle = event.target.closest('[data-card-title]');
+    if (cardTitle) {
+      event.stopPropagation();
+      const id = cardTitle.dataset.cardTitle;
+      const input = document.querySelector(`[data-card-title-input="${CSS.escape(id)}"]`);
+      if (input) {
+        cardTitle.hidden = true;
+        input.hidden = false;
+        input.focus();
+        input.select();
+      }
+      return;
+    }
+    const commentToggle = event.target.closest('[data-card-comment-toggle]');
+    if (commentToggle) {
+      event.stopPropagation();
+      const id = commentToggle.dataset.cardCommentToggle;
+      const box = document.querySelector(`[data-card-comment-box="${CSS.escape(id)}"]`);
+      if (box) {
+        box.hidden = !box.hidden;
+        if (!box.hidden) box.querySelector('[data-card-comment-input]')?.focus();
+      }
+      return;
+    }
+    const commentSubmit = event.target.closest('[data-card-comment-submit]');
+    if (commentSubmit) {
+      event.stopPropagation();
+      const id = commentSubmit.dataset.cardCommentSubmit;
+      const input = document.querySelector(`[data-card-comment-input="${CSS.escape(id)}"]`);
+      submitCardComment(id, input?.value);
+      return;
+    }
     if (state.view === 'sheet' && event.target.closest('.sheet-columns-menu > summary')) { state.sheetColumnsMenuOpen = !state.sheetColumnsMenuOpen; return; }
     const boardMove = event.target.closest('[data-board-move]');
     if (boardMove) { openBoardMove(boardMove.dataset.boardMove); return; }
@@ -4309,6 +4399,46 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
         return;
       }
     }
+    if (event.target.matches('[data-card-title-input]') && !event.isComposing && event.keyCode !== 229) {
+      if (event.key === 'Enter') { event.preventDefault(); event.target.blur(); return; }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        const id = event.target.dataset.cardTitleInput;
+        event.target.value = issueById(id)?.summary || '';
+        event.target.hidden = true;
+        const text = document.querySelector(`[data-card-title="${CSS.escape(id)}"]`);
+        if (text) text.hidden = false;
+        return;
+      }
+    }
+    if (event.target.matches('[data-card-due]') && !event.isComposing && event.keyCode !== 229) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitCardDueDate(event.target, true);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        const id = event.target.dataset.cardDue;
+        event.target.dataset.cancelEdit = 'true';
+        event.target.value = issueById(id)?.dueDate || '';
+        event.target.closest('.card[data-issue]')?.focus({ preventScroll: true });
+        return;
+      }
+    }
+    if (event.target.matches('[data-card-comment-input]') && !event.isComposing && event.keyCode !== 229) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submitCardComment(event.target.dataset.cardCommentInput, event.target.value);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        const box = event.target.closest('[data-card-comment-box]');
+        if (box) box.hidden = true;
+        return;
+      }
+    }
     if (event.target.matches('[data-card-assignee]') && !event.isComposing && event.keyCode !== 229) {
       if (event.key === 'Enter') { event.preventDefault(); event.target.dispatchEvent(new Event('change', { bubbles: true })); return; }
       if (event.key === 'Escape') { event.preventDefault(); event.target.value = issueById(event.target.dataset.cardAssignee)?.assignee || ''; return; }
@@ -4316,10 +4446,70 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (event.target.matches('.gantt-resizer') && ['ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); applyGanttLabelWidth(state.ganttLabelWidth + (event.key === 'ArrowRight' ? 10 : -10)); saveUiState(); }
     else if (state.view === 'sheet' && event.altKey && event.target.matches('.sheet-row-grip') && ['ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); moveSheetWithKeyboard(event.target.dataset.sheetDragId, event.key === 'ArrowUp' ? 'up' : 'down'); }
     else if (state.view === 'gantt' && event.altKey && event.target.matches('.gantt-label-hit, .swimlane-collapse[data-gantt-drag-id]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveGanttWithKeyboard(event.target.dataset.ganttDragId, event.key.slice(5).toLowerCase(), event.target); }
+    else if (state.view === 'kanban' && event.target.matches('.card[data-issue]') && event.key === 'M' && event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) { event.preventDefault(); openBoardMove(event.target.dataset.issue); }
     else if (state.view === 'kanban' && event.altKey && event.target.matches('.card[data-issue]') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) { event.preventDefault(); moveCardWithKeyboard(event.target.dataset.issue, event.key.slice(5).toLowerCase(), event.target); }
     else if (event.target.matches('.gantt-label-hit, .gantt-bar') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); const target = event.target.closest('[data-open], [data-bar]'); openIssue(target?.dataset.open || target?.dataset.bar); }
     else if (event.target.matches('.card[data-issue], .sheet-row-grip') && ['Enter', ' '].includes(event.key)) { event.preventDefault(); openIssue(event.target.dataset.issue || event.target.dataset.sheetDragId); }
   });
+  async function submitCardComment(id, text) {
+    const body = String(text || '').trim();
+    if (!body) return;
+    try {
+      setBusy(true);
+      const comment = await rpc('addTaskComment', id, body);
+      state.comments[id] = [...(state.comments[id] || []), comment];
+      notify('Comment added');
+      render();
+    } catch (error) {
+      notify(error.message, true);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function commitCardDueDate(target, fromEnter = false) {
+    if (target.dataset.saving === 'true') return;
+    const id = target.dataset.cardDue, issue = issueById(id);
+    if (!issue || state.busy) return;
+    if (!target.checkValidity()) { target.reportValidity(); return; }
+    const dueDate = target.value.trim();
+    if (dueDate === (issue.dueDate || '')) {
+      if (fromEnter) target.closest('.card[data-issue]')?.focus({ preventScroll: true });
+      return;
+    }
+    target.dataset.saving = 'true';
+    if (fromEnter) target.closest('.card[data-issue]')?.focus({ preventScroll: true });
+    try {
+      await persist({ id: issue.id, dueDate }, issue.version, 'Due date updated');
+    } catch (error) {
+      render();
+      notify(error.message, true);
+    } finally {
+      delete target.dataset.saving;
+    }
+  }
+  document.addEventListener('blur', async event => {
+    if (event.target.matches('[data-card-title-input]')) {
+      const id = event.target.dataset.cardTitleInput, issue = issueById(id), newSummary = event.target.value.trim();
+      event.target.hidden = true;
+      const text = document.querySelector(`[data-card-title="${CSS.escape(id)}"]`);
+      if (text) text.hidden = false;
+      if (!issue || !newSummary || newSummary === issue.summary) {
+        event.target.value = issue?.summary || '';
+        return;
+      }
+      if (text) text.textContent = newSummary;
+      try { await persist({ id: issue.id, summary: newSummary }, issue.version, 'Title updated'); }
+      catch (error) { render(); notify(error.message, true); }
+      return;
+    }
+    if (event.target.matches('[data-card-due]')) {
+      if (event.target.dataset.cancelEdit === 'true') {
+        delete event.target.dataset.cancelEdit;
+        return;
+      }
+      await commitCardDueDate(event.target, false);
+    }
+  }, true);
   document.addEventListener('change', async event => {
     if (!event.target.closest('#view-content, #sheet-actions, #workspace-more')) return;
     const target = event.target;
@@ -4381,7 +4571,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       sheetDropPreview = null; const root = $('#sheet-unparent-drop'); if (root) root.hidden = issue.type === 'Epic';
       sheetSource.closest('.sheet-issue-row')?.classList.add('sheet-dragging'); return;
     }
-    if (event.target.closest('[data-card-priority], [data-card-assignee]')) { event.preventDefault(); return; }
+    if (event.target.closest('[data-card-priority], [data-card-assignee], .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment, [data-card-title-input]')) { event.preventDefault(); return; }
     const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
