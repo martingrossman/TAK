@@ -639,7 +639,7 @@ function moveIssue(id, move, expectedVersion, operationId) {
     var previousReceipt = history.findReceipt(book, operationId, systemRows);
     if (previousReceipt) return clientIssue_(previousReceipt.result);
     var input = { id: id };
-    ['status', 'parentId', 'rank'].forEach(function (key) { if (Object.prototype.hasOwnProperty.call(move, key)) input[key] = move[key]; });
+    ['type', 'status', 'parentId', 'rank'].forEach(function (key) { if (Object.prototype.hasOwnProperty.call(move, key)) input[key] = move[key]; });
     var fingerprint = operationId ? updateIntentFingerprint_(input, expectedVersion) : '';
     var reservation = fingerprint && history.findUpdateReservation ? history.findUpdateReservation(book, operationId, systemRows) : null;
     if (reservation && (reservation.kind !== 'move' || reservation.id !== id || reservation.fingerprint !== fingerprint)) throw new Error('This operation ID belongs to different update content. Review the saved task before retrying.');

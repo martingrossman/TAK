@@ -1509,7 +1509,7 @@
           localStorage.setItem(draftStorageKey, JSON.stringify(state.drafts));
         }
         const result = mutation === 'moveIssue' && isCloud
-          ? await rpc('moveIssue', effectiveInput.id, { status: effectiveInput.status, parentId: effectiveInput.parentId, rank: effectiveInput.rank, operationId }, expectedVersion, operationId)
+          ? await rpc('moveIssue', effectiveInput.id, { ...(effectiveInput.type && before && effectiveInput.type !== before.type ? { type: effectiveInput.type } : {}), status: effectiveInput.status, parentId: effectiveInput.parentId, rank: effectiveInput.rank, operationId }, expectedVersion, operationId)
           : await rpc('saveIssue', effectiveInput, expectedVersion);
         if (!input.id && result.id) state.pendingCreateIds[queueKey] = result.id;
         const newerDraft = state.drafts[effectiveDraftKey] || state.drafts[queueKey];
@@ -2208,15 +2208,28 @@
     const key = `${moving.id}:${moving.version}:${target?.id || ''}:${target?.version || ''}:${zone}`;
     if (sheetDropPreview?.key === key && sheetDropPreview.issues === state.issues) return sheetDropPreview.plan;
     const parentId = zone === 'unparent' ? '' : zone === 'parent' ? target.id : target.parentId || '';
+    const newParent = parentId ? issueById(parentId) : null;
+    const nextType = (moving.type === 'Story' && newParent && ['Story', 'Task', 'Bug'].includes(newParent.type)) ? 'Task' : moving.type;
     let rank;
-    if (zone === 'before' || zone === 'after') rank = sheetRankForDrop({ ...moving, parentId }, target, zone === 'after');
+    if (zone === 'before' || zone === 'after') rank = sheetRankForDrop({ ...moving, type: nextType, parentId }, target, zone === 'after');
     else rank = state.issues.filter(issue => issue.id !== moving.id && (issue.parentId || '') === parentId).reduce((max, issue) => Math.max(max, Number(issue.rank) || 0), 0) + 1000;
     let plan;
     try {
       if (moving.type === 'Epic' && (zone === 'parent' || zone === 'unparent')) throw new Error('Epics stay at the top level. Drop at another Epic row edge to reorder.');
       if (rank === null) throw new Error('No safe insertion position is available. Move a different row first.');
-      C.validate({ ...moving, parentId, rank }, state.issues);
-      plan = { parentId, rank, zone, message: zone === 'parent' ? `Move under ${target.id} · ${target.summary}` : zone === 'unparent' ? 'Move to No epic' : `Insert ${zone} ${target.id} · ${target.summary}` };
+      C.validate({ ...moving, type: nextType, parentId, rank }, state.issues);
+      const converted = nextType !== moving.type;
+      plan = {
+        type: nextType,
+        parentId,
+        rank,
+        zone,
+        message: zone === 'parent'
+          ? (converted ? `Convert to Task under ${target.id} · ${target.summary}` : `Move under ${target.id} · ${target.summary}`)
+          : zone === 'unparent'
+            ? 'Move to No epic'
+            : `Insert ${zone} ${target.id} · ${target.summary}${converted ? ' (as Task)' : ''}`
+      };
     } catch (error) { plan = { error: error.message }; }
     sheetDropPreview = { key, issues: state.issues, plan };
     return plan;
@@ -2224,11 +2237,18 @@
   function sheetDropTarget(event) {
     const root = event.target.closest('[data-sheet-unparent]'), header = event.target.closest('[data-sheet-parent-target]'), row = event.target.closest('[data-sheet-row-id]');
     if (root) return { element: root, zone: 'unparent', target: null, style: 'sheet-drop-unparent' };
-    if (header) return { element: header, zone: header.dataset.sheetParentTarget ? 'parent' : 'unparent', target: issueById(header.dataset.sheetParentTarget), style: 'sheet-drop-parent' };
+    if (header) {
+      const laneId = header.dataset.sheetParentTarget;
+      if (laneId === '__milestones__') return null;
+      return { element: header, zone: laneId ? 'parent' : 'unparent', target: issueById(laneId), style: 'sheet-drop-parent' };
+    }
     if (!row) return null;
+    const target = issueById(row.dataset.sheetRowId);
+    const moving = sheetDraggingId ? issueById(sheetDraggingId) : null;
     const bounds = row.getBoundingClientRect(), ratio = (event.clientY - bounds.top) / Math.max(1, bounds.height);
-    const zone = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : 'parent';
-    return { element: row, zone, target: issueById(row.dataset.sheetRowId), style: zone === 'parent' ? 'sheet-drop-parent' : `sheet-drop-${zone}` };
+    const canParent = !(moving?.type === 'Epic' && target?.type === 'Epic') && target?.type !== 'Milestone';
+    const zone = ratio < 0.25 ? 'before' : ratio > 0.75 ? 'after' : canParent ? 'parent' : (ratio < 0.5 ? 'before' : 'after');
+    return { element: row, zone, target, style: zone === 'parent' ? 'sheet-drop-parent' : `sheet-drop-${zone}` };
   }
   function finishSheetDrag() {
     sheetDraggingId = null; sheetDropPreview = null;
@@ -2237,13 +2257,19 @@
   }
   async function saveSheetHierarchyDrop(moving, plan) {
     if (!moving || plan?.error || state.busy) { if (plan?.error) notify(plan.error, true); return; }
-    if (moving.parentId === plan.parentId && moving.rank === plan.rank) return;
+    const typeChanged = Boolean(plan.type && plan.type !== moving.type);
+    if (!typeChanged && moving.parentId === plan.parentId && moving.rank === plan.rank) return;
     state.sort = 'rank'; state.ascending = true;
     let parent = issueById(plan.parentId); const seen = new Set();
     while (parent && !seen.has(parent.id)) { seen.add(parent.id); delete state.collapsedSheetParents[parent.id]; if (parent.type === 'Epic') delete state.collapsedEpics[parent.id]; parent = issueById(parent.parentId); }
     saveUiState();
     try {
-      await persist({ id: moving.id, status: moving.status, parentId: plan.parentId, rank: plan.rank, operationId: newOperationId() }, moving.version, moving.parentId === plan.parentId ? 'Order updated · Manual order' : 'Parent updated · Manual order', 'moveIssue');
+      await persist(
+        { id: moving.id, ...(typeChanged ? { type: plan.type } : {}), status: moving.status, parentId: plan.parentId, rank: plan.rank, operationId: newOperationId() },
+        moving.version,
+        typeChanged ? 'Converted to Task · Manual order' : moving.parentId === plan.parentId ? 'Order updated · Manual order' : 'Parent updated · Manual order',
+        'moveIssue'
+      );
       $(`[data-sheet-drag-id="${CSS.escape(moving.id)}"]`)?.focus({ preventScroll: true });
     } catch (error) { notify(error.message, true); }
   }
@@ -2370,7 +2396,11 @@
     return `<span class="gantt-quick-anchor"><button type="button" class="gantt-add-button" data-gantt-add="${escape(issue.id)}" data-gantt-add-kind="${issue.type === 'Epic' ? 'epic' : 'story'}" aria-label="Add work under ${escape(issue.id)}" title="Add work under ${escape(issue.id)}">Add</button></span>`;
   }
   function ganttCanParent(issue, parent) {
-    return parent && ((parent.type === 'Epic' && ['Story', 'Task', 'Bug', 'Milestone'].includes(issue.type)) || (parent.type === 'Story' && ['Task', 'Bug', 'Milestone'].includes(issue.type)));
+    if (!issue || !parent || issue.id === parent.id) return false;
+    if (parent.type === 'Epic') return ['Story', 'Task', 'Bug', 'Milestone'].includes(issue.type);
+    if (parent.type === 'Story') return ['Story', 'Task', 'Bug', 'Milestone'].includes(issue.type);
+    if (['Task', 'Bug'].includes(parent.type)) return ['Story', 'Task', 'Bug'].includes(issue.type);
+    return false;
   }
   function ganttParentIsValid(issue, parentId) {
     if (!parentId) return issue.type !== 'Epic';
@@ -2395,14 +2425,33 @@
   function ganttDropPlan(issue, target, zone, unparent = false) {
     if (unparent) {
       if (issue.type === 'Epic') return null;
-      return { parentId: '', rank: ganttAppendRank(issue, '') };
+      const rank = ganttAppendRank(issue, '');
+      try {
+        C.validate({ ...issue, parentId: '', rank }, state.issues);
+        return { type: issue.type, parentId: '', rank };
+      } catch (ignore) { return null; }
     }
     if (!target || target.id === issue.id) return null;
-    if (zone === 'parent' && ganttCanParent(issue, target)) return { parentId: target.id, rank: ganttAppendRank(issue, target.id) };
-    if (issue.type === 'Epic') return target.type === 'Epic' ? { parentId: '', rank: ganttSiblingRank(issue, '', target.id, zone) } : null;
-    const parentId = target.parentId || '';
-    if (!ganttParentIsValid(issue, parentId)) return null;
-    return { parentId, rank: ganttSiblingRank(issue, parentId, target.id, zone) };
+    let parentId, rank;
+    if (zone === 'parent') {
+      if (!ganttCanParent(issue, target)) return null;
+      parentId = target.id;
+      rank = ganttAppendRank(issue, target.id);
+    } else if (issue.type === 'Epic') {
+      if (target.type !== 'Epic') return null;
+      parentId = '';
+      rank = ganttSiblingRank(issue, '', target.id, zone);
+    } else {
+      parentId = target.parentId || '';
+      if (!ganttParentIsValid(issue, parentId)) return null;
+      rank = ganttSiblingRank(issue, parentId, target.id, zone);
+    }
+    const newParent = parentId ? issueById(parentId) : null;
+    const nextType = (issue.type === 'Story' && newParent && ['Story', 'Task', 'Bug'].includes(newParent.type)) ? 'Task' : issue.type;
+    try {
+      C.validate({ ...issue, type: nextType, parentId, rank }, state.issues);
+      return { type: nextType, parentId, rank };
+    } catch (ignore) { return null; }
   }
   function ganttDropZone(issue, target, row, clientY) {
     if (target.type === 'Epic' && ganttCanParent(issue, target)) return 'parent';
@@ -2415,9 +2464,24 @@
     if (!moving || state.busy) return;
     const plan = ganttDropPlan(moving, target, zone, unparent);
     if (!plan) { notify(moving.type === 'Epic' && unparent ? 'Epics cannot be unparented.' : 'That parent would create an invalid hierarchy.', true); return; }
-    if (moving.parentId === plan.parentId && moving.rank === plan.rank) return;
-    try { await persist({ ...moving, parentId: plan.parentId, rank: plan.rank }, moving.version, 'Hierarchy updated', 'moveIssue'); }
-    catch (error) { notify(error.message, true); }
+    const typeChanged = Boolean(plan.type && plan.type !== moving.type);
+    if (!typeChanged && moving.parentId === plan.parentId && moving.rank === plan.rank) return;
+    let parent = issueById(plan.parentId); const seen = new Set();
+    while (parent && !seen.has(parent.id)) {
+      seen.add(parent.id);
+      if (parent.type === 'Epic') delete state.collapsedEpics[parent.id];
+      if (parent.type === 'Story') delete state.collapsedGanttStories[parent.id];
+      parent = issueById(parent.parentId);
+    }
+    saveUiState();
+    try {
+      await persist(
+        { ...moving, ...(typeChanged ? { type: plan.type } : {}), parentId: plan.parentId, rank: plan.rank },
+        moving.version,
+        typeChanged ? 'Converted to Task · Hierarchy updated' : 'Hierarchy updated',
+        'moveIssue'
+      );
+    } catch (error) { notify(error.message, true); }
   }
   async function moveGanttWithKeyboard(id, direction, source) {
     const issue = issueById(id); if (!issue || state.busy) return;
@@ -2441,10 +2505,11 @@
     }
     return epicId;
   }
-  function saveBoardMove(issue, status, parentId, rank) {
-    const input = { ...issue, status, parentId, rank };
+  function saveBoardMove(issue, status, parentId, rank, nextType = issue.type) {
+    const typeChanged = Boolean(nextType && nextType !== issue.type);
+    const input = { ...issue, ...(typeChanged ? { type: nextType } : {}), status, parentId, rank };
     C.validate(C.prepare(input, issue, today(), new Date().toISOString()), state.issues);
-    return persist(input, issue.version, 'Board updated', 'moveIssue');
+    return persist(input, issue.version, typeChanged ? 'Converted to Task · Board updated' : 'Board updated', 'moveIssue');
   }
   let boardMoveIssue = null;
   function focusBoardIssue(id) {
@@ -3698,17 +3763,36 @@
     const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
-  function clearDragStyle() { $('.drag-over, .drop-before, .drop-after, .dragging, .swimlane-dragging, .gantt-dragging, .gantt-drop-before, .gantt-drop-after, .gantt-drop-parent, .gantt-drop-invalid, .gantt-drop-unparent, .sheet-dragging, .sheet-drop-before, .sheet-drop-after, .sheet-drop-parent, .sheet-drop-invalid, .sheet-drop-unparent').forEach(el => el.classList.remove('drag-over', 'drop-before', 'dragging', 'gantt-dragging', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-dragging', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent')); }
+  function clearDragStyle(includeSource = true) {
+    const dropClasses = ['drag-over', 'drop-before', 'drop-after', 'drop-parent', 'gantt-drop-before', 'gantt-drop-after', 'gantt-drop-parent', 'gantt-drop-invalid', 'gantt-drop-unparent', 'sheet-drop-before', 'sheet-drop-after', 'sheet-drop-parent', 'sheet-drop-invalid', 'sheet-drop-unparent'];
+    const sourceClasses = includeSource ? ['dragging', 'swimlane-dragging', 'gantt-dragging', 'sheet-dragging'] : [];
+    const all = [...dropClasses, ...sourceClasses];
+    $$(all.map(c => '.' + c).join(', ')).forEach(el => el.classList.remove(...all));
+  }
+  function kanbanCardDropZone(issue, targetIssue, card, clientY) {
+    if (!card || !targetIssue || !issue || targetIssue.id === issue.id) return null;
+    const rect = card.getBoundingClientRect();
+    if (!rect.height || !clientY) return 'before';
+    const ratio = (clientY - rect.top) / Math.max(1, rect.height);
+    if (targetIssue.type === 'Story' && ratio > 0.25 && ratio < 0.75) {
+      const nextType = issue.type === 'Story' ? 'Task' : issue.type;
+      try {
+        C.validate({ ...issue, type: nextType, parentId: targetIssue.id }, state.issues);
+        return 'parent';
+      } catch (ignore) {}
+    }
+    return ratio < 0.5 ? 'before' : 'after';
+  }
   document.addEventListener('dragover', event => {
     if (swimlaneDraggingId && !state.busy) {
-      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row');
-      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target]');
-      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget;
+      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row, .gantt-epic-row');
+      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target], [data-gantt-row-id]');
+      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget || targetLane?.dataset.ganttRowId || (targetHeader?.closest('.gantt-milestones-row') ? '__milestones__' : '');
       if (targetId && targetId !== '' && targetId !== swimlaneDraggingId) {
         event.preventDefault(); event.dataTransfer.dropEffect = 'move';
         const rect = targetHeader.getBoundingClientRect();
         const before = (event.clientY - rect.top) < rect.height / 2;
-        clearDragStyle();
+        clearDragStyle(false);
         targetHeader.classList.add(before ? 'drop-before' : 'drop-after');
         return;
       }
@@ -3719,7 +3803,7 @@
       const moving = issueById(ganttHierarchyDrag.id), target = row && issueById(row.dataset.ganttRowId);
       if (!moving) return;
       const zone = unparentDrop ? 'unparent' : ganttDropZone(moving, target, row, event.clientY), plan = ganttDropPlan(moving, target, zone, Boolean(unparentDrop));
-      clearDragStyle();
+      clearDragStyle(false);
       if (!plan) { (row || unparentDrop).classList.add('gantt-drop-invalid'); event.dataTransfer.dropEffect = 'none'; return; }
       event.preventDefault(); event.dataTransfer.dropEffect = 'move';
       (unparentDrop || row).classList.add(unparentDrop ? 'gantt-drop-unparent' : zone === 'parent' ? 'gantt-drop-parent' : zone === 'before' ? 'gantt-drop-before' : 'gantt-drop-after');
@@ -3727,7 +3811,7 @@
     }
     if (state.view === 'sheet' && sheetDraggingId && !state.busy) {
       const drop = sheetDropTarget(event), moving = issueById(sheetDraggingId);
-      clearDragStyle();
+      clearDragStyle(false);
       if (!drop || !moving) { event.dataTransfer.dropEffect = 'none'; return; }
       const plan = sheetHierarchyDropPlan(moving, drop.target, drop.zone);
       const hint = plan.error || plan.message; if ($('#view-hint').textContent !== hint) $('#view-hint').textContent = hint;
@@ -3736,12 +3820,21 @@
       event.dataTransfer.dropEffect = 'move'; drop.element.classList.add(drop.style); return;
     }
     const column = event.target.closest('.column'); if (!column || !draggingId || state.busy) return;
+    const issue = issueById(draggingId);
+    const card = event.target.closest('.card');
+    const targetIssue = card && card.dataset.issue !== draggingId ? issueById(card.dataset.issue) : null;
+    const cardZone = kanbanCardDropZone(issue, targetIssue, card, event.clientY);
     event.preventDefault();
-    try { const issue = issueById(draggingId); boardMoveParent(issue, state.swimlanes ? column.closest('.swimlane')?.dataset.epicLane || '' : boardEpicId(issue)); }
-    catch (error) { event.dataTransfer.dropEffect = 'none'; clearDragStyle(); if ($('#toast').hidden || $('#toast').textContent !== error.message) notify(error.message, true); return; }
+    if (cardZone !== 'parent') {
+      try { boardMoveParent(issue, state.swimlanes ? column.closest('.swimlane')?.dataset.epicLane || '' : boardEpicId(issue)); }
+      catch (error) { event.dataTransfer.dropEffect = 'none'; clearDragStyle(false); if ($('#toast').hidden || $('#toast').textContent !== error.message) notify(error.message, true); return; }
+    }
     event.dataTransfer.dropEffect = 'move';
-    $('.drag-over, .drop-before').forEach(el => el.classList.remove('drag-over', 'drop-before'));
-    column.classList.add('drag-over'); const card = event.target.closest('.card'); if (card && card.dataset.issue !== draggingId) card.classList.add('drop-before');
+    clearDragStyle(false);
+    column.classList.add('drag-over');
+    if (card && card.dataset.issue !== draggingId) {
+      card.classList.add(cardZone === 'parent' ? 'drop-parent' : cardZone === 'after' ? 'drop-after' : 'drop-before');
+    }
   });
   $('#view-content').addEventListener('dragend', () => {
     if (ganttHierarchyDrag) { suppressClickUntil = Date.now() + 450; ganttHierarchyDrag = null; const unparentDrop = $('#gantt-unparent-drop'); if (unparentDrop) unparentDrop.hidden = true; }
@@ -3751,9 +3844,9 @@
     if (swimlaneDraggingId && !state.busy) {
       event.preventDefault();
       const movingId = swimlaneDraggingId; swimlaneDraggingId = null;
-      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row');
-      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target]');
-      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget;
+      const targetHeader = event.target.closest('.swimlane-header, .sheet-lane-row, .gantt-epic-row');
+      const targetLane = targetHeader?.closest('[data-epic-lane], [data-sheet-parent-target], [data-gantt-row-id]');
+      const targetId = targetLane?.dataset.epicLane || targetLane?.dataset.sheetParentTarget || targetLane?.dataset.ganttRowId || (targetHeader?.closest('.gantt-milestones-row') ? '__milestones__' : '');
       clearDragStyle();
       if (targetId && targetId !== '' && targetId !== movingId) {
         const rect = targetHeader.getBoundingClientRect();
@@ -3783,17 +3876,31 @@
     }
     const column = event.target.closest('.column'); if (!column || !draggingId || state.busy) return;
     event.preventDefault(); const id = draggingId, issue = issueById(id); draggingId = null;
-    const target = event.target.closest('.card'); clearDragStyle();
+    const target = event.target.closest('.card');
+    const targetIssue = target && target.dataset.issue !== id ? issueById(target.dataset.issue) : null;
+    const cardZone = kanbanCardDropZone(issue, targetIssue, target, event.clientY);
+    clearDragStyle();
     if (!issue || target?.dataset.issue === id) return;
     const lane = column.closest('.swimlane'), laneId = lane?.dataset.epicLane || '';
-    const neighbors = C.sorted(state.issues.filter(i => i.status === column.dataset.status && i.id !== id && (!state.swimlanes || (laneId ? inEpicWithin(i, laneId) : !state.issues.some(epic => epic.type === 'Epic' && inEpicWithin(i, epic.id))))));
+    const neighbors = boardScopeItems(column.dataset.status, laneId, id);
     const targetIndex = target ? neighbors.findIndex(i => i.id === target.dataset.issue) : -1;
     let rank;
-    if (targetIndex >= 0) rank = (neighbors[targetIndex].rank + (targetIndex ? neighbors[targetIndex - 1].rank : 0)) / 2;
-    else rank = (neighbors.at(-1)?.rank || 0) + 1000;
+    if (targetIndex >= 0) {
+      if (cardZone === 'after' || cardZone === 'parent') {
+        const nextRank = targetIndex + 1 < neighbors.length ? neighbors[targetIndex + 1].rank : neighbors[targetIndex].rank + 1000;
+        rank = (neighbors[targetIndex].rank + nextRank) / 2;
+      } else {
+        const prevRank = targetIndex > 0 ? neighbors[targetIndex - 1].rank : 0;
+        rank = (neighbors[targetIndex].rank + prevRank) / 2;
+      }
+    } else {
+      rank = (neighbors.at(-1)?.rank || 0) + 1000;
+    }
     try {
-      const parentId = boardMoveParent(issue, state.swimlanes ? laneId : boardEpicId(issue));
-      await saveBoardMove(issue, column.dataset.status, parentId, rank);
+      const parentId = cardZone === 'parent' && targetIssue ? targetIssue.id : boardMoveParent(issue, state.swimlanes ? laneId : boardEpicId(issue));
+      const nextType = cardZone === 'parent' && issue.type === 'Story' ? 'Task' : issue.type;
+      suppressClickUntil = Date.now() + 450;
+      await saveBoardMove(issue, column.dataset.status, parentId, rank, nextType);
     }
     catch (error) { notify(error.message, true); }
   });

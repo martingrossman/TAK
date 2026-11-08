@@ -284,3 +284,65 @@ test('Sheet parent choices load on focus and remain usable after reparenting', a
   await page.reload();
   await expect(parent).toHaveValue('PRJ-8');
 });
+
+test('a Story converts to a Task when moved under another Story across Sheet, Gantt, and Kanban and supports undo', async ({ page }) => {
+  // 1. Sheet view: drag Story PRJ-5 onto Story PRJ-2 (center/parent zone)
+  await dropOnRow(page, 'PRJ-5', 'PRJ-2', 'center');
+  await expect(row(page, 'PRJ-5')).toHaveAttribute('data-sheet-parent', 'PRJ-2');
+  let saved = await readIssues(page);
+  let moved = saved.find(i => i.id === 'PRJ-5');
+  expect(moved.type).toBe('Task');
+  expect(moved.parentId).toBe('PRJ-2');
+
+  // Undo restores PRJ-5 back to Story under PRJ-1
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect(row(page, 'PRJ-5')).toHaveAttribute('data-sheet-parent', 'PRJ-1');
+  saved = await readIssues(page);
+  moved = saved.find(i => i.id === 'PRJ-5');
+  expect(moved.type).toBe('Story');
+  expect(moved.parentId).toBe('PRJ-1');
+
+  // 2. Gantt view: drag Story PRJ-5 onto Story PRJ-2
+  await page.locator('[data-view="gantt"]').first().click();
+  const ganttSource = page.locator('[data-gantt-drag-id="PRJ-5"]');
+  const ganttTarget = page.locator('[data-gantt-row-id="PRJ-2"]');
+  await expect(ganttSource).toBeVisible();
+  await expect(ganttTarget).toBeVisible();
+  const targetBox = await ganttTarget.boundingBox();
+  const transfer = await page.evaluateHandle(() => new DataTransfer());
+  await ganttSource.dispatchEvent('dragstart', { dataTransfer: transfer });
+  await ganttTarget.dispatchEvent('dragover', { dataTransfer: transfer, clientX: targetBox.x + 60, clientY: targetBox.y + targetBox.height / 2 });
+  await expect(ganttTarget).toHaveClass(/gantt-drop-parent/);
+  await ganttTarget.dispatchEvent('drop', { dataTransfer: transfer, clientX: targetBox.x + 60, clientY: targetBox.y + targetBox.height / 2 });
+  await page.locator('#view-content').dispatchEvent('dragend', { dataTransfer: transfer });
+  await transfer.dispose();
+
+  await expect.poll(async () => {
+    const item = (await readIssues(page)).find(i => i.id === 'PRJ-5');
+    return { type: item.type, parentId: item.parentId };
+  }).toEqual({ type: 'Task', parentId: 'PRJ-2' });
+
+  // Undo in Gantt restores Story PRJ-5
+  await page.getByRole('button', { name: 'Undo', exact: true }).click();
+  await expect.poll(async () => (await readIssues(page)).find(i => i.id === 'PRJ-5').type).toBe('Story');
+
+  // 3. Kanban view: drag Story PRJ-5 onto Story PRJ-8 card center to convert to Task under PRJ-8
+  await page.locator('[data-view="kanban"]').first().click();
+  const storyCard = page.locator('.card[data-issue="PRJ-5"]');
+  const targetCard = page.locator('.card[data-issue="PRJ-8"]');
+  await expect(storyCard).toBeVisible();
+  await expect(targetCard).toBeVisible();
+  const cardBox = await targetCard.boundingBox();
+  const kTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await storyCard.dispatchEvent('dragstart', { dataTransfer: kTransfer });
+  await targetCard.dispatchEvent('dragover', { dataTransfer: kTransfer, clientX: cardBox.x + 40, clientY: cardBox.y + cardBox.height / 2 });
+  await expect(targetCard).toHaveClass(/drop-parent/);
+  await targetCard.dispatchEvent('drop', { dataTransfer: kTransfer, clientX: cardBox.x + 40, clientY: cardBox.y + cardBox.height / 2 });
+  await page.locator('#view-content').dispatchEvent('dragend', { dataTransfer: kTransfer });
+  await kTransfer.dispose();
+
+  await expect.poll(async () => {
+    const item = (await readIssues(page)).find(i => i.id === 'PRJ-5');
+    return { type: item.type, parentId: item.parentId };
+  }).toEqual({ type: 'Task', parentId: 'PRJ-8' });
+});
