@@ -44,6 +44,7 @@
         <details id="workspace-more" class="workspace-options tool-menu" name="workspace-tools"><summary>More</summary><div class="workspace-panel tool-menu-panel">
           <div id="mobile-view-options"></div>
           <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
+          <button id="plan-notepad-open" class="button subtle" type="button">Plan notepad</button>
           <button id="refresh" class="button subtle" type="button">Refresh</button>
           <button id="export" class="button subtle" type="button">Export CSV</button>
           <button id="add-epic" class="button subtle" type="button">New epic</button><div class="connection-card">
@@ -168,6 +169,22 @@
     <div class="dialog-header"><div><span class="eyebrow">QUICK ENTRY</span><h2 id="bulk-create-title">Paste task titles</h2></div><button type="button" id="bulk-create-close" class="icon-button" aria-label="Close paste list">×</button></div>
     <div class="bulk-create-body"><p>Enter one literal title per line. Blank lines are ignored. Smart syntax applies only to single-title capture, not pasted lists. New tasks use Backlog and the configured default activity type.</p><label class="field" for="bulk-create-input">Task titles<textarea id="bulk-create-input" rows="10" maxlength="30000" placeholder="Prepare the launch plan&#10;Review the first draft&#10;Share feedback" aria-label="Task titles, one per line"></textarea></label><div id="bulk-create-preview" class="bulk-create-preview" role="status" aria-live="polite">Enter one or more titles.</div><div id="bulk-create-error" class="error-banner" role="alert" hidden></div></div>
     <div class="dialog-footer"><span id="bulk-create-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-create-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-create-submit" class="button primary" disabled>Create tasks</button></div></div>
+  </dialog>
+  <dialog id="plan-notepad-dialog" class="help-dialog plan-notepad-dialog" aria-labelledby="plan-notepad-title">
+    <div class="dialog-header"><div><span class="eyebrow">PLAN WITH REVIEW</span><h2 id="plan-notepad-title">Smart Notepad</h2></div><button id="plan-notepad-close" type="button" class="icon-button" aria-label="Close Smart Notepad">×</button></div>
+    <div class="plan-notepad-body">
+      <p>Write free-form notes for Gemini, or one structured item per line to create work directly. Nothing is sent or saved until you choose it.</p>
+      <label class="field" for="plan-notepad-input">Planning notes<textarea id="plan-notepad-input" rows="7" maxlength="30000" aria-controls="plan-notepad-suggestions" aria-expanded="false" placeholder="Epic: Launch&#10;Story: Prepare release #Launch @Martin +5d !high"></textarea></label>
+      <div id="plan-notepad-suggestions" class="plan-notepad-suggestions" role="listbox" aria-label="Notepad suggestions" hidden></div>
+      <div class="plan-notepad-actions"><button id="plan-notepad-parse" type="button" class="button secondary">Preview structured lines</button><button id="plan-notepad-prepare" type="button" class="button secondary">Prepare for Gemini</button></div>
+      <div id="plan-notepad-context" class="plan-notepad-context" role="status" aria-live="polite">Your notes remain in this browser until you create work.</div>
+      <div id="plan-notepad-preview" class="plan-notepad-preview" role="group" aria-label="Notepad proposal"></div>
+      <button id="plan-notepad-discard" type="button" class="button subtle" hidden>Discard current review</button>
+      <datalist id="plan-notepad-assignees"></datalist>
+      <details id="plan-notepad-gemini" class="plan-notepad-gemini"><summary>Use Gemini Pro manually</summary><p>Prepare downloads your full task context and notes. Upload the file in Gemini Pro, copy the prompt below, then paste its JSON proposal here. TAK never sends the file automatically.</p><button id="plan-notepad-copy" type="button" class="button secondary">Copy Gemini prompt</button> <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Open Gemini ↗</a><label class="field" for="plan-notepad-import">Gemini JSON proposal<textarea id="plan-notepad-import" rows="5" placeholder="Paste the JSON response here"></textarea></label><button id="plan-notepad-import-button" type="button" class="button secondary">Review proposal</button></details>
+      <div id="plan-notepad-error" class="error-banner" role="alert" hidden></div>
+    </div>
+    <div class="dialog-footer"><span id="plan-notepad-status" role="status" aria-live="polite"></span><div><button id="plan-notepad-cancel" type="button" class="button secondary">Close</button><button id="plan-notepad-apply" type="button" class="button primary" disabled>Apply selected</button></div></div>
   </dialog>
   <dialog id="bulk-edit-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-edit-title">
     <form id="bulk-edit-form">

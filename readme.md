@@ -43,6 +43,12 @@ There are two ways to store tasks: in a browser or in a Google spreadsheet. Ther
 
 The browser demo and local preview do **not** synchronize with Google Sheets or with each other. Different browsers, devices and site addresses have separate browser storage. Export CSV to keep a portable copy of browser data.
 
+### Smart Notepad trial
+
+In this worktree's build, open **More → Plan notepad** to enter several lines of work. Start a line with `Epic:`, `Story:`, `Task:` or `Bug:`; add `@Person`, `#Epic`, `!high` and `+5d` or `+2w` for an existing assignee, Epic, priority and inclusive weekdays. Preview the lines, correct any highlighted errors, choose the rows to create, then apply. Your notes and review remain in this browser across reloads.
+
+For free-form planning, choose **Prepare for Gemini**. TAK downloads a complete issue snapshot and your notes, then shows the issue count and file size. Upload that file to Gemini Pro yourself, copy TAK's prompt, and paste the resulting JSON into the proposal box. Review and edit each suggested change before applying it. The export includes issue task fields, including descriptions and dependencies; it omits comments, history, settings and spreadsheet identity. TAK does not send data to Gemini or apply Gemini's response automatically. Large files may exceed Gemini's effective context, so check the proposal against the exported project.
+
 ### Shared Google app: the recommended setup
 
 Three pieces work together:

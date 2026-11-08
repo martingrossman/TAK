@@ -50,12 +50,12 @@ These items are recorded as **Future / Open**, not approved MVP scope or impleme
   - **Access safety:** Review least-privilege repository access, safe credential storage, revocation/disconnection and who can view private PR metadata. Do not expose secrets in the browser, copied templates, source control or logs; do not assume Sheet sharing alone authorizes GitHub access.
   - **Acceptance:** Two independent copies can connect different repositories without leaking settings or access; task-ID matching shows the correct PR and status; polling failures are clear; task workflow remains unchanged.
 
-- **IM-17** `[Future · Open]` — **Smart Quick Notepad**
+- **IM-17** `[Trial in worktree · Verification pending]` — **Smart Quick Notepad**
   - **Goal:** One clean, keyboard-first window for capturing tasks during a standup without repeatedly opening task forms.
   - **Default parsing:** Use a local, deterministic parser without AI for syntax such as `Task @Person #Epic +5d !high`. Resolve people and epics against existing records and offer immediate autocomplete while typing.
   - **Interaction:** Support keyboard navigation and suggestion acceptance, multiple task lines, and an editable preview of parsed titles, assignees, epics, dates and priorities before batch create.
   - **Validation:** Make unknown or ambiguous people/epics and invalid tokens visible in the preview rather than silently inventing records. Define relative-date semantics, including calendar versus working days, before implementation.
-  - **Optional AI:** Gemini may be explicitly enabled for free-text interpretation. Structured syntax and normal capture must work without it; review data sharing and credentials separately. AI suggestions remain editable and require the same preview/validation.
+  - **Manual Gemini trial:** Export the full issue task context and notes for user upload to Gemini Pro. Import a versioned JSON proposal for editable, selected-row review. No automatic sending, Gemini credentials or direct AI writes.
   - **Reliability:** Preserve drafts on close, reload, parsing errors and save failures. Retain failed or unconfirmed batch items for safe retry without duplicate creation, using existing hierarchy, ID and persistence safeguards.
   - **Acceptance:** A standup list can be captured, autocompleted, corrected and batch-created with the keyboard and no AI; failures retain recoverable drafts. This is a future extension of IM-14's plain multiline preview, not a change to its current contract.
 

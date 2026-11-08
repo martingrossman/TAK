@@ -47,6 +47,7 @@
   const draftStorageKey = trackerStorageKey('sheetflow.pending-drafts.v1');
   const quickQueueStorageKey = trackerStorageKey('sheetflow.quick-queue.v1');
   const bulkDraftStorageKey = trackerStorageKey('sheetflow.pending-batch.v1');
+  const planDraftStorageKey = trackerStorageKey('sheetflow.plan-notepad.v1');
   const duplicateDraftStorageKey = trackerStorageKey('sheetflow.pending-duplicate.v1');
   const deleteDraftStorageKey = trackerStorageKey('sheetflow.pending-delete.v1');
   const localReceiptStorageKey = 'sheetflow.local-receipts.v1';
@@ -81,6 +82,9 @@
   let selectionAnchorId = '', bulkDeleteDraft = null, deleteDialogItems = [], deleteSubmitting = false, deleteReturnFocus = null;
   const form = $('#issue-form'), dialog = $('#issue-dialog');
   let createStarted = false, issueReturnFocus = null, newFormDraftKey = '';
+  let planReturnFocus = null, planDraft = { note: '', importText: '', rows: [], contextId: '', snapshot: '', versions: {}, started: false };
+  let planSuggestionRange = null, planSuggestionIndex = 0, planSuggestionValues = [], planApplying = false;
+  try { planDraft = { ...planDraft, ...JSON.parse(localStorage.getItem(planDraftStorageKey) || '{}') }; } catch (ignore) { /* Keep the in-memory draft. */ }
   try { state.drafts = JSON.parse(localStorage.getItem(draftStorageKey) || '{}') || {}; } catch (ignore) { state.drafts = {}; }
   try { state.quickQueue = JSON.parse(localStorage.getItem(quickQueueStorageKey) || '[]') || []; } catch (ignore) { state.quickQueue = []; }
   try { state.pendingDuplicate = JSON.parse(localStorage.getItem(duplicateDraftStorageKey) || 'null'); } catch (ignore) { state.pendingDuplicate = null; }
@@ -862,12 +866,25 @@
       } catch (error) { finish(reject, error); }
     });
     if (method === 'createIssuesBatch') {
-      const items = args[0] || [], receipts = JSON.parse(localStorage.getItem(localReceiptStorageKey) || '{}'), results = [], errors = [];
+      const items = args[0] || [], legacyReceipts = JSON.parse(localStorage.getItem(localReceiptStorageKey) || '{}'), results = [], errors = [];
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         try {
-          const issue = receipts[item.operationId] || await rpc('saveIssue', item.input, item.expectedVersion);
-          receipts[item.operationId] = issue; localStorage.setItem(localReceiptStorageKey, JSON.stringify(receipts)); results.push({ index, issue });
+          if (!item?.operationId || !item.input || item.input.id) throw new Error('A new issue and operation ID are required.');
+          const db = getLocal();
+          db.batchReceipts ||= {};
+          let issue = db.batchReceipts[item.operationId] || legacyReceipts[item.operationId];
+          if (!issue) {
+            issue = C.prepare(item.input, null, today(), new Date().toISOString());
+            db.sequence = Math.max(db.sequence, ...db.issues.map(existing => Number(/^PRJ-(\d+)$/.exec(existing.id)?.[1]) || 0));
+            issue.id = `PRJ-${++db.sequence}`;
+            C.validate(issue, db.issues);
+            issue.version = crypto.randomUUID();
+            db.issues.push(issue);
+            db.batchReceipts[item.operationId] = issue;
+            localStorage.setItem(storageKey, JSON.stringify(db));
+          }
+          results.push({ index, issue });
         } catch (error) { errors.push({ index, message: error.message || String(error) }); }
       }
       return { items: results, errors };
@@ -1101,6 +1118,210 @@
     }
   }
   function bulkTitles() { return $('#bulk-create-input').value.split(/\r?\n/).map(title => title.trim()).filter(Boolean); }
+  let planDraftStored = true;
+  function savePlanDraft() {
+    try { localStorage.setItem(planDraftStorageKey, JSON.stringify(planDraft)); planDraftStored = true; if ($('#plan-notepad-error').textContent.startsWith('Browser storage is unavailable.')) $('#plan-notepad-error').hidden = true; return true; }
+    catch (error) { planDraftStored = false; $('#plan-notepad-error').textContent = 'Browser storage is unavailable. Copy your notes before closing; applying is disabled until storage works.'; $('#plan-notepad-error').hidden = false; $('#plan-notepad-apply').disabled = true; return false; }
+  }
+  function planSnapshot() { return JSON.stringify(state.issues.map(issue => [issue.id, issue.version]).sort((a, b) => a[0].localeCompare(b[0]))); }
+  function planAssignees() { return [...new Set(state.issues.flatMap(issue => [issue.assignee, issue.reporter]).filter(Boolean))].sort(); }
+  function planRowError(row) {
+    if (row.applied) return '';
+    if (row.errors?.length) return row.errors.join(' ');
+    if (!row.fields?.summary?.trim() && row.action === 'create') return 'A title is required.';
+    if (row.fields?.summary?.length > 250) return 'Title exceeds 250 characters.';
+    if (row.fields?.assignee && !planAssignees().includes(row.fields.assignee)) return 'Choose an existing assignee.';
+    if (row.fields?.status && !C.statuses.includes(row.fields.status)) return 'Choose a valid status.';
+    if (row.fields?.priority && !C.priorities.includes(row.fields.priority)) return 'Choose a valid priority.';
+    for (const key of ['startDate', 'dueDate']) if (row.fields?.[key] && !C.validDate(row.fields[key])) return `Invalid ${key}.`;
+    if (row.fields?.estimate !== undefined && (!Number.isFinite(Number(row.fields.estimate)) || Number(row.fields.estimate) < 0)) return 'Estimate must be nonnegative.';
+    if (row.action === 'update') {
+      const current = issueById(row.id);
+      if (!current) return 'The target issue no longer exists.';
+      if (current.type === 'Epic' && (Object.hasOwn(row.fields, 'startDate') || Object.hasOwn(row.fields, 'dueDate'))) return 'Epic dates are derived from children.';
+      if (!row.attempted && planDraft.versions[row.id] && current.version !== planDraft.versions[row.id]) return 'Conflict: this issue changed since the context was prepared.';
+    } else {
+      if (row.type === 'Epic' && row.parentRef) return 'An Epic cannot have a parent.';
+      if (row.parentRef?.startsWith('draft-')) {
+        const parent = planDraft.rows.find(item => item.key === row.parentRef && item.action === 'create' && item.type === 'Epic');
+        if (!parent || (!parent.selected && !parent.savedId)) return 'Select the proposed parent Epic first.';
+      } else if (row.parentRef && issueById(row.parentRef)?.type !== 'Epic') return 'Choose an existing Epic.';
+    }
+    return '';
+  }
+  function renderPlanSummary() {
+    const chosen = planDraft.rows.filter(row => row.selected && !row.applied), errors = chosen.map(planRowError).filter(Boolean);
+    const stale = !planDraft.started && planDraft.note !== planDraft.noteAtPreview;
+    let projectError = '';
+    if (chosen.length && !errors.length && !stale && state.ready && !planApplying) try { preflightPlanRows(chosen); } catch (error) { projectError = error.message || String(error); }
+    $('#plan-notepad-apply').disabled = !planDraftStored || planApplying || !chosen.length || !!errors.length || !!projectError || stale || !state.ready || hasPendingSaves();
+    $('#plan-notepad-status').textContent = stale ? 'Notes changed · preview again' : errors.length ? `${errors.length} item${errors.length === 1 ? '' : 's'} need review` : projectError ? `Validation: ${projectError}` : `${chosen.length} selected · ${planDraft.rows.filter(row => row.applied).length} applied`;
+    $$('#plan-notepad-preview [data-plan-row]').forEach(element => {
+      const row = planDraft.rows[Number(element.dataset.planRow)], error = row && planRowError(row);
+      element.classList.toggle('invalid', !!error && !!row.selected);
+      const message = element.querySelector('.plan-notepad-row-error'); if (message) message.textContent = error || row?.status || '';
+    });
+  }
+  function renderPlanRows() {
+    const preview = $('#plan-notepad-preview');
+    $('#plan-notepad-discard').hidden = !planDraft.rows.length;
+    if (!planDraft.rows.length) { preview.textContent = 'Preview structured lines or import a Gemini proposal to review changes.'; renderPlanSummary(); return; }
+    const epics = state.issues.filter(issue => issue.type === 'Epic').map(issue => ({ ref: issue.id, label: `${issue.id} · ${issue.summary}` })).concat(planDraft.rows.filter(row => row.action === 'create' && row.type === 'Epic').map(row => ({ ref: row.key, label: `New Epic · ${row.fields.summary || row.key}` })));
+    const labels = { summary: 'Title', description: 'Description', status: 'Status', priority: 'Priority', assignee: 'Assignee', startDate: 'Start', dueDate: 'Due', estimate: 'Estimate (h)', sprint: 'Sprint', labels: 'Labels' };
+    preview.innerHTML = planDraft.rows.map((row, index) => {
+      const keys = row.action === 'create' ? [...new Set(['summary', 'assignee', 'priority', ...(row.type === 'Epic' ? [] : ['startDate', 'dueDate']), ...Object.keys(row.fields)])] : Object.keys(row.fields);
+      const locked = planApplying || row.attempted || row.applied;
+      const controls = keys.filter(key => C.planEditableFields.includes(key)).map(key => {
+        const value = row.fields[key] ?? (key === 'priority' ? 'Medium' : key === 'status' ? 'Backlog' : '');
+        const previous = row.action === 'update' ? issueById(row.id)?.[key] : undefined;
+        const control = key === 'status' || key === 'priority'
+          ? `<select data-plan-field="${key}" data-plan-index="${index}" ${locked ? 'disabled' : ''}>${(key === 'status' ? C.statuses : C.priorities).map(option => `<option value="${escape(option)}" ${option === value ? 'selected' : ''}>${escape(option)}</option>`).join('')}</select>`
+          : key === 'description' ? `<textarea data-plan-field="${key}" data-plan-index="${index}" ${locked ? 'disabled' : ''}>${escape(value)}</textarea>`
+          : `<input data-plan-field="${key}" data-plan-index="${index}" ${locked ? 'disabled' : ''} ${key === 'assignee' ? 'list="plan-notepad-assignees"' : ''} type="${['startDate', 'dueDate'].includes(key) ? 'date' : key === 'estimate' ? 'number' : 'text'}" value="${escape(value)}">`;
+        return `<label>${labels[key]}${previous === undefined ? '' : `<span class="plan-notepad-before">Current: ${escape(String(previous === '' ? '—' : previous))}</span>`}${control}</label>`;
+      }).join('');
+      const parent = row.action === 'create' && row.type !== 'Epic' ? `<label>Epic<select data-plan-parent data-plan-index="${index}" ${locked ? 'disabled' : ''}><option value="">No Epic</option>${epics.map(epic => `<option value="${escape(epic.ref)}" ${row.parentRef === epic.ref ? 'selected' : ''}>${escape(epic.label)}</option>`).join('')}</select></label>` : '';
+      return `<div class="plan-notepad-row" data-plan-row="${index}"><div class="plan-notepad-row-head"><label><input type="checkbox" data-plan-selected data-plan-index="${index}" ${row.selected && !row.applied ? 'checked' : ''} ${planApplying || row.applied ? 'disabled' : ''}> ${row.action === 'create' ? 'Create' : 'Update'} ${escape(row.type || row.id)}</label><strong>${escape(row.fields.summary || issueById(row.id)?.summary || '')}</strong><small>${escape(row.reason || (row.line ? `Line ${row.line}` : ''))}${row.applied ? ' · Applied' : ''}</small></div><div class="plan-notepad-row-fields">${controls}${parent}</div><div class="plan-notepad-row-error" role="status"></div></div>`;
+    }).join('');
+    $('#plan-notepad-assignees').innerHTML = planAssignees().map(name => `<option value="${escape(name)}"></option>`).join('');
+    renderPlanSummary();
+  }
+  function openPlanNotepad() {
+    if (!state.ready) return;
+    planReturnFocus = document.activeElement;
+    $('#plan-notepad-input').value = planDraft.note || '';
+    $('#plan-notepad-import').value = planDraft.importText || '';
+    $('#plan-notepad-gemini').open = Boolean(planDraft.contextId);
+    $('#plan-notepad-error').hidden = true;
+    renderPlanRows(); $('#plan-notepad-dialog').showModal(); $('#plan-notepad-input').focus();
+  }
+  function renderPlanSuggestions() {
+    const input = $('#plan-notepad-input'), before = input.value.slice(0, input.selectionStart);
+    const match = before.match(/(^|\s)([@#])([\p{L}\p{N}_-]*)$/u);
+    const box = $('#plan-notepad-suggestions');
+    planSuggestionRange = match ? { start: before.length - match[3].length - 1, end: input.selectionStart, marker: match[2] } : null;
+    const proposedEpics = [...input.value.matchAll(/^\s*Epic:\s*(.+)$/gim)].map(result => result[1].trim());
+    const candidates = match?.[2] === '@' ? planAssignees() : match?.[2] === '#' ? [...new Set([...state.issues.filter(issue => issue.type === 'Epic').map(issue => issue.summary), ...proposedEpics])] : [];
+    planSuggestionValues = candidates.filter(value => value.toLowerCase().includes((match?.[3] || '').toLowerCase())).slice(0, 6);
+    planSuggestionIndex = 0;
+    box.hidden = !planSuggestionValues.length;
+    box.innerHTML = planSuggestionValues.map((value, index) => `<button type="button" role="option" data-plan-suggestion="${index}" aria-selected="${index === 0}">${escape(value)}</button>`).join('');
+    input.setAttribute('aria-expanded', String(!box.hidden));
+  }
+  function acceptPlanSuggestion(index = planSuggestionIndex) {
+    const value = planSuggestionValues[index], range = planSuggestionRange, input = $('#plan-notepad-input');
+    if (!value || !range) return false;
+    const token = `${range.marker}"${value}"`;
+    input.value = input.value.slice(0, range.start) + token + input.value.slice(range.end);
+    input.setSelectionRange(range.start + token.length, range.start + token.length);
+    planDraft.note = input.value; savePlanDraft(); renderPlanSummary();
+    $('#plan-notepad-suggestions').hidden = true; planSuggestionRange = null; input.setAttribute('aria-expanded', 'false'); input.focus(); return true;
+  }
+  function closePlanNotepad() {
+    if (planApplying) return;
+    $('#plan-notepad-dialog').close();
+    if (planReturnFocus?.isConnected) planReturnFocus.focus();
+    planReturnFocus = null;
+  }
+  function planHasUnconfirmed() { return planDraft.rows.some(row => row.attempted && !row.applied); }
+  function preserveUnconfirmedPlan() {
+    if (!planHasUnconfirmed()) return false;
+    $('#plan-notepad-error').textContent = 'Resolve or explicitly discard the unconfirmed review before replacing it. A save may already have reached the project.';
+    $('#plan-notepad-error').hidden = false;
+    return true;
+  }
+  function parsePlanNotes() {
+    if (preserveUnconfirmedPlan()) return;
+    const rows = C.parseNotepad(planDraft.note, { issues: state.issues, assignees: planAssignees(), today: today() });
+    if (!rows.length || rows.length > 100) { $('#plan-notepad-error').textContent = rows.length ? 'Preview at most 100 non-empty lines.' : 'Enter at least one line.'; $('#plan-notepad-error').hidden = false; return; }
+    planDraft.rows = rows.map(row => ({ ...row, action: 'create', selected: !row.errors.length, operationId: `plan-${newOperationId()}` }));
+    planDraft.mode = 'parsed'; planDraft.noteAtPreview = planDraft.note; planDraft.snapshot = planSnapshot(); planDraft.versions = Object.fromEntries(state.issues.map(issue => [issue.id, issue.version])); planDraft.started = false; planDraft.contextId = ''; planDraft.importText = '';
+    if (savePlanDraft()) { $('#plan-notepad-error').hidden = true; renderPlanRows(); }
+  }
+  async function preparePlanContext() {
+    if (preserveUnconfirmedPlan()) return;
+    if (!planDraft.note.trim() || hasPendingSaves() || Object.keys(state.drafts).length) { $('#plan-notepad-error').textContent = 'Enter notes and finish pending edits before preparing context.'; $('#plan-notepad-error').hidden = false; return; }
+    try {
+      if (isCloud) { const fresh = await rpc('getProject'); state.issues = fresh.issues; render(); }
+      planDraft.contextId = `plan-${newOperationId()}`; planDraft.snapshot = planSnapshot(); planDraft.versions = Object.fromEntries(state.issues.map(issue => [issue.id, issue.version])); planDraft.noteAtPreview = planDraft.note; planDraft.started = false; planDraft.rows = []; planDraft.importText = '';
+      const content = C.planContext(state.issues, planDraft.note, planDraft.contextId), file = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      if (!savePlanDraft()) return;
+      const url = URL.createObjectURL(file), link = document.createElement('a'); link.href = url; link.download = 'tak-plan-context.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      $('#plan-notepad-context').textContent = `${state.issues.length} issues · ${(file.size / 1024).toFixed(1)} KB · Complete project context downloaded. Upload it to Gemini yourself.${file.size > 2_000_000 ? ' Large files can exceed Gemini’s effective context; check the proposal carefully.' : ''}`;
+      $('#plan-notepad-gemini').open = true;
+      $('#plan-notepad-import').value = ''; $('#plan-notepad-error').hidden = true; renderPlanRows();
+    } catch (error) { $('#plan-notepad-error').textContent = error.message || String(error); $('#plan-notepad-error').hidden = false; }
+  }
+  function importPlanProposal() {
+    try {
+      if (preserveUnconfirmedPlan()) return;
+      if (!planDraft.contextId) throw new Error('Prepare the project context first.');
+      const proposal = C.parsePlanProposal($('#plan-notepad-import').value, planDraft.contextId);
+      planDraft.importText = $('#plan-notepad-import').value;
+      planDraft.rows = proposal.changes.map(row => ({ ...row, selected: true, operationId: `plan-${newOperationId()}` }));
+      planDraft.mode = 'gemini'; planDraft.started = false;
+      if (!savePlanDraft()) return;
+      $('#plan-notepad-error').hidden = true; renderPlanRows();
+      $('#plan-notepad-context').textContent = proposal.summary || 'Review each proposed change before applying.';
+    } catch (error) { $('#plan-notepad-error').textContent = error.message || String(error); $('#plan-notepad-error').hidden = false; }
+  }
+  function preflightPlanRows(rows) {
+    const futureEpics = rows.filter(row => row.action === 'create' && row.type === 'Epic').map(row => {
+      const issue = C.prepare({ ...row.fields, type: 'Epic', parentId: '' }, null, today(), new Date().toISOString()); issue.id = row.key; return issue;
+    });
+    const projected = state.issues.map(issue => {
+      const row = rows.find(item => item.action === 'update' && item.id === issue.id);
+      return row ? { ...C.prepare({ id: issue.id, ...row.fields }, issue, today(), new Date().toISOString()), id: issue.id } : issue;
+    });
+    projected.push(...futureEpics);
+    rows.filter(row => row.action === 'create' && row.type !== 'Epic').forEach(row => {
+      const savedParent = planDraft.rows.find(item => item.key === row.parentRef)?.savedId;
+      const issue = C.prepare({ ...row.fields, type: row.type, parentId: savedParent || row.parentRef || '' }, null, today(), new Date().toISOString()); issue.id = row.key; projected.push(issue);
+    });
+    C.validateProject(projected);
+  }
+  async function applyPlanRows() {
+    if (planApplying) return;
+    const rows = planDraft.rows.filter(row => row.selected && !row.applied);
+    if (!rows.length || (!planDraft.started && (planDraft.note !== planDraft.noteAtPreview || planDraft.snapshot !== planSnapshot()))) { $('#plan-notepad-error').textContent = 'The notes or project changed since preview. Review and prepare a fresh proposal.'; $('#plan-notepad-error').hidden = false; return; }
+    const errors = rows.map(planRowError).filter(Boolean);
+    if (errors.length) { renderPlanSummary(); return; }
+    try { preflightPlanRows(rows); } catch (error) { $('#plan-notepad-error').textContent = `Validation stopped the proposal: ${error.message}`; $('#plan-notepad-error').hidden = false; return; }
+    planDraft.started = true; if (!savePlanDraft()) return;
+    const ordered = [...rows.filter(row => row.action === 'create' && row.type === 'Epic'), ...rows.filter(row => row.action === 'create' && row.type !== 'Epic'), ...rows.filter(row => row.action === 'update')];
+    planApplying = true;
+    ['plan-notepad-input', 'plan-notepad-import', 'plan-notepad-close', 'plan-notepad-cancel', 'plan-notepad-parse', 'plan-notepad-prepare', 'plan-notepad-import-button', 'plan-notepad-discard'].forEach(id => { $('#' + id).disabled = true; });
+    renderPlanRows();
+    try {
+    for (const row of ordered) {
+      try {
+        if (row.action === 'create') {
+          const parent = row.parentRef?.startsWith('draft-') ? planDraft.rows.find(item => item.key === row.parentRef) : null;
+          if (parent && !parent.savedId) throw new Error('Parent Epic is not saved yet. Retry after resolving it.');
+          const input = { ...row.fields, type: row.type, parentId: parent ? parent.savedId : row.parentRef || '', taskTypeId: defaultTaskTypeId() };
+          if (row.type === 'Epic') { delete input.startDate; delete input.dueDate; }
+          row.attempted = true; if (!savePlanDraft()) break;
+          const response = await rpc('createIssuesBatch', [{ operationId: row.operationId, input }]);
+          if (response.errors?.length || response.items?.length !== 1) throw new Error(response.errors?.[0]?.message || 'Creation was not confirmed. Retry checks the same operation.');
+          const issue = response.items[0].issue; row.savedId = issue.id;
+          state.issues = state.issues.some(item => item.id === issue.id) ? state.issues.map(item => item.id === issue.id ? issue : item) : [...state.issues, issue];
+        } else {
+          const current = issueById(row.id);
+          if (!current || (current.version !== planDraft.versions[row.id] && !row.attempted)) throw new Error('Conflict: issue changed since the context was prepared.');
+          row.attempted = true; if (!savePlanDraft()) break;
+          await persist({ ...current, ...row.fields, operationId: row.operationId }, planDraft.versions[row.id], 'Plan change saved', 'saveIssue', { retry: true });
+        }
+        row.applied = true; row.selected = false; row.status = 'Saved';
+      } catch (error) { row.status = error.message || String(error); }
+      if (!savePlanDraft()) break;
+      renderPlanRows();
+    }
+    } finally {
+      planApplying = false;
+      ['plan-notepad-input', 'plan-notepad-import', 'plan-notepad-close', 'plan-notepad-cancel', 'plan-notepad-parse', 'plan-notepad-prepare', 'plan-notepad-import-button', 'plan-notepad-discard'].forEach(id => { $('#' + id).disabled = false; });
+      render(); renderPlanRows();
+    }
+  }
   function renderBulkPreview() {
     const titles = bulkTitles(), errors = [];
     titles.forEach((title, index) => { if (title.length > 250) errors.push(`Line ${index + 1} exceeds 250 characters.`); });
@@ -2553,12 +2774,18 @@
     const laneId = source.closest('.swimlane')?.dataset.epicLane || '';
     const statusIndex = C.statuses.indexOf(issue.status), siblings = boardScopeItems(issue.status, laneId), index = siblings.findIndex(item => item.id === id);
     let status = issue.status, rank = issue.rank;
-    if (direction === 'up' && index > 0) {
-      const targetRank = Number(siblings[index - 1].rank) || 0, previousRank = index > 1 ? Number(siblings[index - 2].rank) || 0 : Math.max(0, targetRank - 1000);
-      rank = (targetRank + previousRank) / 2;
-    } else if (direction === 'down' && index >= 0 && index < siblings.length - 1) {
-      const targetRank = Number(siblings[index + 1].rank) || 0, nextRank = index + 2 < siblings.length ? Number(siblings[index + 2].rank) || 0 : targetRank + 1000;
-      rank = (targetRank + nextRank) / 2;
+    if ((direction === 'up' && index > 0) || (direction === 'down' && index >= 0 && index < siblings.length - 1)) {
+      const remaining = siblings.filter(item => item.id !== id);
+      const insertAt = direction === 'up' ? index - 1 : index + 1;
+      const left = insertAt > 0 ? Number(remaining[insertAt - 1].rank) : null;
+      const right = insertAt < remaining.length ? Number(remaining[insertAt].rank) : null;
+      const gap = left !== null && right !== null ? right - left : Infinity;
+      const floor = Number.EPSILON * Math.max(1, Math.abs(left || 0), Math.abs(right || 0)) * 8;
+      rank = gap <= floor ? null : left === null ? (right > 0 ? right / 2 : null) : right === null ? left + 1000 : left + gap / 2;
+      if (rank === null || !Number.isFinite(rank) || rank === issue.rank) {
+        notify('No safe order position is available here. Move a different card first.', true);
+        return;
+      }
     } else if (direction === 'left' && statusIndex > 0) status = C.statuses[statusIndex - 1];
     else if (direction === 'right' && statusIndex >= 0 && statusIndex < C.statuses.length - 1) status = C.statuses[statusIndex + 1];
     if (status !== issue.status) rank = (boardScopeItems(status, laneId).at(-1)?.rank || 0) + 1000;
@@ -3258,6 +3485,45 @@
   $('#bulk-create-cancel').addEventListener('click', () => $('#bulk-create-dialog').close());
   $('#bulk-create-input').addEventListener('input', renderBulkPreview);
   $('#bulk-create-submit').addEventListener('click', submitBulkCreate);
+  $('#plan-notepad-open').addEventListener('click', openPlanNotepad);
+  $('#plan-notepad-close').addEventListener('click', closePlanNotepad);
+  $('#plan-notepad-cancel').addEventListener('click', closePlanNotepad);
+  $('#plan-notepad-dialog').addEventListener('cancel', event => { event.preventDefault(); closePlanNotepad(); });
+  $('#plan-notepad-input').addEventListener('input', event => { planDraft.note = event.target.value; savePlanDraft(); renderPlanSummary(); if (!event.isComposing) renderPlanSuggestions(); });
+  $('#plan-notepad-input').addEventListener('keydown', event => {
+    if (event.isComposing || event.keyCode === 229 || $('#plan-notepad-suggestions').hidden) return;
+    if (['ArrowDown', 'ArrowUp'].includes(event.key)) {
+      event.preventDefault(); planSuggestionIndex = (planSuggestionIndex + (event.key === 'ArrowDown' ? 1 : -1) + planSuggestionValues.length) % planSuggestionValues.length;
+      $$('#plan-notepad-suggestions button').forEach((button, index) => button.setAttribute('aria-selected', String(index === planSuggestionIndex)));
+    } else if (['Enter', 'Tab'].includes(event.key)) { event.preventDefault(); acceptPlanSuggestion(); }
+    else if (event.key === 'Escape') { event.preventDefault(); $('#plan-notepad-suggestions').hidden = true; $('#plan-notepad-input').setAttribute('aria-expanded', 'false'); }
+  });
+  $('#plan-notepad-suggestions').addEventListener('click', event => { const button = event.target.closest('[data-plan-suggestion]'); if (button) acceptPlanSuggestion(Number(button.dataset.planSuggestion)); });
+  $('#plan-notepad-parse').addEventListener('click', parsePlanNotes);
+  $('#plan-notepad-prepare').addEventListener('click', preparePlanContext);
+  $('#plan-notepad-discard').addEventListener('click', () => {
+    if (planApplying) return;
+    if (!window.confirm(planHasUnconfirmed() ? 'Discard this review? An unconfirmed save may already exist in the project.' : 'Discard this review? Your notes will remain.')) return;
+    planDraft.rows = []; planDraft.started = false; planDraft.contextId = ''; planDraft.importText = ''; planDraft.mode = ''; planDraft.noteAtPreview = '';
+    if (savePlanDraft()) { $('#plan-notepad-import').value = ''; $('#plan-notepad-error').hidden = true; renderPlanRows(); }
+  });
+  $('#plan-notepad-copy').addEventListener('click', async () => {
+    if (!planDraft.contextId) { notify('Prepare the project context first.', true); return; }
+    const prompt = `Upload tak-plan-context.txt and follow its instructions. Return only JSON using schema tak-plan-proposal/v1 and contextId ${planDraft.contextId}. Include a short summary and up to 100 create/update changes with reasons. Do not change the project directly.`;
+    try { await navigator.clipboard.writeText(prompt); notify('Gemini prompt copied'); }
+    catch (error) { notify('Clipboard unavailable. Copy the instructions from the downloaded context file.', true); }
+  });
+  $('#plan-notepad-import').addEventListener('input', event => { planDraft.importText = event.target.value; savePlanDraft(); });
+  $('#plan-notepad-import-button').addEventListener('click', importPlanProposal);
+  $('#plan-notepad-apply').addEventListener('click', applyPlanRows);
+  $('#plan-notepad-preview').addEventListener('change', event => {
+    const index = Number(event.target.dataset.planIndex), row = planDraft.rows[index]; if (!row) return;
+    if (event.target.matches('[data-plan-selected]')) row.selected = event.target.checked;
+    else if (event.target.matches('[data-plan-parent]')) { row.parentRef = event.target.value; row.errors = []; }
+    else if (event.target.matches('[data-plan-field]')) { row.fields[event.target.dataset.planField] = event.target.dataset.planField === 'estimate' ? Number(event.target.value) : event.target.value; row.errors = []; }
+    else return;
+    savePlanDraft(); renderPlanSummary();
+  });
   $('#selection-edit').addEventListener('click', openBulkEdit);
   $('#selection-delete').addEventListener('click', openBulkDelete);
   $('#selection-clear').addEventListener('click', () => { if (!deleteSubmitting) { state.selectedIssueIds = []; selectionAnchorId = ''; syncSelection(); } });
