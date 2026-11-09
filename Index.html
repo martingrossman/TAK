@@ -22,6 +22,7 @@
       <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
       <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
       <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
+      <a id="demo-github-header" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
     </div>
     <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New task</button>
   </header>
@@ -51,6 +52,7 @@
               <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
               <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
             </div>
+          <a id="demo-github-menu" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
         </div></details>
         <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
         <span id="issue-count" class="issue-count"></span>
@@ -116,7 +118,7 @@
     <div id="error-banner" class="error-banner" role="alert" hidden></div>
     <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
     <section id="view-content" aria-labelledby="view-title"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
-    <footer class="view-footer"><span id="view-hint"></span></footer>
+    <footer class="view-footer"><span id="view-hint"></span><span id="demo-credit" data-demo-only hidden>Created by Martin Grossman</span></footer>
   </main>
   <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="dialog-title" tabindex="-1">
     <form id="issue-form">

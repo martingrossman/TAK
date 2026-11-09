@@ -426,8 +426,12 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .epic-fold-controls{display:inline-flex;align-items:center;gap:6px;flex:none;padding-right:9px;margin-right:2px;border-right:1px solid var(--line)}
 .epic-fold-controls .button:disabled{cursor:default}
 .epic-fold-label{font-weight:600;color:var(--ink)}
-.view-footer{flex-wrap:wrap}
+.view-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#demo-credit{margin-left:auto;white-space:nowrap}
+#workspace-more #demo-github-menu{display:none}
+#demo-github-header{width:auto;padding:0 8px}
 .toast{left:50%}
+@media(max-width:700px){#demo-github-header{display:none}#workspace-more #demo-github-menu{display:flex;justify-content:flex-start;min-height:40px}}
 @media(max-width:1000px){
   .topbar{gap:8px 12px}
   .header-tools .tool-label{display:none}
@@ -750,6 +754,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
       <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
       <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
       <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
+      <a id="demo-github-header" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
     </div>
     <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New task</button>
   </header>
@@ -779,6 +784,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
               <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
               <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
             </div>
+          <a id="demo-github-menu" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
         </div></details>
         <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
         <span id="issue-count" class="issue-count"></span>
@@ -844,7 +850,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
     <div id="error-banner" class="error-banner" role="alert" hidden></div>
     <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
     <section id="view-content" aria-labelledby="view-title"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
-    <footer class="view-footer"><span id="view-hint"></span></footer>
+    <footer class="view-footer"><span id="view-hint"></span><span id="demo-credit" data-demo-only hidden>Created by Martin Grossman</span></footer>
   </main>
   <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="dialog-title" tabindex="-1">
     <form id="issue-form">
@@ -1540,6 +1546,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
+  $$('[data-demo-only]').forEach(element => { element.hidden = isCloud; });
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
   const defaultSheetColumnOrder = ['summary', 'status', 'assignee', 'priority', 'dueDate'];
   const defaultSheetWidths = { id:130, summary:420, status:120, assignee:160, priority:100, dueDate:140 };

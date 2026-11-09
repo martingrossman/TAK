@@ -55,6 +55,7 @@
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
+  $$('[data-demo-only]').forEach(element => { element.hidden = isCloud; });
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
   const defaultSheetColumnOrder = ['summary', 'status', 'assignee', 'priority', 'dueDate'];
   const defaultSheetWidths = { id:130, summary:420, status:120, assignee:160, priority:100, dueDate:140 };

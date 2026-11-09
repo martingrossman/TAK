@@ -419,8 +419,12 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .epic-fold-controls{display:inline-flex;align-items:center;gap:6px;flex:none;padding-right:9px;margin-right:2px;border-right:1px solid var(--line)}
 .epic-fold-controls .button:disabled{cursor:default}
 .epic-fold-label{font-weight:600;color:var(--ink)}
-.view-footer{flex-wrap:wrap}
+.view-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#demo-credit{margin-left:auto;white-space:nowrap}
+#workspace-more #demo-github-menu{display:none}
+#demo-github-header{width:auto;padding:0 8px}
 .toast{left:50%}
+@media(max-width:700px){#demo-github-header{display:none}#workspace-more #demo-github-menu{display:flex;justify-content:flex-start;min-height:40px}}
 @media(max-width:1000px){
   .topbar{gap:8px 12px}
   .header-tools .tool-label{display:none}

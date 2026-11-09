@@ -22,6 +22,7 @@ test('shared connection renders all views and keeps recovery storage separate ac
   },{issues});
   await page.goto('/?copy=copy-a');
   await expect(page.locator('#sync-status')).toHaveText('Synced with Sheets');
+  for(const selector of ['#demo-github-header','#demo-github-menu','#demo-credit']) await expect(page.locator(selector)).toBeHidden();
   for(const view of ['sheet','gantt','kanban']){
     await page.locator(`[data-view="${view}"]`).click();
     await expect(page.locator('#view-title')).toHaveText({sheet:'Sheet',gantt:'Gantt',kanban:'Kanban'}[view]);

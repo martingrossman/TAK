@@ -49,6 +49,19 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
     await page.setViewportSize(viewport);
     await page.goto('/#kanban');
     await expect(page.locator('#sync-status')).toHaveText('Saved in this browser');
+    await expect(page.locator('#demo-credit')).toHaveText('Created by Martin Grossman');
+    await expect(page.locator('#demo-credit')).toBeVisible();
+    if (viewport.width < 700) {
+      await expect(page.locator('#demo-github-header')).toBeHidden();
+      await page.locator('#workspace-more > summary').click();
+      await expect(page.locator('#demo-github-menu')).toHaveAttribute('href', 'https://github.com/martingrossman/TAK');
+      await expect(page.locator('#demo-github-menu')).toBeVisible();
+      await page.locator('#workspace-more > summary').click();
+    } else {
+      await expect(page.locator('#demo-github-header')).toHaveAttribute('href', 'https://github.com/martingrossman/TAK');
+      await expect(page.locator('#demo-github-header')).toBeVisible();
+      await expect(page.locator('#demo-github-menu')).toBeHidden();
+    }
     await expect(page.locator('[data-view]')).toHaveCount(3);
     await expect(page.locator('.sidebar, .page-heading, #stats')).toHaveCount(0);
     await expect(page.locator('#search')).toBeVisible();
