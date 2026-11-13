@@ -1,7 +1,7 @@
 # TAK — Deferred Features & Future Roadmap
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Idea inventory, **not** MVP acceptance criteria  
-**Source of historical ideas:** existing `ProductRequiremtns.md`, `IMPLEMENTATION_PLAN.md`, and design discussions.
+**Source of historical ideas:** existing `archive/ProductRequiremtns.md`, `archive/IMPLEMENTATION_PLAN.md`, and design discussions.
 
 ## Why this file exists
 
@@ -11,18 +11,18 @@ The old requirements mixed fast personal task management with team planning, sch
 
 ## A. Agentic coding inside the product — deliberately deferred
 
-**Clarify terminology:** We *are using Codex as the development agent* for TAK. We are **not building an application that automatically assigns work to Codex or other agents** in the MVP.
+**Clarify terminology:** We *use an AI assistant to develop TAK*. We are **not building an application that automatically assigns work to AI assistants** in the MVP.
 
 Possible later stages:
 
-1. **Manual assistant workflow:** human opens a task, copies structured context to Codex, reviews result and updates the task. This requires little or no app integration and may already be useful.
-2. **Codex-connected workflow:** app exposes a narrowly scoped authenticated interface for `list_tasks`, `get_task`, task status/progress and result updates; a human deliberately starts coding. Requires real actor authentication, permissions, safe writes, audit and proof-of-transport.
+1. **Manual assistant workflow:** human opens a task, copies structured context to the AI assistant, reviews result and updates the task. This requires little or no app integration and may already be useful.
+2. **AI assistant integration workflow:** app exposes a narrowly scoped authenticated interface for `list_tasks`, `get_task`, task status/progress and result updates; a human deliberately starts coding. Requires real actor authentication, permissions, safe writes, audit and proof-of-transport.
 3. **Coordinated agents:** atomic task claims, configurable concurrent workload, stale-claim detection, release/reassignment, dependency guards, evidence submission and human review acceptance. Requires server-side identity, concurrency, permission and idempotency models.
 4. **Automation/orchestration:** agents autonomously discover tasks, claim work, prepare branches/PRs, run tests and submit for review. Requires explicit safety, resource and governance boundaries beyond an ordinary task manager.
 
 The old requirements list nine candidate operations: `list_tasks`, `get_task`, `create_task`, `update_task`, `claim_task`, `release_task`, `report_progress`, `report_blocker`, `submit_result`. These are **backlog concepts, not existing public APIs**.
 
-**Suggested future decision gate:** Verify that an authenticated external Codex/client integration is feasible with the actual Apps Script deployment/identity model; prove it against a test workbook before publishing any API. Never assume Google Sheet sharing permissions alone enforce app-level roles.
+**Suggested future decision gate:** Verify that an authenticated external AI assistant/client integration is feasible with the actual Apps Script deployment/identity model; prove it against a test workbook before publishing any API. Never assume Google Sheet sharing permissions alone enforce app-level roles.
 
 ## B. Team and enterprise collaboration
 
@@ -71,4 +71,4 @@ Only after review should an item move into `PRODUCT_REQUIREMENTS_MVP.md` or a su
 
 ## Source-document interpretation
 
-The existing repository's `ProductRequiremtns.md` and `IMPLEMENTATION_PLAN.md` remain valuable as broader future design references. Their original Phase 1 included full team setup, holidays, agent authentication/claims, extensive ordering and historical logs. **That original phase definition is not the newly agreed MVP**. The focused documents in this pack should govern Codex's immediate implementation work.
+The existing repository's `archive/ProductRequiremtns.md` and `archive/IMPLEMENTATION_PLAN.md` remain valuable as broader future design references. Their original Phase 1 included full team setup, holidays, agent authentication/claims, extensive ordering and historical logs. **That original phase definition is not the newly agreed MVP**. The focused documents in this pack should govern the AI assistant?s immediate implementation work.

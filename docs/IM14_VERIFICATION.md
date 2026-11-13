@@ -32,7 +32,7 @@ No backend API, task schema, authentication or sharing changes. Generated `dist/
 
 Before a live release, test a private Google copy for all three views, keyboard creation, save/reload/retry, context and menu launch. Real Apps Script latency, physical keyboard/assistive technology testing and the 2,000-task performance benchmark were not measured in this change. Existing copied bound scripts are not updated by local source changes.
 
-Existing local backlog additions (including IM-15) and the untracked `docs/gemini_review.md` were preserved.
+Existing local backlog additions (including IM-15) and the then-untracked technical review (now `docs/technical_review.md`) were preserved.
 
 ## Parent picker refinement — 2026-11-07
 

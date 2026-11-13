@@ -56,7 +56,7 @@ test('Epic heading picker reuses an existing Epic and a new heading creates one'
   await notes.fill('Epic:');
   await expect(page.locator('#plan-notepad-suggestions')).toContainText('Existing epic');
   await page.locator('#plan-notepad-suggestions button').filter({ hasText: 'Existing epic' }).click();
-  await expect(notes).toHaveValue('Epic: [PRJ-1] Existing epic');
+  await expect(notes).toHaveValue(/^Epic:[ \t]*\[PRJ-1\] Existing epic$/);
   await notes.press('Enter');
   await notes.pressSequentially('Task: Work under existing');
   await page.locator('#plan-notepad-parse').click();
@@ -79,12 +79,12 @@ test('Epic heading picker reuses an existing Epic and a new heading creates one'
   expect(issues.find(issue => issue.summary === 'Work under new')?.parentId).toBe(created.id);
 });
 
-test('manual Gemini proposal downloads context and requires selected, reviewed changes', async ({ page }) => {
+test('manual AI proposal downloads context and requires selected, reviewed changes', async ({ page }) => {
   await page.addInitScript(issues => { if (!localStorage.getItem('sheetflow.project.v1')) localStorage.setItem('sheetflow.project.v1', JSON.stringify({ issues, comments: [{ body: 'Never export this comment', taskId: 'PRJ-2' }], sequence: 2 })); }, starting);
   await page.goto('/#kanban'); await open(page);
   await page.locator('#plan-notepad-input').fill('Please plan a small launch.');
   const download = page.waitForEvent('download');
-  await page.locator('#plan-notepad-prepare').click();
+  await page.getByRole('button', { name: 'Prepare for AI', exact: true }).click();
   expect((await download).suggestedFilename()).toBe('tak-plan-context.txt');
   await expect(page.locator('#plan-notepad-context')).toContainText('2 issues');
   const contextId = await page.evaluate(() => JSON.parse(localStorage.getItem('sheetflow.plan-notepad.v1')).contextId);
@@ -93,7 +93,7 @@ test('manual Gemini proposal downloads context and requires selected, reviewed c
     { action: 'create', key: 'draft-child', type: 'Task', parentRef: 'draft-launch', fields: { summary: 'Prepare notes' }, reason: 'Plan next action' },
     { action: 'update', id: 'PRJ-2', fields: { priority: 'High' }, reason: 'Raise priority' }
   ] };
-  await page.locator('#plan-notepad-import').fill(JSON.stringify(proposal));
+  await page.getByLabel('AI JSON proposal', { exact: true }).fill(JSON.stringify(proposal));
   await page.locator('#plan-notepad-import-button').click();
   await expect(page.locator('[data-plan-row]')).toHaveCount(3);
   await page.locator('[data-plan-row="2"] [data-plan-selected]').uncheck();

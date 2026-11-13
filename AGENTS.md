@@ -1,4 +1,4 @@
-# AGENTS.md — TAK Codex Working Agreement
+# AGENTS.md — TAK AI Assistant Working Agreement
 
 You are coding on **TAK**, a Google Sheets-backed project/task manager with a local standalone demo. The goal of this workstream is **exceptional usability, design consistency and speed**, not feature expansion for its own sake.
 
@@ -9,13 +9,13 @@ You are coding on **TAK**, a Google Sheets-backed project/task manager with a lo
 3. `docs/IMPLEMENTATION_PLAN_MVP.md` — implementation phases and quality gates.
 4. `docs/FUTURE_ROADMAP.md` — features explicitly excluded from MVP.
 5. `docs/LEGACY_SCOPE_MAPPING.md` — original section-by-section disposition.
-6. Existing `readme.md`, `ProductRequiremtns.md`, and `IMPLEMENTATION_PLAN.md` for existing behavior and long-term context. Do **not** pull deferred features into the MVP from these older documents.
+6. Existing `readme.md`, `archive/ProductRequiremtns.md`, and `archive/IMPLEMENTATION_PLAN.md` for existing behavior and long-term context. Do **not** pull deferred features into the MVP from these older documents.
 
 In case of conflict: **data safety > MVP functional requirements > UX details > implementation suggestions**. Surface unresolved design/functional conflicts in your report. Do not expand scope silently.
 
 ## Non-negotiable boundaries
 
-- **Do not implement agentic task workflows in this MVP.** Codex is the *developer*, not a task runner integrated into the product. No claim APIs, autonomous agents, stale claims or orchestration UI.
+- **Do not implement agentic task workflows in this MVP.** The AI assistant is the *developer*, not a task runner integrated into the product. No claim APIs, autonomous agents, stale claims or orchestration UI.
 - Preserve **both** working modes: standalone static/local browser (`localStorage`) and Apps Script web app (Google Sheets). They must never misleadingly claim to synchronize with each other.
 - Preserve existing user data, IDs, parent/dependency validation, ordering semantics, conflict safety, CSV export and existing Gantt functionality. Avoid schema migrations unless specifically authorized with backup, test and rollback.
 - Prefer incremental changes to current dependency-free HTML/CSS/JS and shared `Core.js`. **Do not introduce React, Next.js, a database, bundler, UI component framework or state-management library without an explicit trade-off review and approval.**
@@ -44,14 +44,14 @@ For every small work item:
 1. **Inspect** source and existing tests; state actual behavior, risks, and affected files.
 2. **Plan** a reviewable change with explicit acceptance criteria and scope exclusions.
 3. **Implement** only the agreed slice. Prefer direct, coherent code over speculative abstractions.
-4. **Verify** with `npm run check` and relevant interaction tests where available, preferably run locally by the user to conserve Codex usage. Test both modes when the change touches persistence or build/runtime differences. If the environment cannot run a test, report that plainly; do not claim it passed.
+4. **Verify** with `npm run check` and relevant interaction tests where available, preferably run locally by the user to reduce AI assistant usage. Test both modes when the change touches persistence or build/runtime differences. If the environment cannot run a test, report that plainly; do not claim it passed.
 5. **Report** changes, screenshots/measurements when useful, regressions checked, current limitations and next slice. Do not mark an item done on visual plausibility alone.
 
 Do not bundle visual redesign, data migration, backend write-path refactor and new features into one unreviewable change.
 
-## Codex-efficient Playwright policy
+## Efficient AI-assisted Playwright policy
 
-- Prefer local, human-run Playwright execution in VS Code PowerShell. Codex writes/maintains tests and diagnoses failures; do **not** launch full browser suites, interactive browser sessions, or repeated screenshot/trace inspections unless explicitly requested.
+- Prefer local, human-run Playwright execution in VS Code PowerShell. The AI assistant writes/maintains tests and diagnoses failures; do **not** launch full browser suites, interactive browser sessions, or repeated screenshot/trace inspections unless explicitly requested.
 - After each small change, specify the exact targeted test command for the user to run. The user shares only failing test names, concise errors and selected diagnostics; do not ingest complete successful logs, HTML reports or trace archives into model context.
 - Preserve existing Playwright projects, tests and configuration. Do not add dependencies or modify test infrastructure without approval. Recommend concise console + HTML reporting, failure-only screenshots/traces and video disabled, but verify the current config before changing it.
 - Local test execution is not equivalent to testing the Google Sheets/Apps Script mode. Record what was and was not verified.

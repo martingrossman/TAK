@@ -1,6 +1,6 @@
 # TAK — Local Testing Guide
 
-This guide describes the existing local Node.js and Playwright workflow for the `implement_mvp` branch. Run tests from a normal VS Code PowerShell terminal, not through Codex, to minimize Codex usage.
+This guide describes the existing local Node.js and Playwright workflow for the `implement_mvp` branch. Run tests from a normal VS Code PowerShell terminal, not through the AI assistant, to reduce AI assistant usage.
 
 ## Setup (Windows PowerShell)
 
@@ -51,22 +51,22 @@ npx.cmd playwright test --reporter=line *> playwright-failures.txt
 
 A nonzero exit code means tests failed. Do not assume an HTML report exists after a default run; it depends on Playwright reporter configuration. Configure `trace: 'retain-on-failure'`, `screenshot: 'only-on-failure'`, and `video: 'off'` in the existing Playwright config when approved, preserving all existing projects and settings. These are recommended settings, not claims that they are already applied.
 
-## Minimal-Codex-usage workflow
+## Efficient AI-assisted testing workflow
 
-1. Codex inspects the relevant code and writes a small implementation plus appropriate tests.
+1. The AI assistant inspects the relevant code and writes a small implementation plus appropriate tests.
 2. Run targeted tests manually in PowerShell.
-3. If they fail, provide Codex only the failing test names, concise errors, and relevant code context.
-4. Codex diagnoses and fixes; do not let it repeatedly run browser automation by default.
+3. If they fail, provide the AI assistant only the failing test names, concise errors, and relevant code context.
+4. The AI assistant diagnoses and fixes; do not let it repeatedly run browser automation by default.
 5. Rerun targeted tests manually; run the complete browser suite before a merge/release.
 6. Request interactive browser investigation only for failures that cannot be diagnosed from concise reports.
 
-Avoid feeding complete successful logs, entire traces, screenshots of passing tests, or large HTML reports into Codex. Keep reports and traces locally; share selected artifacts only as needed.
+Avoid feeding complete successful logs, entire traces, screenshots of passing tests, or large HTML reports into the AI assistant. Keep reports and traces locally; share selected artifacts only as needed.
 
 ## Safety
 
 Use isolated test fixtures and local browser storage. Never point automated tests at a production Google Sheet or run Apps Script deployment commands without explicit approval. A passing local browser suite does not verify the Apps Script-backed mode.
 
-## Smart Notepad and manual Gemini trial
+## Smart Notepad and manual AI trial
 
 Run the targeted browser cases from this worktree in VS Code PowerShell:
 
@@ -75,7 +75,7 @@ npm.cmd run check
 npx.cmd playwright test e2e/plan-notepad.spec.mjs --workers=2 --retries=0 --reporter=line
 ```
 
-The browser file covers local Epic-child creation, existing Epic selection, new Epic headings, manual proposal selection, stale revisions, local receipt recovery and a simulated Apps Script acknowledgement loss. The simulated server is an isolated browser fixture; it does not verify a live Google Sheet. Review the downloaded context before uploading it to Gemini because it contains task descriptions, assignees, dates and dependencies. A live trial needs a separately verified test workbook and Apps Script project.
+The browser file covers local Epic-child creation, existing Epic selection, new Epic headings, manual proposal selection, stale revisions, local receipt recovery and a simulated Apps Script acknowledgement loss. The simulated server is an isolated browser fixture; it does not verify a live Google Sheet. Review the downloaded context before uploading it to your chosen AI assistant because it contains task descriptions, assignees, dates and dependencies. The assistant must accept the context file and return the required JSON proposal; validate and review its output before applying changes. A live trial needs a separately verified test workbook and Apps Script project.
 
 Verification in this worktree: `npm.cmd run check` passed 201 Node tests; the targeted Edge suite passed 6/6 cases with retries disabled. A live Apps Script workbook has not been tested.
 

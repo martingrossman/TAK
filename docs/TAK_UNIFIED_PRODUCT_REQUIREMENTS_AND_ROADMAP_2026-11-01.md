@@ -2,7 +2,7 @@
 
 **Consolidation date:** 2026-11-01  
 **Current code source:** `C:\Users\martin\Documents\GitHub\TAK`, branch `implement_mvp` (renamed 2026-11-04; original review baseline `49eca0c`)
-**Historical working copy:** `C:\Users\martin\Documents\ChatGPT\gsheetjira\tak-inline-capture`, based on `28b8d1e`  
+**Historical working copy:** local folder `tak-inline-capture` (outside this repository), based on `28b8d1e`\
 **Purpose:** provide one decision document for TAK that separates confirmed decisions, current implementation, open questions, and later ideas.
 
 ---
@@ -88,8 +88,8 @@ The consolidation included these conversations in particular:
 
 **Reviewed in full on 2026-11-01:**
 
-- `C:\Users\martin\Documents\ChatGPT\gsheetjira\tak-inline-capture\docs\PRODUCT_REQUIREMENTS_MVP.md` — version 1.0, dated 2026-10-28; Sections 1–9, including FR-ENV, FR-01–FR-12, and AT-01–AT-13.
-- `C:\Users\martin\Documents\ChatGPT\gsheetjira\tak-inline-capture\docs\UI_UX_DESIGN_SPEC.md` — version 1.0, dated 2026-10-28; Sections 1–14, including design tokens, interaction rules, accessibility, nine UX scenarios, and the reference first slice.
+- historical working-copy file `tak-inline-capture/docs/PRODUCT_REQUIREMENTS_MVP.md` (outside this repository) — version 1.0, dated 2026-10-28; Sections 1–9, including FR-ENV, FR-01–FR-12, and AT-01–AT-13.
+- historical working-copy file `tak-inline-capture/docs/UI_UX_DESIGN_SPEC.md` (outside this repository) — version 1.0, dated 2026-10-28; Sections 1–14, including design tokens, interaction rules, accessibility, nine UX scenarios, and the reference first slice.
 
 These historical files were also compared with the current repository's [PRD](PRODUCT_REQUIREMENTS_MVP.md) and [UX specification](UI_UX_DESIGN_SPEC.md). The differences concern the existing-issue editor: historical PRD FR-04 and UX Sections 2, 5.2, 5.3, 13.3, and 14 specify a drawer; the current counterparts specify a compact dialog expanded through More options. The remaining content is equivalent.
 

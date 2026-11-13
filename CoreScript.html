@@ -178,7 +178,7 @@ var TrackerCore = (function () {
   var planEditableFields = ['summary', 'description', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'estimate', 'sprint', 'labels'];
   function parsePlanProposal(text, contextId) {
     var raw = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, ''), value;
-    try { value = JSON.parse(raw); } catch (error) { throw new Error('Paste a JSON proposal from Gemini.'); }
+    try { value = JSON.parse(raw); } catch (error) { throw new Error('Paste a JSON proposal from your AI assistant.'); }
     if (!value || value.schema !== 'tak-plan-proposal/v1' || value.contextId !== contextId || !Array.isArray(value.changes) || value.changes.length > 100 || typeof value.summary !== 'string') throw new Error('The proposal format, context ID or 100-item limit is invalid.');
     var keys = new Set(), ids = new Set();
     var changes = value.changes.map(function (change, index) {

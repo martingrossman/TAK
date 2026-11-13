@@ -7,18 +7,18 @@
 
 ## Start here
 
-This pack is deliberately split into distinct contracts. The files are intended to be copied to the indicated paths in the existing repository.
+This pack is deliberately split into distinct contracts. The files were originally intended to be copied to the indicated paths in the existing repository. Links below resolve from this archived document to their current locations.
 
 | File | Question it answers | Authority |
 |---|---|---|
-| [`AGENTS.md`](AGENTS.md) | How should Codex work safely in this repo? | Coding workflow and guardrails |
-| [`docs/PRODUCT_REQUIREMENTS_MVP.md`](docs/PRODUCT_REQUIREMENTS_MVP.md) | **What** is in/out of the MVP, and how do we know it works? | Product scope and functional acceptance |
-| [`docs/UI_UX_DESIGN_SPEC.md`](docs/UI_UX_DESIGN_SPEC.md) | **How** should every common interaction look, feel and behave? | Visual/interaction contract |
-| [`docs/IMPLEMENTATION_PLAN_MVP.md`](docs/IMPLEMENTATION_PLAN_MVP.md) | **In which order** should Codex build/test/release it? | Sequencing, engineering acceptance and risks |
-| [`docs/FUTURE_ROADMAP.md`](docs/FUTURE_ROADMAP.md) | Which attractive ideas are intentionally deferred? | Explicitly non-MVP ideas |
-| [`docs/LEGACY_SCOPE_MAPPING.md`](docs/LEGACY_SCOPE_MAPPING.md) | How do the original 20 requirement sections map to the new MVP? | Scope reconciliation reference |
+| [`AGENTS.md`](../AGENTS.md) | How should an AI assistant work safely in this repo? | Coding workflow and guardrails |
+| [`docs/PRODUCT_REQUIREMENTS_MVP.md`](../docs/PRODUCT_REQUIREMENTS_MVP.md) | **What** is in/out of the MVP, and how do we know it works? | Product scope and functional acceptance |
+| [`docs/UI_UX_DESIGN_SPEC.md`](../docs/UI_UX_DESIGN_SPEC.md) | **How** should every common interaction look, feel and behave? | Visual/interaction contract |
+| [`docs/IMPLEMENTATION_PLAN_MVP.md`](../docs/IMPLEMENTATION_PLAN_MVP.md) | **In which order** should an AI assistant build/test/release it? | Sequencing, engineering acceptance and risks |
+| [`docs/FUTURE_ROADMAP.md`](../docs/FUTURE_ROADMAP.md) | Which attractive ideas are intentionally deferred? | Explicitly non-MVP ideas |
+| [`docs/LEGACY_SCOPE_MAPPING.md`](../docs/LEGACY_SCOPE_MAPPING.md) | How do the original 20 requirement sections map to the new MVP? | Scope reconciliation reference |
 
-**Priority when docs appear to conflict:** safety, data integrity and existing deployed data first; then MVP product scope; then UI/UX interaction details; then the implementation plan. `AGENTS.md` governs the coding process. The existing root `ProductRequiremtns.md` and `IMPLEMENTATION_PLAN.md` are retained as historical/broader planning documents, but **do not expand the agreed MVP**. Record conflicts instead of silently choosing a new scope.
+**Priority when docs appear to conflict:** safety, data integrity and existing deployed data first; then MVP product scope; then UI/UX interaction details; then the implementation plan. `AGENTS.md` governs the coding process. The original `ProductRequiremtns.md` and `IMPLEMENTATION_PLAN.md` (now in `archive/`) are retained as historical/broader planning documents, but **do not expand the agreed MVP**. Record conflicts instead of silently choosing a new scope.
 
 ## Product in one sentence
 
@@ -38,15 +38,15 @@ This pack is deliberately split into distinct contracts. The files are intended 
 
 ### Not in the MVP
 
-Autonomous coding agents, task claiming/agent API, multi-agent coordination, enterprise permissions, team capacity and leave management, working-day scheduling, automatic dependent-task rescheduling, a general custom-field engine, and elaborate analytics. **Using Codex to develop this app is encouraged; making the app orchestrate Codex is deferred.**
+Autonomous coding agents, task claiming/agent API, multi-agent coordination, enterprise permissions, team capacity and leave management, working-day scheduling, automatic dependent-task rescheduling, a general custom-field engine, and elaborate analytics. **Using an AI assistant to develop this app is encouraged; making the app orchestrate an AI assistant is deferred.**
 
 ## Repository placement
 
-Copy the contents of this pack into your repo root:
+The original pack placement is shown below; the older requirements and review are now in `archive/`:
 
 ```text
 gsheetjira/
-├── AGENTS.md                        # new: Codex instructions
+├── AGENTS.md                        # new: AI assistant instructions
 ├── docs/
 │   ├── PRODUCT_REQUIREMENTS_MVP.md  # new: focused MVP contract
 │   ├── UI_UX_DESIGN_SPEC.md          # new: design/interaction contract
@@ -60,11 +60,11 @@ gsheetjira/
 
 Do **not** overwrite the original requirements/review in the first pass. The new files explicitly supersede their *MVP scope*, not their value as a future backlog.
 
-## The first Codex instruction (copy/paste)
+## The first AI assistant instruction (copy/paste)
 
 > Read `AGENTS.md`, `docs/PRODUCT_REQUIREMENTS_MVP.md`, `docs/UI_UX_DESIGN_SPEC.md`, `docs/IMPLEMENTATION_PLAN_MVP.md`, `docs/FUTURE_ROADMAP.md`, and `docs/LEGACY_SCOPE_MAPPING.md`. Inspect the current repository and compare it with this documentation. Start with **Phase 0 only**: report the current baseline, known bugs, test coverage, local/Apps Script architecture, risks, and proposed small PR-sized implementation slices. Recommend a new branch and a precise Phase 1 change list. **Do not modify application code, deploy, change Sheets schema or push to remote in this first step.** Produce `docs/PHASE_0_REVIEW.md` with findings, baseline checks and a proposed implementation order. Wait for approval before implementing Phase 1.
 
-Once Phase 0 is approved, ask Codex to implement **one slice at a time** with tests, screenshots, notes about local and Sheets modes, and measured results (where applicable).
+Once Phase 0 is approved, ask the AI assistant to implement **one slice at a time** with tests, screenshots, notes about local and Sheets modes, and measured results (where applicable).
 
 ## High-value first end-to-end slice
 

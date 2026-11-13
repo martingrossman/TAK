@@ -1,7 +1,7 @@
 # TAK — MVP Product Requirements (PRD)
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Proposed MVP contract for review and implementation  
-**Primary audience:** Product owner, Codex implementer, reviewer/tester  
+**Primary audience:** Product owner, AI assistant implementer, reviewer/tester\
 **Design companion:** [`UI_UX_DESIGN_SPEC.md`](UI_UX_DESIGN_SPEC.md)  
 **Delivery companion:** [`IMPLEMENTATION_PLAN_MVP.md`](IMPLEMENTATION_PLAN_MVP.md)
 
@@ -42,7 +42,7 @@ No native desktop build, external database, hosted API server, remote synchroniz
 
 ## 4. Required functional outcomes
 
-Each requirement has an **ID** so Codex can cite it in implementation reports and tests. P0/P1 are planned targets, not claims of current implementation.
+Each requirement has an **ID** so an AI assistant can cite it in implementation reports and tests. P0/P1 are planned targets, not claims of current implementation.
 
 ### FR-01 — Workspace and navigation (P0)
 
@@ -204,7 +204,7 @@ Important distinction for later: **hierarchy kind** (epic/story/task/subtask) an
 
 ## 6. MVP non-goals
 
-Autonomous agent execution/orchestration; Codex integration inside the app; multi-user enterprise authorization; capacity and time-off calendars; working-day schedule engine; automatic dependency rescheduling; configurable arbitrary data types and badges; advanced reporting; natural-language task parsing; large schema refactoring; new frontend framework. See [`FUTURE_ROADMAP.md`](FUTURE_ROADMAP.md).
+Autonomous agent execution/orchestration; AI assistant integration inside the app; multi-user enterprise authorization; capacity and time-off calendars; working-day schedule engine; automatic dependency rescheduling; configurable arbitrary data types and badges; advanced reporting; natural-language task parsing; large schema refactoring; new frontend framework. See [`FUTURE_ROADMAP.md`](FUTURE_ROADMAP.md).
 
 ## 7. Release acceptance scenarios
 
@@ -232,4 +232,4 @@ Measure *actual task completion friction*: clicks/keystrokes for common actions,
 
 ## 9. Scope and change control
 
-Changes to P0/P1 requirements require an explicit PRD update and product decision. Keep the original repo requirements intact for reference until the new docs are accepted and a clear migration/archival decision is made. A Codex coding run should cite requirement IDs in its summary and never silently promote roadmap ideas into the MVP.
+Changes to P0/P1 requirements require an explicit PRD update and product decision. Keep the original repo requirements intact for reference until the new docs are accepted and a clear migration/archival decision is made. An AI-assisted coding run should cite requirement IDs in its summary and never silently promote roadmap ideas into the MVP.

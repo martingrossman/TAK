@@ -1,4 +1,4 @@
-# TAK — MVP Implementation Plan for Codex
+# TAK — MVP Implementation Plan for AI Assistants
 
 **Version:** 1.0 · **Date:** 2026-10-28 · **Status:** Sequenced plan; code not modified by this document  
 **Reference baseline:** `main` commit `7a2609df91423b5ffa98bdbcb0c6fc26ae6aceb4`; verify actual working HEAD.  
@@ -51,7 +51,7 @@ Each phase can contain several small PRs. Re-evaluate whether advanced P1 items 
 
 ## 4. Phase 0 — Audit, safety baseline and actionable design review
 
-**Codex is authorized to inspect and document only until the user approves the first code slice.**
+**The AI assistant is authorized to inspect and document only until the user approves the first code slice.**
 
 Tasks:
 
@@ -165,7 +165,7 @@ Create a deterministic fixture with **2,000 tasks** and realistic distributions 
 
 ## 11. PR/commit review template
 
-Every Codex task or PR must contain:
+Every AI-assisted task or PR must contain:
 
 ```text
 Title: [Phase] concise change, e.g. [P2.2] Kanban inline title+Enter
@@ -182,10 +182,10 @@ Known limitations and next suggested small slice: ...
 
 Keep commits/reviews focused. Avoid vague reports such as “refactored UX” without observed behavior or executable evidence.
 
-## 12. First prompt to Codex
+## 12. First prompt to an AI assistant
 
-Use this for the initial run; **do not ask Codex to implement the entire plan in one go**.
+Use this for the initial run; **do not ask the AI assistant to implement the entire plan in one go**.
 
 > Read `AGENTS.md`, the new MVP PRD, UX specification, implementation plan and future roadmap. Compare them with the actual current repository and its historical requirements. Perform Phase 0 only: inspect files, verify the branch, run available tests, outline local/Apps Script save behavior, identify current UX defects, and prepare a short implementation sequence with PR-sized slices. Write `docs/PHASE_0_REVIEW.md`. Do not change application code, schema, dependencies or deployments yet. Wait for my approval before Phase 1.
 
-After approval, give Codex one slice ID (for example `P1.1`), require its exit checks, review the output, and then move on.
+After approval, give the AI assistant one slice ID (for example `P1.1`), require its exit checks, review the output, and then move on.

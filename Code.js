@@ -159,7 +159,7 @@ function getProject() {
 /** Generate a review-only proposal in an independently installed Apps Script app. */
 function proposePlanWithGemini(note, contextId, expectedSnapshot) {
   var started = Date.now();
-  if (typeof sharedHost_ === 'function' && sharedHost_()) throw new Error('Gemini API is available only in a private TAK installation. Use the manual Gemini flow here.');
+  if (typeof sharedHost_ === 'function' && sharedHost_()) throw new Error('Gemini API is available only in a private TAK installation. Use the manual AI flow here.');
   note = String(note || ''); contextId = String(contextId || '');
   if (!note.trim() || note.length > 30000) throw new Error('Enter planning notes of at most 30,000 characters.');
   if (!/^plan-[A-Za-z0-9-]{8,80}$/.test(contextId)) throw new Error('Prepare a new proposal context.');
