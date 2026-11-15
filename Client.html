@@ -21,14 +21,34 @@
     circle: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
     stack: '<path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/>',
     flag: '<path d="M5 21V4c4-5 10 5 14 0v10c-4 5-10-5-14 0"/>',
-    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>'
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
-  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600', Milestone: '#d97706' };
-  const statusColors = ['#7a869a', '#4c9aff', '#0052cc', '#975a16', '#00875a'];
-  const statusBg = ['#ebecf0', '#e9f2ff', '#deebff', '#fff0b3', '#e3fcef'];
-  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•', Milestone: '◆' })[type] || '•'}</span>`;
+  const themeStorageKey = 'tak.theme.v1';
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const toggle = $('#theme-toggle');
+    if (!toggle) return;
+    const next = theme === 'dark' ? 'light' : 'dark';
+    toggle.setAttribute('aria-label', `Switch to ${next} theme`);
+    toggle.title = `Switch to ${next} theme`;
+    toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+    const glyph = toggle.querySelector('[data-theme-icon]');
+    if (glyph) glyph.innerHTML = icon(theme === 'dark' ? 'sun' : 'moon');
+  }
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+  $('#theme-toggle')?.addEventListener('click', () => {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem(themeStorageKey, theme); } catch (error) {}
+    applyTheme(theme);
+  });
+  const typeColors = { Epic: 'var(--type-epic)', Story: 'var(--type-story)', Task: 'var(--type-task)', Bug: 'var(--type-bug)', Milestone: 'var(--type-milestone)' };
+  const statusColors = [0, 1, 2, 3, 4].map(i => `var(--status-${i})`);
+  const statusBg = [0, 1, 2, 3, 4].map(i => `var(--status-bg-${i})`);
+  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || 'var(--type-other)'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•', Milestone: '◆' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
   const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const monthFormat = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' });
@@ -37,7 +57,7 @@
   const timestamp = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : '—';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
   function avatar(name) {
-    const colors = ['#deebff', '#eae6ff', '#e3fcef', '#fff0b3'];
+    const colors = [0, 1, 2, 3].map(i => `var(--avatar-${i})`);
     return `<span class="avatar ${name ? '' : 'unassigned'}" title="${escape(name || 'Unassigned')}" style="--avatar-bg:${colors[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length]}">${escape(name ? initials(name) : '?')}</span>`;
   }
   const isCloud = !!(window.google && google.script && google.script.run);
@@ -2163,7 +2183,7 @@
       <div class="card-footer">
         <label class="card-assignee-field" title="Assignee: ${escape(issue.assignee || 'Unassigned')}">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Assignee" aria-label="Assignee for ${escape(issue.id)}"></label>
         <label class="card-due-field${overdue ? ' overdue' : ''}" title="${isMilestone ? (dueDate ? 'Target date: ' + escape(dueDate) : 'Set target date') : (dueDate ? 'Due: ' + escape(dueDate) : 'Set due date')}">
-          <span class="card-due-badge">${isMilestone ? '<span style="color:#d97706;font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
+          <span class="card-due-badge">${isMilestone ? '<span style="color:var(--type-milestone);font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
           <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="${isMilestone ? 'Target date' : 'Due date'} for ${escape(issue.summary)}">
         </label>
         <button type="button" class="card-comment-btn" data-card-comment-toggle="${escape(issue.id)}" title="${commentsCount ? commentsCount + ' comments · Click to add' : 'Add quick comment'}" aria-label="Add comment to ${escape(issue.id)}">
@@ -2354,7 +2374,7 @@
       const doneCount = lane.items.filter(issue => issue.status === 'Done').length;
       const collapsed = laneCollapsed(lane);
       const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
-      const identity = `<span class="type-icon" style="--type-color:#d97706" title="Milestone">◆</span>`;
+      const identity = `<span class="type-icon" style="--type-color:var(--type-milestone)" title="Milestone">◆</span>`;
       const name = `<strong title="Project Milestones">Project Milestones</strong>`;
       const heading = inGantt
         ? `<span class="gantt-lane-copy"><span class="gantt-lane-meta">${identity}</span>${name}</span>`
@@ -2382,7 +2402,7 @@
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
     const identity = epic ? `<span class="swimlane-epic-type">${typeIcon('Epic')}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
-    const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
+    const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || 'var(--status-bg-0)'};--status-color:${statusColors[statusIndex] || 'var(--status-1)'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
     const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
     const heading = inGantt
       ? `<span class="gantt-lane-copy">${epic ? `<span class="gantt-lane-meta">${identity}${statusBadge}</span>` : ''}${name}</span>`
@@ -2971,12 +2991,12 @@
       const visible = (scheduled || startOnly) && rawStart < days && rawEnd > 0 && (startOnly || right > left);
       if (visible && scheduled) positions.set(issue.id, { left, right, y });
       const index = C.statuses.indexOf(issue.status), colors = {
-        Epic: ['#F5F3FF', '#6D28D9', '#DDD6FE'],
-        Story: ['#ECFEFF', '#0E7490', '#A5F3FC'],
-        Task: ['#EFF6FF', '#1D4ED8', '#BFDBFE'],
-        Bug: ['#FEF2F2', '#B91C1C', '#FECACA'],
-        Milestone: ['#FFFBEB', '#D97706', '#FDE68A']
-      }[issue.type] || ['#EFF6FF', '#1D4ED8', '#BFDBFE'];
+        Epic: ['var(--bar-epic-bg)', 'var(--bar-epic-fg)', 'var(--bar-epic-line)'],
+        Story: ['var(--bar-story-bg)', 'var(--bar-story-fg)', 'var(--bar-story-line)'],
+        Task: ['var(--bar-task-bg)', 'var(--bar-task-fg)', 'var(--bar-task-line)'],
+        Bug: ['var(--bar-bug-bg)', 'var(--bar-bug-fg)', 'var(--bar-bug-line)'],
+        Milestone: ['var(--bar-milestone-bg)', 'var(--bar-milestone-fg)', 'var(--bar-milestone-line)']
+      }[issue.type] || ['var(--bar-task-bg)', 'var(--bar-task-fg)', 'var(--bar-task-line)'];
       if (issue.type === 'Milestone') {
         const milestoneDate = schedule.dueDate || schedule.startDate;
         const hasDate = milestoneDate && C.validDate(milestoneDate);
@@ -3065,13 +3085,13 @@
     issues.forEach(issue => C.split(issue.dependencies).forEach(id => {
       const from = positions.get(id), to = positions.get(issue.id); if (!from || !to) return;
       const turn = from.right + 12;
-      links += `<path d="M${from.right},${from.y} H${turn} V${to.y} H${to.left}" fill="none" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`;
+      links += `<path d="M${from.right},${from.y} H${turn} V${to.y} H${to.left}" fill="none" stroke="var(--link-line)" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`;
     }));
     const todayOffset = C.dateNumber(today()) - C.dateNumber(start);
     const labelMin = Math.min(180, Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)))), labelMax = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)));
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
-    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="var(--link-line)"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
     addEpicViewControls('gantt', epicIds, $('#view-content .gantt-tools .left'));
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');

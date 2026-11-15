@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="One project, three perspectives. Plan work in a sheet, move it on a board, and see the timeline.">
   <title>TAK — Project tracker</title>
+  <script>(function () { var theme; try { theme = localStorage.getItem('tak.theme.v1'); } catch (error) {} if (theme !== 'dark' && theme !== 'light') theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; })();</script>
   <?!= include_('Styles'); ?>
 </head>
 <body data-initial-view="<?= initialView ?>" data-shared-sheet="<?= sharedSheetId ?>">
@@ -21,6 +22,7 @@
     <div class="header-tools">
       <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
       <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
+      <button id="theme-toggle" class="button subtle icon-only" type="button" aria-pressed="false" aria-label="Switch to dark theme" title="Switch to dark theme"><span data-theme-icon aria-hidden="true"></span></button>
       <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
       <a id="demo-github-header" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
     </div>
