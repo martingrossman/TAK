@@ -914,6 +914,20 @@ body[data-active-view="roadmap"] .workspace-bar,body[data-active-view="roadmap"]
 .roadmap-color input:checked+span{outline:2px solid var(--ink);outline-offset:3px}
 .roadmap-color input:focus-visible+span{outline:2px solid var(--primary);outline-offset:3px}
 .roadmap-status{min-height:20px;margin:0 0 8px;font-size:var(--text-control);color:var(--ink)}
+.roadmap-bar,.roadmap-milestone{cursor:grab;touch-action:pan-x pan-y;user-select:none}
+.roadmap-bar{padding:0}
+.roadmap-bar-text{display:block;padding:0 11px;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.roadmap-handle{position:absolute;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:1}
+.roadmap-handle[data-edge="start"]{left:0;border-radius:14px 0 0 14px}
+.roadmap-handle[data-edge="end"]{right:0;border-radius:0 14px 14px 0}
+.roadmap-bar:hover .roadmap-handle,.roadmap-bar.dragging .roadmap-handle{background:color-mix(in srgb,var(--rm-swatch) 35%,transparent)}
+.roadmap-bar.dragging,.roadmap-milestone.dragging{cursor:grabbing;z-index:5;box-shadow:0 6px 18px rgb(var(--shadow-rgb) / .18);border-color:var(--rm-swatch)}
+.roadmap-milestone.dragging{box-shadow:none}
+.roadmap-milestone.dragging .roadmap-diamond{transform:rotate(45deg) scale(1.25)}
+body.roadmap-dragging,body.roadmap-dragging *{cursor:grabbing!important;user-select:none}
+.roadmap-stream.roadmap-drop-target .roadmap-track{background-color:var(--primary-soft)}
+.roadmap-bar.saving,.roadmap-milestone.saving{opacity:.6;cursor:progress}
+.roadmap-drag-tip{position:fixed;z-index:200;padding:5px 9px;border-radius:8px;background:var(--ink);color:var(--canvas);font-size:var(--text-meta);font-weight:550;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgb(var(--shadow-rgb) / .2)}
 @media(max-width:700px){
   .view-nav button{min-height:44px;padding:0 10px}
   .header-tools .button,.header-tools .button.icon-only{width:44px;height:44px;min-height:44px}
@@ -1173,6 +1187,8 @@ body[data-active-view="roadmap"] .workspace-bar,body[data-active-view="roadmap"]
           <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd></div>
           <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
           <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> / <kbd>4</kbd></dt><dd>Switch to Sheet / Kanban / Gantt / Roadmap</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>Roadmap: move the focused item a day (with <kbd>Shift</kbd>, a week)</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Roadmap: move the focused item to the stream above / below</dd></div>
           <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
           <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Focus the next / previous control</dd></div>
         </dl>
@@ -3830,7 +3846,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
     const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
-    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.', roadmap: 'Select a stream, increment or milestone to edit it. The roadmap is stored separately from tasks.' }[state.view];
+    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.', roadmap: 'Drag increments and milestones to reschedule them or move them to another stream; drag a bar end to change its dates. Alt + arrows nudges the focused item. Select an item to edit it.' }[state.view];
     if (state.view === 'roadmap') {
       sheetViewportObserver?.disconnect();
       $('#sheet-actions').replaceChildren();
@@ -5249,7 +5265,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function roadmapMilestone(item, year) {
     const left = roadmapPosition(item.startDate, year), flip = left > 78;
     const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
-    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}<span class="roadmap-diamond" aria-hidden="true"></span>${flip ? '' : label}</button>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}<span class="roadmap-diamond" aria-hidden="true"></span>${flip ? '' : label}</button>`;
   }
   function renderRoadmap() {
     const year = roadmap.year, content = $('#view-content');
@@ -5272,12 +5288,12 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const lanes = streams.map((stream, index) => {
       const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInYear(item, year));
       const bars = packRoadmapLanes(children.filter(item => item.type === 'Increment'), year).map(lane => `<div class="roadmap-lane">${lane.map(({ item, left, right }) =>
-        `<button type="button" class="roadmap-bar" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}">${escape(item.title)}</button>`).join('')}</div>`).join('');
+        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) ? ' saving' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Drag to move, drag an end to change dates; Alt + arrows nudges.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
       const marks = children.filter(item => item.type === 'Milestone').map(item => roadmapMilestone(item, year)).join('');
       const hidden = roadmap.items.filter(item => item.streamId === stream.id).length - children.length;
       return `<section class="roadmap-stream" data-roadmap-color="${escape(stream.color)}" aria-label="${escape(stream.title)}">
         <div class="roadmap-stream-head">
-          <button type="button" class="roadmap-stream-title" data-roadmap-open="${escape(stream.id)}"><span class="roadmap-swatch" aria-hidden="true"></span><span>${escape(stream.title)}</span></button>
+          <button type="button" class="roadmap-stream-title" data-roadmap-open="${escape(stream.id)}" data-roadmap-stream-id="${escape(stream.id)}"><span class="roadmap-swatch" aria-hidden="true"></span><span>${escape(stream.title)}</span></button>
           <span class="roadmap-stream-actions">
             <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="-1" aria-label="Move ${escape(stream.title)} up"${index === 0 ? ' disabled' : ''}>↑</button>
             <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="1" aria-label="Move ${escape(stream.title)} down"${index === streams.length - 1 ? ' disabled' : ''}>↓</button>
@@ -5372,8 +5388,136 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     } catch (error) { notify(`Stream order not saved: ${error.message || error}`, true); await loadRoadmap(true); }
     finally { roadmap.saving = false; renderRoadmap(); $(`[data-roadmap-move="${CSS.escape(id)}"][data-direction="${direction}"]`)?.focus(); }
   }
+  /* Roadmap drag: move increments and milestones in time, stretch increments, drop onto another stream. */
+  let roadmapDrag = null, suppressRoadmapClick = false;
+  roadmap.pending = new Set();
+  const roadmapDayMs = 86400000;
+  const roadmapYearDays = year => (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / roadmapDayMs;
+  function roadmapStreamAt(x, y) {
+    const lane = document.elementsFromPoint(x, y).find(element => element.matches?.('.roadmap-stream'));
+    if (!lane) return null;
+    if (lane.classList.contains('roadmap-milestones')) return '';
+    return lane.querySelector('[data-roadmap-stream-id]')?.dataset.roadmapStreamId ?? null;
+  }
+  function roadmapDragTip(text, x, y) {
+    let tip = $('#roadmap-drag-tip');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'roadmap-drag-tip'; tip.className = 'roadmap-drag-tip'; tip.setAttribute('aria-hidden', 'true'); document.body.append(tip); }
+    tip.textContent = text; tip.hidden = false;
+    tip.style.left = `${Math.min(x + 14, innerWidth - 220)}px`; tip.style.top = `${y + 18}px`;
+  }
+  function hideRoadmapDragTip() { const tip = $('#roadmap-drag-tip'); if (tip) tip.hidden = true; }
+  function roadmapDraftLabel(draft) {
+    const stream = draft.streamId ? roadmapStreams().find(item => item.id === draft.streamId)?.title : 'Milestones';
+    const dates = draft.type === 'Increment' ? `${shortDate(draft.startDate)} – ${shortDate(draft.endDate)}` : shortDate(draft.startDate);
+    return `${dates}${stream ? ` · ${stream}` : ''}`;
+  }
+  function roadmapDragDraft(drag, event) {
+    const days = Math.round((event.clientX - drag.x) / drag.dayWidth), item = drag.item, draft = { ...item };
+    if (drag.mode === 'start') draft.startDate = C.addDays(item.startDate, days) > item.endDate ? item.endDate : C.addDays(item.startDate, days);
+    else if (drag.mode === 'end') draft.endDate = C.addDays(item.endDate, days) < item.startDate ? item.startDate : C.addDays(item.endDate, days);
+    else {
+      draft.startDate = C.addDays(item.startDate, days);
+      draft.endDate = item.type === 'Increment' ? C.addDays(item.endDate, days) : draft.startDate;
+      const stream = roadmapStreamAt(event.clientX, event.clientY);
+      if (stream !== null && (stream || item.type === 'Milestone')) draft.streamId = stream;
+    }
+    return draft;
+  }
+  function paintRoadmapDrag(drag, draft, event) {
+    const element = drag.element, year = roadmap.year;
+    const left = roadmapPosition(draft.startDate, year);
+    if (draft.type === 'Increment') {
+      const right = Math.min(100, Math.max(left + 0.6, roadmapPosition(C.addDays(draft.endDate, 1), year)));
+      element.style.left = `${left.toFixed(3)}%`; element.style.width = `${(right - left).toFixed(3)}%`;
+    } else { element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`; }
+    const sameStream = draft.streamId === drag.item.streamId;
+    element.style.transform = drag.mode === 'move' && !sameStream ? `translateY(${event.clientY - drag.y}px)` : '';
+    $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
+    if (!sameStream) (draft.streamId ? $(`[data-roadmap-stream-id="${CSS.escape(draft.streamId)}"]`)?.closest('.roadmap-stream') : $('.roadmap-milestones'))?.classList.add('roadmap-drop-target');
+    roadmapDragTip(roadmapDraftLabel(draft), event.clientX, event.clientY);
+  }
+  function endRoadmapDrag(cancel) {
+    const drag = roadmapDrag; if (!drag) return null;
+    roadmapDrag = null;
+    document.body.classList.remove('roadmap-dragging');
+    hideRoadmapDragTip();
+    try { drag.element.releasePointerCapture(drag.pointer); } catch (error) {}
+    if (cancel || !drag.moved) { if (drag.moved) renderRoadmap(); return null; }
+    return drag;
+  }
+  async function commitRoadmapChange(item, changes, focusAfter = false) {
+    const previous = roadmap.items.find(other => other.id === item.id);
+    if (!previous || roadmap.pending.has(item.id)) return;
+    const changed = Object.keys(changes).filter(key => changes[key] !== previous[key]);
+    if (!changed.length) { renderRoadmap(); return; }
+    const input = { id: item.id }; changed.forEach(key => { input[key] = changes[key]; });
+    try { C.validateRoadmapItem(C.prepareRoadmapItem(input, previous), roadmap.items); }
+    catch (error) { renderRoadmap(); notify(error.message, true); return; }
+    roadmap.items = roadmap.items.map(other => other.id === item.id ? { ...other, ...input } : other);
+    roadmap.pending.add(item.id);
+    renderRoadmap();
+    if (focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
+    try {
+      const saved = await roadmapRpc('saveRoadmapItem', input, previous.version);
+      roadmap.items = roadmap.items.map(other => other.id === saved.id ? saved : other);
+    } catch (error) {
+      roadmap.items = roadmap.items.map(other => other.id === item.id ? previous : other);
+      notify(`${previous.title} was not moved: ${error.message || error}`, true);
+    } finally {
+      roadmap.pending.delete(item.id);
+      const hadFocus = document.activeElement?.dataset?.roadmapOpen === item.id;
+      if (state.view === 'roadmap') renderRoadmap();
+      if (hadFocus || focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
+    }
+  }
+  $('#view-content').addEventListener('pointerdown', event => {
+    if (state.view !== 'roadmap' || event.button !== 0 || event.pointerType === 'touch' || roadmapDrag) return;
+    const element = event.target.closest('.roadmap-bar, .roadmap-milestone');
+    if (!element) return;
+    const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
+    if (!item || roadmap.pending.has(item.id) || roadmap.saving) return;
+    const track = element.closest('.roadmap-lane');
+    const edge = event.target.closest('.roadmap-handle')?.dataset.edge;
+    roadmapDrag = { element, item: { ...item }, pointer: event.pointerId, x: event.clientX, y: event.clientY, dayWidth: track.getBoundingClientRect().width / roadmapYearDays(roadmap.year), mode: edge || 'move', moved: false };
+    element.setPointerCapture(event.pointerId);
+  });
+  $('#view-content').addEventListener('pointermove', event => {
+    const drag = roadmapDrag; if (!drag || drag.pointer !== event.pointerId) return;
+    if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+    if (!drag.moved) { drag.moved = true; document.body.classList.add('roadmap-dragging'); drag.element.classList.add('dragging'); }
+    drag.draft = roadmapDragDraft(drag, event);
+    paintRoadmapDrag(drag, drag.draft, event);
+  });
+  $('#view-content').addEventListener('pointerup', event => {
+    if (!roadmapDrag || roadmapDrag.pointer !== event.pointerId) return;
+    const drag = endRoadmapDrag(false);
+    if (!drag) return;
+    suppressRoadmapClick = true; setTimeout(() => { suppressRoadmapClick = false; }, 0);
+    const { startDate, endDate, streamId } = drag.draft;
+    commitRoadmapChange(drag.item, drag.item.type === 'Increment' ? { startDate, endDate, streamId } : { startDate, streamId });
+  });
+  $('#view-content').addEventListener('pointercancel', () => endRoadmapDrag(true));
+  document.addEventListener('keydown', event => { if (roadmapDrag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endRoadmapDrag(true); } }, true);
+  $('#view-content').addEventListener('keydown', event => {
+    if (state.view !== 'roadmap' || !event.altKey || event.ctrlKey || event.metaKey) return;
+    const element = event.target.closest?.('.roadmap-bar, .roadmap-milestone');
+    if (!element || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault(); event.stopPropagation();
+    const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
+    if (!item || roadmap.pending.has(item.id)) return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const days = (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 7 : 1);
+      commitRoadmapChange(item, item.type === 'Increment' ? { startDate: C.addDays(item.startDate, days), endDate: C.addDays(item.endDate, days) } : { startDate: C.addDays(item.startDate, days) }, true);
+      return;
+    }
+    const order = (item.type === 'Milestone' ? [''] : []).concat(roadmapStreams().map(stream => stream.id));
+    const next = order[order.indexOf(item.streamId) + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (next === undefined) return;
+    commitRoadmapChange(item, { streamId: next }, true);
+  }, true);
   $('#view-content').addEventListener('click', event => {
     if (state.view !== 'roadmap') return;
+    if (suppressRoadmapClick) { suppressRoadmapClick = false; event.preventDefault(); return; }
     const target = event.target.closest('button');
     if (!target) return;
     if (target.dataset.roadmapOpen) openRoadmapItem(target.dataset.roadmapOpen);

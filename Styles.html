@@ -906,6 +906,20 @@ body[data-active-view="roadmap"] .workspace-bar,body[data-active-view="roadmap"]
 .roadmap-color input:checked+span{outline:2px solid var(--ink);outline-offset:3px}
 .roadmap-color input:focus-visible+span{outline:2px solid var(--primary);outline-offset:3px}
 .roadmap-status{min-height:20px;margin:0 0 8px;font-size:var(--text-control);color:var(--ink)}
+.roadmap-bar,.roadmap-milestone{cursor:grab;touch-action:pan-x pan-y;user-select:none}
+.roadmap-bar{padding:0}
+.roadmap-bar-text{display:block;padding:0 11px;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.roadmap-handle{position:absolute;top:0;bottom:0;width:10px;cursor:ew-resize;z-index:1}
+.roadmap-handle[data-edge="start"]{left:0;border-radius:14px 0 0 14px}
+.roadmap-handle[data-edge="end"]{right:0;border-radius:0 14px 14px 0}
+.roadmap-bar:hover .roadmap-handle,.roadmap-bar.dragging .roadmap-handle{background:color-mix(in srgb,var(--rm-swatch) 35%,transparent)}
+.roadmap-bar.dragging,.roadmap-milestone.dragging{cursor:grabbing;z-index:5;box-shadow:0 6px 18px rgb(var(--shadow-rgb) / .18);border-color:var(--rm-swatch)}
+.roadmap-milestone.dragging{box-shadow:none}
+.roadmap-milestone.dragging .roadmap-diamond{transform:rotate(45deg) scale(1.25)}
+body.roadmap-dragging,body.roadmap-dragging *{cursor:grabbing!important;user-select:none}
+.roadmap-stream.roadmap-drop-target .roadmap-track{background-color:var(--primary-soft)}
+.roadmap-bar.saving,.roadmap-milestone.saving{opacity:.6;cursor:progress}
+.roadmap-drag-tip{position:fixed;z-index:200;padding:5px 9px;border-radius:8px;background:var(--ink);color:var(--canvas);font-size:var(--text-meta);font-weight:550;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgb(var(--shadow-rgb) / .2)}
 @media(max-width:700px){
   .view-nav button{min-height:44px;padding:0 10px}
   .header-tools .button,.header-tools .button.icon-only{width:44px;height:44px;min-height:44px}

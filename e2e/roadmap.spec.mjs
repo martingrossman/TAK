@@ -94,3 +94,108 @@ test('the theme toggle switches and remembers dark mode', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.getByRole('button', { name: 'Switch to light theme' })).toHaveAttribute('aria-pressed', 'true');
 });
+
+async function dragBy(page, locator, dx, dy = 0, { release = true } = {}) {
+  const box = await locator.boundingBox();
+  const x = box.x + box.width / 2, y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx / 2, y + dy / 2, { steps: 4 });
+  await page.mouse.move(x + dx, y + dy, { steps: 4 });
+  if (release) await page.mouse.up();
+}
+const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')));
+const storedItem = async (page, title) => (await stored(page)).find(item => item.title === title);
+const shiftDays = (date, days) => new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10);
+
+test('dragging an increment moves both dates and survives reload; a plain click still opens it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const bar = page.getByRole('button', { name: 'Help bot', exact: true });
+  const before = await storedItem(page, 'Help bot');
+  const dayWidth = (await page.locator('.roadmap-lane').first().boundingBox()).width / 365;
+  await dragBy(page, bar, dayWidth * 30);
+  await expect.poll(async () => (await storedItem(page, 'Help bot')).version).toBe('2');
+  const after = await storedItem(page, 'Help bot');
+  const moved = (Date.parse(after.startDate) - Date.parse(before.startDate)) / 86400000;
+  expect(moved).toBeGreaterThanOrEqual(29);
+  expect(moved).toBeLessThanOrEqual(31);
+  expect((Date.parse(after.endDate) - Date.parse(after.startDate))).toBe(Date.parse(before.endDate) - Date.parse(before.startDate));
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await page.reload();
+  expect((await storedItem(page, 'Help bot')).startDate).toBe(after.startDate);
+  await page.getByRole('button', { name: 'Help bot', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Edit increment' })).toBeVisible();
+});
+
+test('dragging a bar end changes only that date and never inverts the range', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const before = await storedItem(page, 'Single sign-on');
+  const bar = page.getByRole('button', { name: 'Single sign-on', exact: true });
+  const box = await bar.boundingBox();
+  await page.mouse.move(box.x + box.width - 3, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x - 300, box.y + box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => (await storedItem(page, 'Single sign-on')).version).toBe('2');
+  const after = await storedItem(page, 'Single sign-on');
+  expect(after.startDate).toBe(before.startDate);
+  expect(after.endDate).toBe(before.startDate);
+});
+
+test('an increment can be dropped onto another stream and a milestone into a stream lane', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const target = page.locator('.roadmap-stream[aria-label="Help desk"] .roadmap-track');
+  const bar = page.getByRole('button', { name: 'PCI compliance', exact: true });
+  const from = await bar.boundingBox(), to = await target.boundingBox();
+  await dragBy(page, bar, 0, to.y + to.height / 2 - (from.y + from.height / 2));
+  await expect(page.locator('.roadmap-stream[aria-label="Help desk"]').getByRole('button', { name: 'PCI compliance', exact: true })).toBeVisible();
+  const helpDesk = (await stored(page)).find(item => item.title === 'Help desk');
+  await expect.poll(async () => (await storedItem(page, 'PCI compliance')).streamId).toBe(helpDesk.id);
+
+  const milestone = page.getByRole('button', { name: /^Milestone Android launch/ });
+  const mobileTrack = await page.locator('.roadmap-stream[aria-label="Mobile"] .roadmap-track').boundingBox();
+  const mBox = await milestone.locator('.roadmap-diamond').boundingBox();
+  await page.mouse.move(mBox.x + mBox.width / 2, mBox.y + mBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(mBox.x + 40, mobileTrack.y + 10, { steps: 8 });
+  await page.mouse.up();
+  const mobile = (await stored(page)).find(item => item.title === 'Mobile');
+  await expect.poll(async () => (await storedItem(page, 'Android launch')).streamId).toBe(mobile.id);
+  await expect(page.locator('.roadmap-stream[aria-label="Mobile"]').getByRole('button', { name: /^Milestone Android launch/ })).toBeVisible();
+});
+
+test('Escape cancels a drag, a failed save puts the item back, and Alt + arrows nudge it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const bar = page.getByRole('button', { name: 'Guest checkout', exact: true });
+  const before = await storedItem(page, 'Guest checkout');
+  await dragBy(page, bar, 200, 0, { release: false });
+  await expect(page.locator('#roadmap-drag-tip')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await expect(page.locator('#roadmap-drag-tip')).toBeHidden();
+  expect(await storedItem(page, 'Guest checkout')).toEqual(before);
+
+  // Another tab saved meanwhile: the drag is refused and the bar returns to the stored dates.
+  await page.evaluate(() => {
+    const items = JSON.parse(localStorage.getItem('tak.roadmap.v1'));
+    const item = items.find(entry => entry.title === 'Guest checkout'); item.version = '9'; item.notes = 'edited elsewhere';
+    localStorage.setItem('tak.roadmap.v1', JSON.stringify(items));
+  });
+  await dragBy(page, bar, 120);
+  await expect(page.locator('#toast')).toContainText('was not moved');
+  const left = await bar.evaluate(element => element.style.left);
+  await page.reload();
+  expect(await page.getByRole('button', { name: 'Guest checkout', exact: true }).evaluate(element => element.style.left)).toBe(left);
+
+  const fresh = await storedItem(page, 'Guest checkout');
+  await page.getByRole('button', { name: 'Guest checkout', exact: true }).focus();
+  await page.keyboard.press('Alt+Shift+ArrowRight');
+  await expect.poll(async () => (await storedItem(page, 'Guest checkout')).startDate).toBe(shiftDays(fresh.startDate, 7));
+  await expect(page.getByRole('button', { name: 'Guest checkout', exact: true })).toBeFocused();
+  await page.keyboard.press('Alt+ArrowDown');
+  await expect(page.locator('.roadmap-stream[aria-label="Help desk"]').getByRole('button', { name: 'Guest checkout', exact: true })).toBeFocused();
+});
