@@ -11,7 +11,8 @@ test('roadmap opens with shortcut 4, edits an increment and keeps it after reloa
   await expect(page).toHaveURL(/#roadmap$/);
   await expect(page.getByRole('button', { name: 'Roadmap', exact: true })).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('.workspace-bar')).toBeHidden();
-  await expect(page.locator('.roadmap-year')).toHaveText(String(year));
+  await expect(page.getByLabel('Roadmap starts on')).toHaveValue(`${year}-01-01`);
+  await expect(page.getByLabel('Roadmap ends on')).toHaveValue(`${year}-12-31`);
   await expect(page.locator('.roadmap-stream:not(.roadmap-milestones)')).toHaveCount(5);
 
   await page.getByRole('button', { name: 'Help bot', exact: true }).click();
@@ -65,7 +66,7 @@ test('roadmap validates input, keeps the draft, and protects streams that still 
   await expect(added).toBeVisible();
 });
 
-test('stream order moves with the keyboard buttons and year navigation hides other years', async ({ page }) => {
+test('stream order moves with the keyboard buttons and period navigation hides other periods', async ({ page }) => {
   await page.goto('/#roadmap');
   const titles = page.locator('.roadmap-stream:not(.roadmap-milestones) .roadmap-stream-title');
   await expect(titles.first()).toHaveText('Self serve');
@@ -76,12 +77,15 @@ test('stream order moves with the keyboard buttons and year navigation hides oth
   await page.reload();
   await expect(titles.nth(0)).toHaveText('Mobile');
 
-  await page.getByRole('button', { name: 'Next year' }).click();
-  await expect(page.locator('.roadmap-year')).toHaveText(String(year + 1));
+  await page.getByRole('button', { name: 'Show the next period' }).click();
+  await expect(page.getByLabel('Roadmap starts on')).toHaveValue(`${year + 1}-01-01`);
+  await expect(page.getByLabel('Roadmap ends on')).toHaveValue(`${year + 1}-12-31`);
+  await expect(page.getByRole('button', { name: 'Show the next period' })).toBeFocused();
   await expect(page.locator('.roadmap-bar')).toHaveCount(0);
-  await expect(page.locator('.roadmap-hidden').first()).toContainText(`outside ${year + 1}`);
+  await expect(page.locator('.roadmap-hidden').first()).toContainText('outside this range');
   await page.getByRole('button', { name: 'This year' }).click();
-  await expect(page.locator('.roadmap-year')).toHaveText(String(year));
+  await expect(page.getByLabel('Roadmap starts on')).toHaveValue(`${year}-01-01`);
+  await expect(page.getByRole('button', { name: 'This year' })).toBeDisabled();
 });
 
 test('the theme toggle switches and remembers dark mode', async ({ page }) => {
@@ -198,4 +202,52 @@ test('Escape cancels a drag, a failed save puts the item back, and Alt + arrows 
   await expect(page.getByRole('button', { name: 'Guest checkout', exact: true })).toBeFocused();
   await page.keyboard.press('Alt+ArrowDown');
   await expect(page.locator('.roadmap-stream[aria-label="Help desk"]').getByRole('button', { name: 'Guest checkout', exact: true })).toBeFocused();
+});
+
+test('a custom start and end date sets the visible range, is remembered, and rejects an inverted range', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const from = page.getByLabel('Roadmap starts on'), to = page.getByLabel('Roadmap ends on');
+  await from.fill(`${year}-04-01`);
+  await expect(from).toHaveValue(`${year}-04-01`);
+  await expect(from).toBeFocused();
+  await to.fill(`${year}-06-30`);
+  await expect(page.locator('.roadmap-month-row span')).toHaveText([`Apr ${year}`, 'May', 'Jun']);
+  // Help bot (10 Jan – 20 Feb) is outside; Single sign-on (20 Apr – 5 Jul) runs past the end and is clipped.
+  await expect(page.getByRole('button', { name: 'Help bot', exact: true })).toHaveCount(0);
+  const sso = page.getByRole('button', { name: 'Single sign-on', exact: true });
+  await expect(sso).toBeVisible();
+  expect(await sso.evaluate(element => parseFloat(element.style.left) + parseFloat(element.style.width))).toBeCloseTo(100, 1);
+
+  // Moving by a period keeps the same three-month span.
+  await page.getByRole('button', { name: 'Show the next period' }).click();
+  await expect(from).toHaveValue(`${year}-07-01`);
+  await expect(to).toHaveValue(`${year}-09-30`);
+  await page.getByRole('button', { name: 'Show the previous period' }).click();
+  await expect(from).toHaveValue(`${year}-04-01`);
+
+  // Dragging uses the day width of the chosen range.
+  const before = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Abandoned cart reminders');
+  const days = 91, lane = await page.locator('.roadmap-lane').first().boundingBox();
+  const bar = page.getByRole('button', { name: 'Abandoned cart reminders', exact: true });
+  const box = await bar.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + lane.width / days * 10, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Abandoned cart reminders').startDate)
+    .toBe(new Date(Date.parse(before.startDate + 'T00:00:00Z') + 10 * 86400000).toISOString().slice(0, 10));
+
+  await to.fill(`${year}-03-01`);
+  await expect(page.locator('#toast')).toContainText('end date must be on or after');
+  await expect(to).toHaveValue(`${year}-06-30`);
+  await page.reload();
+  await expect(from).toHaveValue(`${year}-04-01`);
+  await expect(to).toHaveValue(`${year}-06-30`);
+});
+
+test('a long range switches the header to quarters', async ({ page }) => {
+  await page.goto('/#roadmap');
+  await page.getByLabel('Roadmap ends on').fill(`${year + 1}-12-31`);
+  await expect(page.locator('.roadmap-month-row span')).toHaveText([`Jan ${year}`, 'Apr', 'Jul', 'Oct', `Jan ${year + 1}`, 'Apr', 'Jul', 'Oct']);
 });
