@@ -3650,12 +3650,12 @@
     const input = { type, title: form.roadmapTitle.value, notes: form.roadmapNotes.value };
     if (roadmap.editing.id) input.id = roadmap.editing.id;
     if (type === 'Stream') input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || C.roadmapColors[0];
+    else { input.streamId = form.roadmapStream.value; input.startDate = form.roadmapStart.value; if (type === 'Increment') input.endDate = form.roadmapEnd.value; }
     if (type === 'Milestone') {
       input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || '';
       input.icon = roadmapForm.querySelector('input[name="roadmapIcon"]:checked')?.value || '';
       input.line = roadmapForm.elements.roadmapLine.checked;
     }
-    else { input.streamId = form.roadmapStream.value; input.startDate = form.roadmapStart.value; if (type === 'Increment') input.endDate = form.roadmapEnd.value; }
     return input;
   }
   async function saveRoadmapForm() {

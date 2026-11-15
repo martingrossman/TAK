@@ -312,3 +312,23 @@ test('a milestone can change icon and colour, draw its own line, and the toolbar
   expect(Number(await line.evaluate(element => element.style.getPropertyValue('--x')))).toBeGreaterThan(Number(before));
   await page.mouse.up();
 });
+
+test('the milestone editor moves a milestone to another stream and changes its date', async ({ page }) => {
+  await page.goto('/#roadmap');
+  await page.getByRole('button', { name: /^Milestone Community beta/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit milestone' });
+  await dialog.getByLabel('Stream').selectOption({ label: 'Mobile' });
+  await dialog.locator('input[name="roadmapStart"]').fill('2026-03-10');
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('button', { name: /^Milestone Community beta, .*10/ })).toBeVisible();
+  const stored = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Community beta');
+  const mobileId = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Mobile').id;
+  expect([stored.streamId, stored.startDate]).toEqual([mobileId, '2026-03-10']);
+  await page.getByRole('button', { name: /^Milestone Community beta/ }).click();
+  await dialog.getByLabel('Stream').selectOption({ label: 'None (top lane)' });
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+  const back = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Community beta');
+  expect(back.streamId).toBe('');
+});
