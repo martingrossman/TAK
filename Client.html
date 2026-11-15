@@ -3441,7 +3441,9 @@
     } catch (error) {}
     return roadmapYearRange(Number(today().slice(0, 4)));
   }
-  const roadmap = { items: [], loaded: false, loading: false, error: '', range: storedRoadmapRange(), editing: null, saving: false };
+  const roadmapLinesStorageKey = trackerStorageKey('tak.roadmap.lines.v1');
+  const storedRoadmapLines = () => { try { return localStorage.getItem(roadmapLinesStorageKey) === 'all'; } catch (error) { return false; } };
+  const roadmap = { items: [], loaded: false, loading: false, error: '', range: storedRoadmapRange(), allLines: storedRoadmapLines(), editing: null, saving: false };
   function setRoadmapRange(start, end, focusSelector = '') {
     const error = roadmapRangeError(start, end);
     if (error) notify(error, true);
@@ -3551,7 +3553,9 @@
   function roadmapMilestone(item, range) {
     const left = roadmapPosition(item.startDate, range), flip = left > 78;
     const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
-    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}<span class="roadmap-diamond" aria-hidden="true"></span>${flip ? '' : label}</button>`;
+    const colour = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
+    const marker = `<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
   }
   function renderRoadmap() {
     const range = roadmap.range, content = $('#view-content');
@@ -3564,6 +3568,7 @@
       <button class="button secondary icon-only" type="button" data-roadmap-shift="1" aria-label="Show the next period">→</button>
       <button class="button secondary" type="button" data-roadmap-this-year${isThisYear ? ' disabled' : ''}>This year</button>
       </div><div class="right">
+      <button class="button secondary" type="button" data-roadmap-lines aria-pressed="${roadmap.allLines}" title="Draw a vertical line at every milestone. Off shows lines only where a milestone asks for one.">${roadmap.allLines ? 'All milestone lines' : 'Milestone lines'}</button>
       <button class="button secondary" type="button" data-roadmap-new="Milestone">Add milestone</button>
       <button class="button primary" type="button" data-roadmap-new="Stream">Add stream</button></div></div>`;
     if (roadmap.error) { content.innerHTML = head + `<div class="error-banner" role="alert">Roadmap could not load: ${escape(roadmap.error)} <button type="button" data-roadmap-retry>Retry</button></div>`; return; }
@@ -3574,6 +3579,11 @@
     const months = ticks.map(tick => `<span style="left:${tick.left.toFixed(3)}%"${tick.current ? ' class="current"' : ''}>${escape(tick.label)}</span>`).join('');
     const gridLines = ticks.filter(tick => tick.left > 0.01).map(tick => `<i style="left:${tick.left.toFixed(3)}%"></i>`).join('');
     const topMilestones = roadmap.items.filter(item => item.type === 'Milestone' && !item.streamId && roadmapInRange(item, range));
+    const streamColour = new Map(streams.map(stream => [stream.id, stream.color]));
+    const milestoneLines = roadmap.items.filter(item => item.type === 'Milestone' && (item.line || roadmap.allLines) && roadmapInRange(item, range)).map(item => {
+      const key = C.roadmapColors.includes(item.color) ? item.color : streamColour.get(item.streamId) || '';
+      return `<div class="roadmap-mline${item.line ? ' marked' : ''}" data-for="${escape(item.id)}"${key ? ` data-roadmap-color="${key}"` : ''} style="--x:${(roadmapPosition(item.startDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>`;
+    }).join('');
     const todayLine = showToday ? `<div class="roadmap-today" style="--today:${(roadmapPosition(nowDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>` : '';
     const lanes = streams.map((stream, index) => {
       const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
@@ -3599,6 +3609,7 @@
       <div class="roadmap-lines" aria-hidden="true">${gridLines}</div>
       <section class="roadmap-stream roadmap-milestones" aria-label="Milestones"><div class="roadmap-stream-head"><span class="roadmap-stream-title static">Milestones</span></div>
         <div class="roadmap-track"><div class="roadmap-lane roadmap-marks">${topMilestones.map(item => roadmapMilestone(item, range)).join('')}</div></div></section>
+      ${milestoneLines}
       ${lanes}
       ${todayLine}
     </div></div>`;
@@ -3623,7 +3634,10 @@
     const streamSelect = roadmapForm.elements.roadmapStream;
     streamSelect.innerHTML = (type === 'Milestone' ? '<option value="">None (top lane)</option>' : '') + streams.map(stream => `<option value="${escape(stream.id)}">${escape(stream.title)}</option>`).join('');
     streamSelect.value = values.streamId || (type === 'Milestone' ? '' : streams[0]?.id || '');
-    [...roadmapForm.querySelectorAll('input[name="roadmapColor"]')].forEach(input => { input.checked = input.value === (values.color || C.roadmapColors[0]); });
+    const colour = values.color || (type === 'Stream' ? C.roadmapColors[0] : '');
+    [...roadmapForm.querySelectorAll('input[name="roadmapColor"]')].forEach(input => { input.checked = input.value === colour; });
+    [...roadmapForm.querySelectorAll('input[name="roadmapIcon"]')].forEach(input => { input.checked = input.value === (values.icon || 'diamond'); });
+    roadmapForm.elements.roadmapLine.checked = values.line === true;
     [...roadmapForm.querySelectorAll('[data-roadmap-field]')].forEach(field => { field.hidden = !field.dataset.roadmapField.split(' ').includes(type); });
     $('#roadmap-start-label').textContent = type === 'Milestone' ? 'Date' : 'Start';
     $('#roadmap-delete').hidden = !current;
@@ -3636,6 +3650,11 @@
     const input = { type, title: form.roadmapTitle.value, notes: form.roadmapNotes.value };
     if (roadmap.editing.id) input.id = roadmap.editing.id;
     if (type === 'Stream') input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || C.roadmapColors[0];
+    if (type === 'Milestone') {
+      input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || '';
+      input.icon = roadmapForm.querySelector('input[name="roadmapIcon"]:checked')?.value || '';
+      input.line = roadmapForm.elements.roadmapLine.checked;
+    }
     else { input.streamId = form.roadmapStream.value; input.startDate = form.roadmapStart.value; if (type === 'Increment') input.endDate = form.roadmapEnd.value; }
     return input;
   }
@@ -3719,7 +3738,10 @@
     if (draft.type === 'Increment') {
       const right = Math.min(100, Math.max(left + 0.6, roadmapPosition(C.addDays(draft.endDate, 1), range)));
       element.style.left = `${left.toFixed(3)}%`; element.style.width = `${(right - left).toFixed(3)}%`;
-    } else { element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`; }
+    } else {
+      element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`;
+      $(`.roadmap-mline[data-for="${CSS.escape(drag.item.id)}"]`)?.style.setProperty('--x', (left / 100).toFixed(5));
+    }
     const sameStream = draft.streamId === drag.item.streamId;
     element.style.transform = drag.mode === 'move' && !sameStream ? `translateY(${event.clientY - drag.y}px)` : '';
     $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
@@ -3815,6 +3837,11 @@
     else if (target.dataset.roadmapMove) moveRoadmapStream(target.dataset.roadmapMove, Number(target.dataset.direction));
     else if (target.hasAttribute('data-roadmap-retry')) loadRoadmap(true);
     else if (target.dataset.roadmapShift) shiftRoadmapRange(Number(target.dataset.roadmapShift));
+    else if (target.hasAttribute('data-roadmap-lines')) {
+      roadmap.allLines = !roadmap.allLines;
+      try { localStorage.setItem(roadmapLinesStorageKey, roadmap.allLines ? 'all' : 'marked'); } catch (error) {}
+      renderRoadmap(); $('[data-roadmap-lines]')?.focus();
+    }
     else if (target.hasAttribute('data-roadmap-this-year')) { const range = roadmapYearRange(Number(today().slice(0, 4))); setRoadmapRange(range.start, range.end, '[data-roadmap-range="start"]'); }
   });
   $('#view-content').addEventListener('change', event => {

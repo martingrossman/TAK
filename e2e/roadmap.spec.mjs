@@ -251,3 +251,64 @@ test('a long range switches the header to quarters', async ({ page }) => {
   await page.getByLabel('Roadmap ends on').fill(`${year + 1}-12-31`);
   await expect(page.locator('.roadmap-month-row span')).toHaveText([`Jan ${year}`, 'Apr', 'Jul', 'Oct', `Jan ${year + 1}`, 'Apr', 'Jul', 'Oct']);
 });
+
+test('a milestone can change icon and colour, draw its own line, and the toolbar shows lines for all milestones', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/#roadmap');
+  const lines = page.locator('.roadmap-mline');
+  await expect(lines).toHaveCount(1);
+  await expect(page.locator('.roadmap-mline[data-for]')).toHaveAttribute('data-roadmap-color', 'slate');
+
+  await page.getByRole('button', { name: /^Milestone Android launch/ }).click();
+  const dialog = page.getByRole('dialog', { name: 'Edit milestone' });
+  await expect(dialog.getByRole('radio', { name: 'Flag' })).toBeChecked();
+  await expect(dialog.getByRole('radio', { name: 'Green' })).toBeChecked();
+  await expect(dialog.getByRole('group', { name: 'Icon' })).toBeVisible();
+  await dialog.getByRole('radio', { name: 'Triangle' }).check();
+  await dialog.getByRole('radio', { name: 'Rose' }).check();
+  await dialog.getByRole('checkbox', { name: 'Draw a vertical line across the roadmap' }).check();
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(dialog).toBeHidden();
+  const android = page.getByRole('button', { name: /^Milestone Android launch/ });
+  await expect(android).toHaveAttribute('data-roadmap-color', 'rose');
+  await expect(android.locator('.roadmap-diamond')).toHaveAttribute('data-shape', 'triangle');
+  await expect(lines).toHaveCount(2);
+  const saved = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Android launch');
+  expect([saved.icon, saved.color, saved.line]).toEqual(['triangle', 'rose', true]);
+
+  // Default colour and the diamond go back to the plain marker.
+  await android.click();
+  await dialog.getByRole('radio', { name: 'Default' }).check();
+  await dialog.getByRole('radio', { name: 'Diamond' }).check();
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(android).not.toHaveAttribute('data-roadmap-color', /./);
+  await expect(android.locator('.roadmap-diamond')).toHaveAttribute('data-shape', 'diamond');
+
+  // Streams have no icon or line choices, and no Default colour.
+  await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+  const stream = page.getByRole('dialog', { name: 'Edit stream' });
+  await expect(stream.getByRole('group', { name: 'Icon' })).toBeHidden();
+  await expect(stream.getByRole('checkbox', { name: 'Draw a vertical line across the roadmap' })).toBeHidden();
+  await expect(stream.getByRole('radio', { name: 'Default' })).toBeHidden();
+  await stream.getByRole('button', { name: 'Cancel' }).click();
+
+  const toggle = page.getByRole('button', { name: 'Milestone lines' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(page.getByRole('button', { name: 'All milestone lines' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'All milestone lines' })).toBeFocused();
+  await expect(lines).toHaveCount(4);
+  await page.reload();
+  await expect(lines).toHaveCount(4);
+
+  // The line follows a milestone while it is dragged.
+  const marker = page.getByRole('button', { name: /^Milestone iOS launch/ }).locator('.roadmap-diamond');
+  const line = page.locator('.roadmap-mline[data-for="RM-26"]');
+  const before = await line.evaluate(element => element.style.getPropertyValue('--x'));
+  const box = await marker.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + box.height / 2, { steps: 6 });
+  expect(Number(await line.evaluate(element => element.style.getPropertyValue('--x')))).toBeGreaterThan(Number(before));
+  await page.mouse.up();
+});

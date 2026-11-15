@@ -452,15 +452,19 @@ var TrackerCore = (function () {
   /* Product roadmap: streams (rows), increments (bars) and milestones (dates). Stored apart from tasks. */
   var roadmapTypes = ['Stream', 'Increment', 'Milestone'];
   var roadmapColors = ['indigo', 'teal', 'amber', 'rose', 'violet', 'green', 'slate'];
+  var roadmapIcons = ['diamond', 'circle', 'square', 'triangle', 'star', 'flag'];
   function prepareRoadmapItem(input, current) {
-    var base = current ? Object.assign({}, current) : { id: '', type: 'Increment', streamId: '', title: '', startDate: '', endDate: '', color: '', notes: '', order: 0 };
-    ['type', 'streamId', 'title', 'startDate', 'endDate', 'color', 'notes'].forEach(function (key) {
+    var base = Object.assign({ id: '', type: 'Increment', streamId: '', title: '', startDate: '', endDate: '', color: '', icon: '', line: false, notes: '', order: 0 }, current || {});
+    ['type', 'streamId', 'title', 'startDate', 'endDate', 'color', 'icon', 'notes'].forEach(function (key) {
       if (input && Object.prototype.hasOwnProperty.call(input, key)) base[key] = String(input[key] == null ? '' : input[key]).trim();
     });
     if (input && Object.prototype.hasOwnProperty.call(input, 'order')) base.order = Number(input.order) || 0;
+    if (input && Object.prototype.hasOwnProperty.call(input, 'line')) base.line = input.line === true || /^(true|yes|1)$/i.test(String(input.line).trim());
+    base.icon = base.icon || ''; base.color = base.color || ''; base.line = base.line === true;
     if (base.type === 'Stream') { base.streamId = ''; base.startDate = ''; base.endDate = ''; }
-    if (base.type === 'Milestone') { base.endDate = base.startDate; if (!base.color) base.color = ''; }
-    if (base.type !== 'Stream') base.color = '';
+    if (base.type === 'Milestone') { base.endDate = base.startDate; if (base.icon === 'diamond') base.icon = ''; }
+    else { base.icon = ''; base.line = false; }
+    if (base.type === 'Increment') base.color = '';
     if (base.type === 'Stream' && !base.color) base.color = roadmapColors[0];
     return base;
   }
@@ -480,6 +484,8 @@ var TrackerCore = (function () {
       var stream = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
       if (!stream) throw new Error('Choose the stream this increment belongs to.');
     }
+    if (item.type === 'Milestone' && item.color && roadmapColors.indexOf(item.color) < 0) throw new Error('Choose one of the milestone colours.');
+    if (item.type === 'Milestone' && item.icon && roadmapIcons.indexOf(item.icon) < 0) throw new Error('Choose one of the milestone icons.');
     if (item.type === 'Milestone' && item.streamId) {
       var owner = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
       if (!owner) throw new Error('That stream no longer exists. Refresh the roadmap.');
@@ -497,11 +503,11 @@ var TrackerCore = (function () {
      [5, 'Database improvements', 1, 15, 3, 15], [5, 'API documentation', 2, 25, 5, 10], [5, 'Library upgrades', 4, 15, 7, 15]].forEach(function (spec) {
       items.push({ id: 'RM-' + (items.length + 1), type: 'Increment', streamId: 'RM-' + spec[0], title: spec[1], startDate: d(spec[2], spec[3]), endDate: d(spec[4], spec[5]), color: '', notes: '', order: 0 });
     });
-    [['Community beta', 2, 15], ['Android launch', 5, 2], ['iOS launch', 7, 15], ['Holiday freeze', 11, 20]].forEach(function (spec) {
-      items.push({ id: 'RM-' + (items.length + 1), type: 'Milestone', streamId: '', title: spec[0], startDate: d(spec[1], spec[2]), endDate: d(spec[1], spec[2]), color: '', notes: '', order: 0 });
+    [['Community beta', 2, 15, 'star', 'amber', false], ['Android launch', 5, 2, 'flag', 'green', false], ['iOS launch', 7, 15, 'flag', 'indigo', false], ['Holiday freeze', 11, 20, 'square', 'slate', true]].forEach(function (spec) {
+      items.push({ id: 'RM-' + (items.length + 1), type: 'Milestone', streamId: '', title: spec[0], startDate: d(spec[1], spec[2]), endDate: d(spec[1], spec[2]), color: spec[4], icon: spec[3], line: spec[5], notes: '', order: 0 });
     });
     return items;
   }
-  return { roadmapTypes: roadmapTypes, roadmapColors: roadmapColors, prepareRoadmapItem: prepareRoadmapItem, validateRoadmapItem: validateRoadmapItem, roadmapSample: roadmapSample, types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
+  return { roadmapTypes: roadmapTypes, roadmapColors: roadmapColors, roadmapIcons: roadmapIcons, prepareRoadmapItem: prepareRoadmapItem, validateRoadmapItem: validateRoadmapItem, roadmapSample: roadmapSample, types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
 })();
 if (typeof module !== 'undefined') module.exports = TrackerCore;

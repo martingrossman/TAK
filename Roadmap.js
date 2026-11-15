@@ -3,7 +3,9 @@
  * It never reads or writes the task tabs, and it is not part of the task schema readiness check.
  */
 var TAK_ROADMAP_TAB_ = 'Roadmap';
-var TAK_ROADMAP_HEADERS_ = ['ID', 'Type', 'Stream ID', 'Title', 'Start Date', 'End Date', 'Color', 'Notes', 'Order', 'Revision', 'Updated At'];
+var TAK_ROADMAP_HEADERS_ = ['ID', 'Type', 'Stream ID', 'Title', 'Start Date', 'End Date', 'Color', 'Notes', 'Order', 'Revision', 'Updated At', 'Icon', 'Line'];
+/** Tabs created before milestone styling have only the first 11 columns. They stay readable and gain the rest on the next save. */
+var TAK_ROADMAP_LEGACY_COLUMNS_ = 11;
 
 function roadmapSheet_(book, create) {
   var sheet = book.getSheetByName(TAK_ROADMAP_TAB_);
@@ -15,8 +17,11 @@ function roadmapSheet_(book, create) {
     sheet.setFrozenRows(1);
     return sheet;
   }
-  var headers = sheet.getRange(1, 1, 1, TAK_ROADMAP_HEADERS_.length).getValues()[0];
-  if (headers.join('|') !== TAK_ROADMAP_HEADERS_.join('|')) throw new Error('The Roadmap tab has different column headers. Restore them as ' + TAK_ROADMAP_HEADERS_.join(', ') + ', or rename that tab.');
+  var headers = sheet.getRange(1, 1, 1, TAK_ROADMAP_HEADERS_.length).getValues()[0].map(function (value) { return String(value == null ? '' : value).trim(); });
+  if (headers.join('|') === TAK_ROADMAP_HEADERS_.join('|')) return sheet;
+  var legacy = headers.slice(0, TAK_ROADMAP_LEGACY_COLUMNS_).join('|') === TAK_ROADMAP_HEADERS_.slice(0, TAK_ROADMAP_LEGACY_COLUMNS_).join('|') && headers.slice(TAK_ROADMAP_LEGACY_COLUMNS_).every(function (value) { return !value; });
+  if (!legacy) throw new Error('The Roadmap tab has different column headers. Restore them as ' + TAK_ROADMAP_HEADERS_.join(', ') + ', or rename that tab.');
+  if (create) sheet.getRange(1, TAK_ROADMAP_LEGACY_COLUMNS_ + 1, 1, TAK_ROADMAP_HEADERS_.length - TAK_ROADMAP_LEGACY_COLUMNS_).setValues([TAK_ROADMAP_HEADERS_.slice(TAK_ROADMAP_LEGACY_COLUMNS_)]).setFontWeight('bold');
   return sheet;
 }
 
@@ -36,14 +41,15 @@ function readRoadmap_(book) {
     items.push({
       id: id, type: roadmapText_(row[1], book), streamId: roadmapText_(row[2], book), title: roadmapText_(row[3], book),
       startDate: roadmapText_(row[4], book), endDate: roadmapText_(row[5], book), color: roadmapText_(row[6], book),
-      notes: roadmapText_(row[7], book), order: Number(row[8]) || 0, version: String(Number(row[9]) || 0), _row: index + 2
+      notes: roadmapText_(row[7], book), order: Number(row[8]) || 0, version: String(Number(row[9]) || 0),
+      icon: roadmapText_(row[11], book), line: row[12] === true || /^(true|yes|1)$/i.test(roadmapText_(row[12], book)), _row: index + 2
     });
   });
   return items;
 }
 
 function clientRoadmapItem_(item) {
-  return browserValue_({ id: item.id, type: item.type, streamId: item.streamId, title: item.title, startDate: item.startDate, endDate: item.endDate, color: item.color, notes: item.notes, order: item.order, version: item.version });
+  return browserValue_({ id: item.id, type: item.type, streamId: item.streamId, title: item.title, startDate: item.startDate, endDate: item.endDate, color: item.color, icon: item.icon || '', line: item.line === true, notes: item.notes, order: item.order, version: item.version });
 }
 
 function getRoadmap() {
@@ -77,7 +83,7 @@ function saveRoadmapItem(input, expectedVersion) {
     TrackerCore.validateRoadmapItem(item, items);
     var revision = current ? Number(current.version) + 1 : 1;
     var row = current ? current._row : sheet.getLastRow() + 1;
-    var values = [item.id, item.type, item.streamId, item.title, item.startDate, item.endDate, item.color, item.notes, item.order, revision, new Date().toISOString()];
+    var values = [item.id, item.type, item.streamId, item.title, item.startDate, item.endDate, item.color, item.notes, item.order, revision, new Date().toISOString(), item.icon, item.line ? 'TRUE' : ''];
     var range = sheet.getRange(row, 1, 1, TAK_ROADMAP_HEADERS_.length);
     if (!current) range.setNumberFormat('@');
     range.setValues([values]);

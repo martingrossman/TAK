@@ -909,7 +909,7 @@ body[data-active-view="roadmap"] .workspace-bar,body[data-active-view="roadmap"]
 .roadmap-colors legend{padding:0;margin-bottom:6px}
 .roadmap-color-row{display:flex;gap:6px;flex-wrap:wrap}
 .roadmap-color{position:relative;display:inline-grid;place-items:center;width:40px;height:40px;cursor:pointer}
-.roadmap-color input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.roadmap-color input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
 .roadmap-color span[aria-hidden]{width:26px;height:26px;border-radius:8px;background:var(--rm-swatch)}
 .roadmap-color input:checked+span{outline:2px solid var(--ink);outline-offset:3px}
 .roadmap-color input:focus-visible+span{outline:2px solid var(--primary);outline-offset:3px}
@@ -938,6 +938,26 @@ body.roadmap-dragging,body.roadmap-dragging *{cursor:grabbing!important;user-sel
 .roadmap-track{background-image:none}
 .roadmap-bar.clip-start{border-top-left-radius:0;border-bottom-left-radius:0}
 .roadmap-bar.clip-end{border-top-right-radius:0;border-bottom-right-radius:0}
+.roadmap-diamond[data-shape="circle"]{border-radius:50%;transform:none}
+.roadmap-diamond[data-shape="square"]{border-radius:2px;transform:none;width:11px;height:11px}
+.roadmap-diamond[data-shape="triangle"]{border-radius:0;transform:none;width:14px;height:13px;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.roadmap-diamond[data-shape="star"]{border-radius:0;transform:none;width:15px;height:15px;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.roadmap-diamond[data-shape="flag"]{border-radius:0;transform:none;width:13px;height:15px;clip-path:polygon(0 0,100% 0,78% 30%,100% 60%,16% 60%,16% 100%,0 100%)}
+.roadmap-milestone[data-roadmap-color] .roadmap-diamond{background:var(--rm-swatch)}
+.roadmap-milestone.dragging .roadmap-diamond:not([data-shape="diamond"]){transform:scale(1.25)}
+.roadmap-mline{position:absolute;top:38px;bottom:0;left:calc(var(--label) + (100% - var(--label)) * var(--x));width:0;border-left:2px dashed var(--rm-swatch,var(--muted));opacity:.55;pointer-events:none}
+.roadmap-mline.marked{opacity:.85}
+.roadmap-color-default span[aria-hidden]{background:linear-gradient(135deg,var(--ink) 50%,var(--off) 50%)}
+.roadmap-icons{border:0;padding:0;margin:0 0 12px;min-width:0}
+.roadmap-icons legend{padding:0;margin-bottom:6px}
+.roadmap-icon-choice{position:relative;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;cursor:pointer;color:var(--ink)}
+.roadmap-icon-choice input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.roadmap-icon-choice .roadmap-diamond{background:var(--ink)}
+.roadmap-icon-choice:has(input:checked){background:var(--surface-muted);outline:2px solid var(--ink);outline-offset:-2px}
+.roadmap-icon-choice:has(input:focus-visible){outline:2px solid var(--primary);outline-offset:1px}
+.roadmap-line-field{display:flex;align-items:center;gap:10px;min-height:44px;margin:0 0 8px;font-size:var(--text-control);cursor:pointer}
+.roadmap-line-field input{width:18px;height:18px;margin:0;accent-color:var(--primary)}
+.roadmap-tools [data-roadmap-lines][aria-pressed="true"]{background:var(--primary-soft);border-color:var(--primary);color:var(--primary-dark)}
 @media(max-width:700px){
   .view-nav button{min-height:44px;padding:0 10px}
   .header-tools .button,.header-tools .button.icon-only{width:44px;height:44px;min-height:44px}
@@ -1173,7 +1193,9 @@ body.roadmap-dragging,body.roadmap-dragging *{cursor:grabbing!important;user-sel
           <label class="field"><span id="roadmap-start-label">Start</span><input name="roadmapStart" type="date"></label>
           <label class="field" data-roadmap-field="Increment">End<input name="roadmapEnd" type="date"></label>
         </div>
-        <fieldset class="field roadmap-colors" data-roadmap-field="Stream"><legend>Colour</legend><div class="roadmap-color-row"><label class="roadmap-color" data-roadmap-color="indigo"><input type="radio" name="roadmapColor" value="indigo"><span aria-hidden="true"></span><span class="visually-hidden">Indigo</span></label><label class="roadmap-color" data-roadmap-color="teal"><input type="radio" name="roadmapColor" value="teal"><span aria-hidden="true"></span><span class="visually-hidden">Teal</span></label><label class="roadmap-color" data-roadmap-color="amber"><input type="radio" name="roadmapColor" value="amber"><span aria-hidden="true"></span><span class="visually-hidden">Amber</span></label><label class="roadmap-color" data-roadmap-color="rose"><input type="radio" name="roadmapColor" value="rose"><span aria-hidden="true"></span><span class="visually-hidden">Rose</span></label><label class="roadmap-color" data-roadmap-color="violet"><input type="radio" name="roadmapColor" value="violet"><span aria-hidden="true"></span><span class="visually-hidden">Violet</span></label><label class="roadmap-color" data-roadmap-color="green"><input type="radio" name="roadmapColor" value="green"><span aria-hidden="true"></span><span class="visually-hidden">Green</span></label><label class="roadmap-color" data-roadmap-color="slate"><input type="radio" name="roadmapColor" value="slate"><span aria-hidden="true"></span><span class="visually-hidden">Slate</span></label></div></fieldset>
+        <fieldset class="field roadmap-colors" data-roadmap-field="Stream Milestone"><legend>Colour</legend><div class="roadmap-color-row"><label class="roadmap-color roadmap-color-default" data-roadmap-field="Milestone" title="Stream colour, or neutral in the top lane"><input type="radio" name="roadmapColor" value=""><span aria-hidden="true"></span><span class="visually-hidden">Default</span></label><label class="roadmap-color" data-roadmap-color="indigo"><input type="radio" name="roadmapColor" value="indigo"><span aria-hidden="true"></span><span class="visually-hidden">Indigo</span></label><label class="roadmap-color" data-roadmap-color="teal"><input type="radio" name="roadmapColor" value="teal"><span aria-hidden="true"></span><span class="visually-hidden">Teal</span></label><label class="roadmap-color" data-roadmap-color="amber"><input type="radio" name="roadmapColor" value="amber"><span aria-hidden="true"></span><span class="visually-hidden">Amber</span></label><label class="roadmap-color" data-roadmap-color="rose"><input type="radio" name="roadmapColor" value="rose"><span aria-hidden="true"></span><span class="visually-hidden">Rose</span></label><label class="roadmap-color" data-roadmap-color="violet"><input type="radio" name="roadmapColor" value="violet"><span aria-hidden="true"></span><span class="visually-hidden">Violet</span></label><label class="roadmap-color" data-roadmap-color="green"><input type="radio" name="roadmapColor" value="green"><span aria-hidden="true"></span><span class="visually-hidden">Green</span></label><label class="roadmap-color" data-roadmap-color="slate"><input type="radio" name="roadmapColor" value="slate"><span aria-hidden="true"></span><span class="visually-hidden">Slate</span></label></div></fieldset>
+        <fieldset class="field roadmap-icons" data-roadmap-field="Milestone"><legend>Icon</legend><div class="roadmap-color-row"><label class="roadmap-icon-choice" title="Diamond"><input type="radio" name="roadmapIcon" value="diamond"><span class="roadmap-diamond" data-shape="diamond" aria-hidden="true"></span><span class="visually-hidden">Diamond</span></label><label class="roadmap-icon-choice" title="Circle"><input type="radio" name="roadmapIcon" value="circle"><span class="roadmap-diamond" data-shape="circle" aria-hidden="true"></span><span class="visually-hidden">Circle</span></label><label class="roadmap-icon-choice" title="Square"><input type="radio" name="roadmapIcon" value="square"><span class="roadmap-diamond" data-shape="square" aria-hidden="true"></span><span class="visually-hidden">Square</span></label><label class="roadmap-icon-choice" title="Triangle"><input type="radio" name="roadmapIcon" value="triangle"><span class="roadmap-diamond" data-shape="triangle" aria-hidden="true"></span><span class="visually-hidden">Triangle</span></label><label class="roadmap-icon-choice" title="Star"><input type="radio" name="roadmapIcon" value="star"><span class="roadmap-diamond" data-shape="star" aria-hidden="true"></span><span class="visually-hidden">Star</span></label><label class="roadmap-icon-choice" title="Flag"><input type="radio" name="roadmapIcon" value="flag"><span class="roadmap-diamond" data-shape="flag" aria-hidden="true"></span><span class="visually-hidden">Flag</span></label></div></fieldset>
+        <label class="roadmap-line-field" data-roadmap-field="Milestone"><input type="checkbox" name="roadmapLine"><span>Draw a vertical line across the roadmap</span></label>
         <label class="field">Notes<textarea name="roadmapNotes" rows="3" maxlength="5000"></textarea></label>
         <p id="roadmap-status" class="roadmap-status" role="status" aria-live="polite"></p>
       </div>
@@ -1724,15 +1746,19 @@ var TrackerCore = (function () {
   /* Product roadmap: streams (rows), increments (bars) and milestones (dates). Stored apart from tasks. */
   var roadmapTypes = ['Stream', 'Increment', 'Milestone'];
   var roadmapColors = ['indigo', 'teal', 'amber', 'rose', 'violet', 'green', 'slate'];
+  var roadmapIcons = ['diamond', 'circle', 'square', 'triangle', 'star', 'flag'];
   function prepareRoadmapItem(input, current) {
-    var base = current ? Object.assign({}, current) : { id: '', type: 'Increment', streamId: '', title: '', startDate: '', endDate: '', color: '', notes: '', order: 0 };
-    ['type', 'streamId', 'title', 'startDate', 'endDate', 'color', 'notes'].forEach(function (key) {
+    var base = Object.assign({ id: '', type: 'Increment', streamId: '', title: '', startDate: '', endDate: '', color: '', icon: '', line: false, notes: '', order: 0 }, current || {});
+    ['type', 'streamId', 'title', 'startDate', 'endDate', 'color', 'icon', 'notes'].forEach(function (key) {
       if (input && Object.prototype.hasOwnProperty.call(input, key)) base[key] = String(input[key] == null ? '' : input[key]).trim();
     });
     if (input && Object.prototype.hasOwnProperty.call(input, 'order')) base.order = Number(input.order) || 0;
+    if (input && Object.prototype.hasOwnProperty.call(input, 'line')) base.line = input.line === true || /^(true|yes|1)$/i.test(String(input.line).trim());
+    base.icon = base.icon || ''; base.color = base.color || ''; base.line = base.line === true;
     if (base.type === 'Stream') { base.streamId = ''; base.startDate = ''; base.endDate = ''; }
-    if (base.type === 'Milestone') { base.endDate = base.startDate; if (!base.color) base.color = ''; }
-    if (base.type !== 'Stream') base.color = '';
+    if (base.type === 'Milestone') { base.endDate = base.startDate; if (base.icon === 'diamond') base.icon = ''; }
+    else { base.icon = ''; base.line = false; }
+    if (base.type === 'Increment') base.color = '';
     if (base.type === 'Stream' && !base.color) base.color = roadmapColors[0];
     return base;
   }
@@ -1752,6 +1778,8 @@ var TrackerCore = (function () {
       var stream = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
       if (!stream) throw new Error('Choose the stream this increment belongs to.');
     }
+    if (item.type === 'Milestone' && item.color && roadmapColors.indexOf(item.color) < 0) throw new Error('Choose one of the milestone colours.');
+    if (item.type === 'Milestone' && item.icon && roadmapIcons.indexOf(item.icon) < 0) throw new Error('Choose one of the milestone icons.');
     if (item.type === 'Milestone' && item.streamId) {
       var owner = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
       if (!owner) throw new Error('That stream no longer exists. Refresh the roadmap.');
@@ -1769,12 +1797,12 @@ var TrackerCore = (function () {
      [5, 'Database improvements', 1, 15, 3, 15], [5, 'API documentation', 2, 25, 5, 10], [5, 'Library upgrades', 4, 15, 7, 15]].forEach(function (spec) {
       items.push({ id: 'RM-' + (items.length + 1), type: 'Increment', streamId: 'RM-' + spec[0], title: spec[1], startDate: d(spec[2], spec[3]), endDate: d(spec[4], spec[5]), color: '', notes: '', order: 0 });
     });
-    [['Community beta', 2, 15], ['Android launch', 5, 2], ['iOS launch', 7, 15], ['Holiday freeze', 11, 20]].forEach(function (spec) {
-      items.push({ id: 'RM-' + (items.length + 1), type: 'Milestone', streamId: '', title: spec[0], startDate: d(spec[1], spec[2]), endDate: d(spec[1], spec[2]), color: '', notes: '', order: 0 });
+    [['Community beta', 2, 15, 'star', 'amber', false], ['Android launch', 5, 2, 'flag', 'green', false], ['iOS launch', 7, 15, 'flag', 'indigo', false], ['Holiday freeze', 11, 20, 'square', 'slate', true]].forEach(function (spec) {
+      items.push({ id: 'RM-' + (items.length + 1), type: 'Milestone', streamId: '', title: spec[0], startDate: d(spec[1], spec[2]), endDate: d(spec[1], spec[2]), color: spec[4], icon: spec[3], line: spec[5], notes: '', order: 0 });
     });
     return items;
   }
-  return { roadmapTypes: roadmapTypes, roadmapColors: roadmapColors, prepareRoadmapItem: prepareRoadmapItem, validateRoadmapItem: validateRoadmapItem, roadmapSample: roadmapSample, types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
+  return { roadmapTypes: roadmapTypes, roadmapColors: roadmapColors, roadmapIcons: roadmapIcons, prepareRoadmapItem: prepareRoadmapItem, validateRoadmapItem: validateRoadmapItem, roadmapSample: roadmapSample, types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
 })();
 if (typeof module !== 'undefined') module.exports = TrackerCore;
 
@@ -5223,7 +5251,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     } catch (error) {}
     return roadmapYearRange(Number(today().slice(0, 4)));
   }
-  const roadmap = { items: [], loaded: false, loading: false, error: '', range: storedRoadmapRange(), editing: null, saving: false };
+  const roadmapLinesStorageKey = trackerStorageKey('tak.roadmap.lines.v1');
+  const storedRoadmapLines = () => { try { return localStorage.getItem(roadmapLinesStorageKey) === 'all'; } catch (error) { return false; } };
+  const roadmap = { items: [], loaded: false, loading: false, error: '', range: storedRoadmapRange(), allLines: storedRoadmapLines(), editing: null, saving: false };
   function setRoadmapRange(start, end, focusSelector = '') {
     const error = roadmapRangeError(start, end);
     if (error) notify(error, true);
@@ -5333,7 +5363,9 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   function roadmapMilestone(item, range) {
     const left = roadmapPosition(item.startDate, range), flip = left > 78;
     const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
-    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}<span class="roadmap-diamond" aria-hidden="true"></span>${flip ? '' : label}</button>`;
+    const colour = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
+    const marker = `<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
   }
   function renderRoadmap() {
     const range = roadmap.range, content = $('#view-content');
@@ -5346,6 +5378,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       <button class="button secondary icon-only" type="button" data-roadmap-shift="1" aria-label="Show the next period">→</button>
       <button class="button secondary" type="button" data-roadmap-this-year${isThisYear ? ' disabled' : ''}>This year</button>
       </div><div class="right">
+      <button class="button secondary" type="button" data-roadmap-lines aria-pressed="${roadmap.allLines}" title="Draw a vertical line at every milestone. Off shows lines only where a milestone asks for one.">${roadmap.allLines ? 'All milestone lines' : 'Milestone lines'}</button>
       <button class="button secondary" type="button" data-roadmap-new="Milestone">Add milestone</button>
       <button class="button primary" type="button" data-roadmap-new="Stream">Add stream</button></div></div>`;
     if (roadmap.error) { content.innerHTML = head + `<div class="error-banner" role="alert">Roadmap could not load: ${escape(roadmap.error)} <button type="button" data-roadmap-retry>Retry</button></div>`; return; }
@@ -5356,6 +5389,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const months = ticks.map(tick => `<span style="left:${tick.left.toFixed(3)}%"${tick.current ? ' class="current"' : ''}>${escape(tick.label)}</span>`).join('');
     const gridLines = ticks.filter(tick => tick.left > 0.01).map(tick => `<i style="left:${tick.left.toFixed(3)}%"></i>`).join('');
     const topMilestones = roadmap.items.filter(item => item.type === 'Milestone' && !item.streamId && roadmapInRange(item, range));
+    const streamColour = new Map(streams.map(stream => [stream.id, stream.color]));
+    const milestoneLines = roadmap.items.filter(item => item.type === 'Milestone' && (item.line || roadmap.allLines) && roadmapInRange(item, range)).map(item => {
+      const key = C.roadmapColors.includes(item.color) ? item.color : streamColour.get(item.streamId) || '';
+      return `<div class="roadmap-mline${item.line ? ' marked' : ''}" data-for="${escape(item.id)}"${key ? ` data-roadmap-color="${key}"` : ''} style="--x:${(roadmapPosition(item.startDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>`;
+    }).join('');
     const todayLine = showToday ? `<div class="roadmap-today" style="--today:${(roadmapPosition(nowDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>` : '';
     const lanes = streams.map((stream, index) => {
       const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
@@ -5381,6 +5419,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       <div class="roadmap-lines" aria-hidden="true">${gridLines}</div>
       <section class="roadmap-stream roadmap-milestones" aria-label="Milestones"><div class="roadmap-stream-head"><span class="roadmap-stream-title static">Milestones</span></div>
         <div class="roadmap-track"><div class="roadmap-lane roadmap-marks">${topMilestones.map(item => roadmapMilestone(item, range)).join('')}</div></div></section>
+      ${milestoneLines}
       ${lanes}
       ${todayLine}
     </div></div>`;
@@ -5405,7 +5444,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const streamSelect = roadmapForm.elements.roadmapStream;
     streamSelect.innerHTML = (type === 'Milestone' ? '<option value="">None (top lane)</option>' : '') + streams.map(stream => `<option value="${escape(stream.id)}">${escape(stream.title)}</option>`).join('');
     streamSelect.value = values.streamId || (type === 'Milestone' ? '' : streams[0]?.id || '');
-    [...roadmapForm.querySelectorAll('input[name="roadmapColor"]')].forEach(input => { input.checked = input.value === (values.color || C.roadmapColors[0]); });
+    const colour = values.color || (type === 'Stream' ? C.roadmapColors[0] : '');
+    [...roadmapForm.querySelectorAll('input[name="roadmapColor"]')].forEach(input => { input.checked = input.value === colour; });
+    [...roadmapForm.querySelectorAll('input[name="roadmapIcon"]')].forEach(input => { input.checked = input.value === (values.icon || 'diamond'); });
+    roadmapForm.elements.roadmapLine.checked = values.line === true;
     [...roadmapForm.querySelectorAll('[data-roadmap-field]')].forEach(field => { field.hidden = !field.dataset.roadmapField.split(' ').includes(type); });
     $('#roadmap-start-label').textContent = type === 'Milestone' ? 'Date' : 'Start';
     $('#roadmap-delete').hidden = !current;
@@ -5418,6 +5460,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     const input = { type, title: form.roadmapTitle.value, notes: form.roadmapNotes.value };
     if (roadmap.editing.id) input.id = roadmap.editing.id;
     if (type === 'Stream') input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || C.roadmapColors[0];
+    if (type === 'Milestone') {
+      input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || '';
+      input.icon = roadmapForm.querySelector('input[name="roadmapIcon"]:checked')?.value || '';
+      input.line = roadmapForm.elements.roadmapLine.checked;
+    }
     else { input.streamId = form.roadmapStream.value; input.startDate = form.roadmapStart.value; if (type === 'Increment') input.endDate = form.roadmapEnd.value; }
     return input;
   }
@@ -5501,7 +5548,10 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     if (draft.type === 'Increment') {
       const right = Math.min(100, Math.max(left + 0.6, roadmapPosition(C.addDays(draft.endDate, 1), range)));
       element.style.left = `${left.toFixed(3)}%`; element.style.width = `${(right - left).toFixed(3)}%`;
-    } else { element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`; }
+    } else {
+      element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`;
+      $(`.roadmap-mline[data-for="${CSS.escape(drag.item.id)}"]`)?.style.setProperty('--x', (left / 100).toFixed(5));
+    }
     const sameStream = draft.streamId === drag.item.streamId;
     element.style.transform = drag.mode === 'move' && !sameStream ? `translateY(${event.clientY - drag.y}px)` : '';
     $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
@@ -5597,6 +5647,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (target.dataset.roadmapMove) moveRoadmapStream(target.dataset.roadmapMove, Number(target.dataset.direction));
     else if (target.hasAttribute('data-roadmap-retry')) loadRoadmap(true);
     else if (target.dataset.roadmapShift) shiftRoadmapRange(Number(target.dataset.roadmapShift));
+    else if (target.hasAttribute('data-roadmap-lines')) {
+      roadmap.allLines = !roadmap.allLines;
+      try { localStorage.setItem(roadmapLinesStorageKey, roadmap.allLines ? 'all' : 'marked'); } catch (error) {}
+      renderRoadmap(); $('[data-roadmap-lines]')?.focus();
+    }
     else if (target.hasAttribute('data-roadmap-this-year')) { const range = roadmapYearRange(Number(today().slice(0, 4))); setRoadmapRange(range.start, range.end, '[data-roadmap-range="start"]'); }
   });
   $('#view-content').addEventListener('change', event => {
