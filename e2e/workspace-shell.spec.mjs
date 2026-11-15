@@ -62,7 +62,7 @@ for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 
       await expect(page.locator('#demo-github-header')).toBeVisible();
       await expect(page.locator('#demo-github-menu')).toBeHidden();
     }
-    await expect(page.locator('[data-view]')).toHaveCount(3);
+    await expect(page.locator('[data-view]')).toHaveCount(4);
     await expect(page.locator('.sidebar, .page-heading, #stats')).toHaveCount(0);
     await expect(page.locator('#search')).toBeVisible();
     await page.locator('#workspace-filters > summary').click();

@@ -18,6 +18,8 @@ new vm.Script(await read('Settings.js'), { filename: 'Settings.js' });
 new vm.Script(await read('Ordering.js'), { filename: 'Ordering.js' });
 new vm.Script(await read('Comments.js'), { filename: 'Comments.js' });
 new vm.Script(await read('SharedHost.js'), { filename: 'SharedHost.js' });
+new vm.Script(await read('Roadmap.js'), { filename: 'Roadmap.js' });
+if (!(await read('.claspignore')).includes('!Roadmap.js')) throw new Error('Roadmap.js must be included in the Apps Script deployment allowlist.');
 const claspIgnore = await read('.claspignore');
 for (const name of ['QuickAdd', 'Help', 'FullScreen']) {
   const file = name + '.html';

@@ -449,6 +449,59 @@ var TrackerCore = (function () {
       return Object.assign(blank(), { id: 'PRJ-' + (index + 1), type: spec.type, parentId: spec.parentId || '', summary: spec.summary, status: spec.status, priority: spec.priority, assignee: spec.assignee, reporter: 'Jordan Lee', startDate: addDays(today, spec.start), dueDate: addDays(today, spec.due), progress: spec.progress, labels: spec.labels, dependencies: spec.dependencies || '', estimate: spec.estimate, timeSpent: Math.round(spec.estimate * spec.progress / 100), description: spec.description, sprint: index < 8 ? 'Sprint 1' : 'Sprint 2', completedDate: spec.status === 'Done' ? addDays(today, spec.due) : '', createdAt: today + 'T09:00:00.000Z', updatedAt: today + 'T09:00:00.000Z', rank: (index + 1) * 1000 });
     });
   }
-  return { types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
+  /* Product roadmap: streams (rows), increments (bars) and milestones (dates). Stored apart from tasks. */
+  var roadmapTypes = ['Stream', 'Increment', 'Milestone'];
+  var roadmapColors = ['indigo', 'teal', 'amber', 'rose', 'violet', 'green', 'slate'];
+  function prepareRoadmapItem(input, current) {
+    var base = current ? Object.assign({}, current) : { id: '', type: 'Increment', streamId: '', title: '', startDate: '', endDate: '', color: '', notes: '', order: 0 };
+    ['type', 'streamId', 'title', 'startDate', 'endDate', 'color', 'notes'].forEach(function (key) {
+      if (input && Object.prototype.hasOwnProperty.call(input, key)) base[key] = String(input[key] == null ? '' : input[key]).trim();
+    });
+    if (input && Object.prototype.hasOwnProperty.call(input, 'order')) base.order = Number(input.order) || 0;
+    if (base.type === 'Stream') { base.streamId = ''; base.startDate = ''; base.endDate = ''; }
+    if (base.type === 'Milestone') { base.endDate = base.startDate; if (!base.color) base.color = ''; }
+    if (base.type !== 'Stream') base.color = '';
+    if (base.type === 'Stream' && !base.color) base.color = roadmapColors[0];
+    return base;
+  }
+  function validateRoadmapItem(item, items) {
+    if (roadmapTypes.indexOf(item.type) < 0) throw new Error('Roadmap type must be Stream, Increment or Milestone.');
+    if (!item.title) throw new Error('Give the roadmap item a title.');
+    if (item.title.length > 200) throw new Error('Keep roadmap titles under 200 characters.');
+    if (item.notes.length > 5000) throw new Error('Keep roadmap notes under 5,000 characters.');
+    if (item.type === 'Stream') {
+      if (roadmapColors.indexOf(item.color) < 0) throw new Error('Choose one of the stream colours.');
+      return item;
+    }
+    if (!validDate(item.startDate)) throw new Error(item.type === 'Milestone' ? 'Set the milestone date.' : 'Set a start date.');
+    if (item.type === 'Increment') {
+      if (!validDate(item.endDate)) throw new Error('Set an end date.');
+      if (item.endDate < item.startDate) throw new Error('The end date must be on or after the start date.');
+      var stream = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
+      if (!stream) throw new Error('Choose the stream this increment belongs to.');
+    }
+    if (item.type === 'Milestone' && item.streamId) {
+      var owner = (items || []).filter(function (other) { return other.id === item.streamId && other.type === 'Stream'; })[0];
+      if (!owner) throw new Error('That stream no longer exists. Refresh the roadmap.');
+    }
+    return item;
+  }
+  function roadmapSample(year) {
+    var y = String(year), d = function (m, day) { return y + '-' + String(m).padStart(2, '0') + '-' + String(day).padStart(2, '0'); };
+    var items = [], streams = [['Self serve', 'indigo'], ['Mobile', 'rose'], ['Webstore', 'amber'], ['Help desk', 'green'], ['Infrastructure', 'teal']];
+    streams.forEach(function (stream, index) { items.push({ id: 'RM-' + (index + 1), type: 'Stream', streamId: '', title: stream[0], startDate: '', endDate: '', color: stream[1], notes: '', order: index + 1 }); });
+    [[1, 'Two-factor authentication', 1, 20, 3, 10], [1, 'Language localisation', 2, 1, 5, 15], [1, 'Single sign-on', 4, 20, 7, 5], [1, 'Multi-account management', 8, 15, 9, 30],
+     [2, 'iOS app', 1, 5, 2, 28], [2, 'Android app alpha', 1, 25, 4, 15], [2, 'Payments integration', 3, 20, 5, 30], [2, 'Push notifications', 7, 15, 9, 30],
+     [3, 'Responsive shop', 1, 10, 3, 25], [3, 'PCI compliance', 3, 1, 4, 20], [3, 'Abandoned cart reminders', 4, 5, 6, 1], [3, 'Guest checkout', 6, 20, 8, 15],
+     [4, 'Help bot', 1, 10, 2, 20], [4, 'Accessibility improvements', 2, 5, 8, 1], [4, 'Search improvements', 7, 1, 9, 1],
+     [5, 'Database improvements', 1, 15, 3, 15], [5, 'API documentation', 2, 25, 5, 10], [5, 'Library upgrades', 4, 15, 7, 15]].forEach(function (spec) {
+      items.push({ id: 'RM-' + (items.length + 1), type: 'Increment', streamId: 'RM-' + spec[0], title: spec[1], startDate: d(spec[2], spec[3]), endDate: d(spec[4], spec[5]), color: '', notes: '', order: 0 });
+    });
+    [['Community beta', 2, 15], ['Android launch', 5, 2], ['iOS launch', 7, 15], ['Holiday freeze', 11, 20]].forEach(function (spec) {
+      items.push({ id: 'RM-' + (items.length + 1), type: 'Milestone', streamId: '', title: spec[0], startDate: d(spec[1], spec[2]), endDate: d(spec[1], spec[2]), color: '', notes: '', order: 0 });
+    });
+    return items;
+  }
+  return { roadmapTypes: roadmapTypes, roadmapColors: roadmapColors, prepareRoadmapItem: prepareRoadmapItem, validateRoadmapItem: validateRoadmapItem, roadmapSample: roadmapSample, types: types, statuses: statuses, priorities: priorities, fields: fields, blank: blank, prepare: prepare, validate: validate, validateProject: validateProject, canDelete: canDelete, duplicateUndoItems: duplicateUndoItems, epicScheduleRange: epicScheduleRange, leafWorkProgress: leafWorkProgress, sorted: sorted, taskTypePresentation: taskTypePresentation, taskTypeDefinitions: taskTypeDefinitions, split: split, dateNumber: dateNumber, addDays: addDays, validDate: validDate, parseQuickEntry: parseQuickEntry, parseNotepad: parseNotepad, parsePlanProposal: parsePlanProposal, planContext: planContext, planEditableFields: planEditableFields, csv: csv, sample: sample };
 })();
 if (typeof module !== 'undefined') module.exports = TrackerCore;
