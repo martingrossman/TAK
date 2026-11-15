@@ -738,6 +738,24 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 .issue-table.summary-pinned [data-column-key="summary"]{box-sizing:border-box}
 </style>
 
+<style>
+/* Mobile Kanban (Trello-style): one snapped column per screen, status tabs, long-press dragging. */
+.kanban-tabs{display:none}
+.touch-drag-ghost{position:fixed;left:0;top:0;z-index:1000;pointer-events:none;margin:0;opacity:.96;box-shadow:0 12px 28px #0F172A33;border-color:var(--primary)}
+@media(max-width:700px){
+  .kanban-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;position:sticky;top:0;z-index:4;background:var(--canvas);padding:8px 0;margin-bottom:4px}
+  .kanban-tabs::-webkit-scrollbar{display:none}
+  .kanban-tabs button{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:20px;background:var(--surface);font-size:var(--text-meta);font-weight:600;color:var(--muted)}
+  .kanban-tabs button.active{color:var(--ink);border-color:var(--status-color);box-shadow:inset 0 -2px 0 var(--status-color)}
+  .board{grid-template-columns:repeat(5,calc(100% - 34px));scroll-snap-type:x mandatory;scroll-padding-inline:0;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .board::-webkit-scrollbar{display:none}
+  .board>.column{scroll-snap-align:start;scroll-snap-stop:always}
+  .card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+  .card .card-title{font-size:var(--text-body)}
+  body.touch-dragging .board{scroll-snap-type:none}
+}
+</style>
+
 </head>
 <body data-initial-view="kanban" data-shared-sheet="">
   <header class="topbar">
@@ -1593,7 +1611,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     state.collapsedSheetParents = ui.collapsedSheetParents || {};
     state.visibleColumns = normalizeSheetColumnOrder(ui.sheetLayoutVersion == null && JSON.stringify(ui.visibleColumns) === JSON.stringify(legacySheetColumnOrder) ? defaultSheetColumnOrder : ui.visibleColumns || defaultSheetColumnOrder);
     state.sheetColumnWidths = normalizeSheetWidths(ui.sheetColumnWidths);
-    state.swimlanes = ui.swimlanes !== false;
+    state.swimlanes = ui.swimlanes === undefined ? !matchMedia('(max-width: 700px)').matches : ui.swimlanes !== false;
     state.milestonesOnTop = ui.milestonesOnTop === true; state.milestonesRank = Number.isFinite(ui.milestonesRank) ? ui.milestonesRank : null;
     state.ganttLabelWidth = clampGanttLabelWidth(ui.ganttLabelWidth || 260);
   } catch (ignore) {
@@ -3557,6 +3575,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     arrangeWorkspaceTools();
     const nextScroll = content.querySelector('.board, .table-wrap, .gantt-viewport');
     if (restoreScroll && nextScroll) { nextScroll.scrollLeft = restoreScroll.left; nextScroll.scrollTop = restoreScroll.top; }
+    if (state.view === 'kanban') syncKanbanTabs();
     if (entryVisible) positionGhostEntry();
     if (focusedEntry && entryVisible) {
       restoringEntryFocus = true;
@@ -3678,10 +3697,11 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       const newLabel = isMilestoneLane ? `Open full milestone editor for ${status}` : `Open full task editor for ${status}`;
       return `<section class="column" data-status="${status}" aria-label="${status}" style="--status-color:${statusColors[index]}"><h2 class="column-header" tabindex="0" aria-label="${escape(status)} column"><span class="status-dot"></span>${status}<span class="column-count">${cards.filter(issue => !issue.composer).length}</span><button data-new="${status}"${newKindAttr} aria-label="${escape(newLabel)}">+</button></h2><div class="card-list">${cards.map(issue => issue.composer ? '<div class="composer-card" data-composer-slot></div>' : issue.draftKey ? pendingQuickCard(issue) : card(issue)).join('')}${!cards.length ? '<div class="column-empty">No issues</div>' : ''}</div><button type="button" class="ghost-add" data-ghost-add data-ghost-kind="${ghostKind}">${ghostLabel}</button></section>`;
     }).join('');
-    if (!state.swimlanes) { $('#view-content').innerHTML = `<div class="board">${renderColumns(displayIssues)}</div>`; return; }
+    const tabs = `<nav class="kanban-tabs" aria-label="Jump to status column">${C.statuses.map((status, index) => `<button type="button" data-kanban-tab="${index}" style="--status-color:${statusColors[index]}"><span class="status-dot"></span>${escape(status)}<span class="column-count">${displayIssues.filter(issue => issue.status === status && !issue.composer).length}</span></button>`).join('')}</nav>`;
+    if (!state.swimlanes) { $('#view-content').innerHTML = `${tabs}<div class="board">${renderColumns(displayIssues)}</div>`; return; }
     const lanes = epicLanes(displayIssues, true);
     const orderableLanes = lanes.filter(l => l.id === '__milestones__' || (l.id && issueById(l.id)?.type === 'Epic'));
-    $('#view-content').innerHTML = `<div class="kanban-tools"><div class="left"></div></div><div class="swimlanes">${lanes.map(lane => {
+    $('#view-content').innerHTML = `<div class="kanban-tools"><div class="left"></div></div>${tabs}<div class="swimlanes">${lanes.map(lane => {
       const collapsed = laneCollapsed(lane);
       const isMilestone = lane.id === '__milestones__' || Boolean(lane.isMilestoneLane);
       return `<section class="swimlane${collapsed ? ' collapsed' : ''}" data-epic-lane="${escape(lane.id)}">${renderSwimlaneHeader(lane, '', orderableLanes)}${collapsed ? '' : `<div class="board">${renderColumns(lane.items, isMilestone)}</div>`}</section>`;
@@ -5575,7 +5595,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       sheetSource.closest('.sheet-issue-row')?.classList.add('sheet-dragging'); return;
     }
     if (event.target.closest('[data-card-priority], [data-card-assignee], .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment, [data-card-title-input]')) { event.preventDefault(); return; }
-    const card = event.target.closest('.card[data-issue]'); if (!card || state.busy) { event.preventDefault(); return; }
+    const card = event.target.closest('.card[data-issue]'); if (!card || state.busy || touchCardDrag) { event.preventDefault(); return; }
     draggingId = card.dataset.issue; event.dataTransfer.setData('text/plain', draggingId); event.dataTransfer.effectAllowed = 'move'; card.classList.add('dragging');
   });
   function clearDragStyle(includeSource = true) {
@@ -5690,10 +5710,14 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       suppressClickUntil = Date.now() + 450; await saveSheetHierarchyDrop(moving, plan); return;
     }
     const column = event.target.closest('.column'); if (!column || !draggingId || state.busy) return;
-    event.preventDefault(); const id = draggingId, issue = issueById(id); draggingId = null;
-    const target = event.target.closest('.card');
+    event.preventDefault(); const id = draggingId; draggingId = null;
+    await dropKanbanCard(id, column, event.target.closest('.card'), event.clientY);
+  });
+  /** Shared by mouse drag-and-drop and the touch long-press drag. */
+  async function dropKanbanCard(id, column, target, clientY) {
+    const issue = issueById(id);
     const targetIssue = target && target.dataset.issue !== id ? issueById(target.dataset.issue) : null;
-    const cardZone = kanbanCardDropZone(issue, targetIssue, target, event.clientY);
+    const cardZone = kanbanCardDropZone(issue, targetIssue, target, clientY);
     clearDragStyle();
     if (!issue || target?.dataset.issue === id) return;
     const lane = column.closest('.swimlane'), laneId = lane?.dataset.epicLane || '';
@@ -5718,7 +5742,7 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
       await saveBoardMove(issue, column.dataset.status, parentId, rank, nextType);
     }
     catch (error) { notify(error.message, true); }
-  });
+  }
   $('#view-content').addEventListener('pointerdown', event => {
     const resizer = event.target.closest('.gantt-resizer');
     if (resizer && event.button === 0 && !state.busy) { event.preventDefault(); ganttResize = { x: event.clientX, width: state.ganttLabelWidth, pointer: event.pointerId, element: resizer }; resizer.setPointerCapture(event.pointerId); return; }
@@ -5800,6 +5824,115 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     else if (['1', '2', '3'].includes(event.key)) setView(['sheet', 'kanban', 'gantt'][Number(event.key) - 1]);
   });
   window.addEventListener('beforeunload', event => { if (state.busy || hasPendingSaves() || (dialog.open && formSnapshot() !== initialForm)) { event.preventDefault(); event.returnValue = ''; } });
+  /* Mobile Kanban: one snapped column per screen, status tabs, and long-press card dragging. */
+  const kanbanBoards = () => $$('#view-content .board');
+  const kanbanColumnIndex = board => {
+    const columns = [...board.querySelectorAll(':scope > .column')];
+    if (!columns.length) return 0;
+    const left = board.getBoundingClientRect().left;
+    let best = 0, distance = Infinity;
+    columns.forEach((column, index) => { const gap = Math.abs(column.getBoundingClientRect().left - left); if (gap < distance) { distance = gap; best = index; } });
+    return best;
+  };
+  function syncKanbanTabs(index) {
+    const boards = kanbanBoards(); if (!boards.length) return;
+    const active = index ?? kanbanColumnIndex(boards[0]);
+    $$('[data-kanban-tab]').forEach(tab => { const on = Number(tab.dataset.kanbanTab) === active; tab.classList.toggle('active', on); if (on) { tab.setAttribute('aria-current', 'true'); const strip = tab.parentElement; if (tab.offsetLeft < strip.scrollLeft || tab.offsetLeft + tab.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollTo({ left: tab.offsetLeft - 8, behavior: 'smooth' }); } else tab.removeAttribute('aria-current'); });
+  }
+  function scrollKanbanTo(index, except, behavior = 'smooth') {
+    kanbanBoards().forEach(board => {
+      if (board === except) return;
+      const column = board.querySelectorAll(':scope > .column')[index];
+      if (column) board.scrollTo({ left: column.offsetLeft - board.firstElementChild.offsetLeft, behavior });
+    });
+    syncKanbanTabs(index);
+  }
+  let kanbanScrollTimer = null;
+  $('#view-content').addEventListener('scroll', event => {
+    const board = event.target; if (!(board instanceof Element) || !board.matches('.board') || touchCardDrag || !matchMedia('(max-width: 700px)').matches) return;
+    clearTimeout(kanbanScrollTimer);
+    kanbanScrollTimer = setTimeout(() => { const index = kanbanColumnIndex(board); scrollKanbanTo(index, board, 'auto'); }, 120);
+  }, true);
+  $('#view-content').addEventListener('click', event => {
+    const tab = event.target.closest('[data-kanban-tab]'); if (!tab) return;
+    scrollKanbanTo(Number(tab.dataset.kanbanTab));
+  });
+
+  let touchCardDrag = null, touchPress = null;
+  const touchDragBlocked = target => target.closest('input, textarea, select, [contenteditable="true"], [data-card-priority], [data-card-assignee], .card-type-field, .card-activity-field, .card-due-field, .card-quick-comment, [data-issue-select]');
+  function cancelTouchPress() { if (touchPress) clearTimeout(touchPress.timer); touchPress = null; }
+  document.addEventListener('touchstart', event => {
+    if (state.view !== 'kanban' || state.busy || event.touches.length !== 1 || touchCardDrag) return;
+    const card = event.target.closest('#view-content .card[data-issue]');
+    if (!card || touchDragBlocked(event.target)) return;
+    const touch = event.touches[0];
+    touchPress = { card, x: touch.clientX, y: touch.clientY, timer: setTimeout(() => startTouchCardDrag(card, touch.clientX, touch.clientY), 380) };
+  }, { passive: true });
+  function startTouchCardDrag(card, x, y) {
+    touchPress = null;
+    const rect = card.getBoundingClientRect();
+    const ghost = card.cloneNode(true);
+    ghost.classList.add('touch-drag-ghost'); ghost.removeAttribute('id'); ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.width = rect.width + 'px';
+    document.body.append(ghost);
+    touchCardDrag = { id: card.dataset.issue, card, ghost, dx: x - rect.left, dy: y - rect.top, x, y, frame: 0, drop: null };
+    card.classList.add('dragging'); document.body.classList.add('touch-dragging');
+    navigator.vibrate?.(12);
+    moveTouchCardDrag(x, y);
+    touchCardDrag.frame = requestAnimationFrame(autoScrollTouchDrag);
+  }
+  function moveTouchCardDrag(x, y) {
+    const drag = touchCardDrag; drag.x = x; drag.y = y;
+    drag.ghost.style.transform = `translate(${x - drag.dx}px, ${y - drag.dy}px) rotate(2deg)`;
+    const element = document.elementFromPoint(x, y);
+    const column = element?.closest('#view-content .column');
+    clearDragStyle(false); drag.drop = null;
+    if (!column) return;
+    const issue = issueById(drag.id), target = element.closest('.card[data-issue]');
+    const targetIssue = target && target.dataset.issue !== drag.id ? issueById(target.dataset.issue) : null;
+    const zone = kanbanCardDropZone(issue, targetIssue, target, y);
+    if (zone !== 'parent') {
+      try { boardMoveParent(issue, state.swimlanes ? column.closest('.swimlane')?.dataset.epicLane || '' : boardEpicId(issue)); }
+      catch (error) { return; }
+    }
+    column.classList.add('drag-over');
+    if (targetIssue) target.classList.add(zone === 'parent' ? 'drop-parent' : zone === 'after' ? 'drop-after' : 'drop-before');
+    drag.drop = { column, target: targetIssue ? target : null };
+  }
+  function autoScrollTouchDrag() {
+    const drag = touchCardDrag; if (!drag) return;
+    const edge = 36, speed = 14;
+    const board = document.elementFromPoint(Math.min(Math.max(drag.x, 1), innerWidth - 1), drag.y)?.closest('.board') || kanbanBoards()[0];
+    let moved = false;
+    if (board) {
+      if (drag.x < edge) { board.scrollLeft -= speed; moved = true; }
+      else if (drag.x > innerWidth - edge) { board.scrollLeft += speed; moved = true; }
+    }
+    if (drag.y < edge + 40) { scrollBy(0, -speed); moved = true; }
+    else if (drag.y > innerHeight - edge) { scrollBy(0, speed); moved = true; }
+    if (moved) moveTouchCardDrag(drag.x, drag.y);
+    drag.frame = requestAnimationFrame(autoScrollTouchDrag);
+  }
+  document.addEventListener('touchmove', event => {
+    if (touchCardDrag) { event.preventDefault(); const touch = event.touches[0]; moveTouchCardDrag(touch.clientX, touch.clientY); return; }
+    if (!touchPress) return;
+    const touch = event.touches[0];
+    if (Math.hypot(touch.clientX - touchPress.x, touch.clientY - touchPress.y) > 8) cancelTouchPress();
+  }, { passive: false });
+  async function endTouchCardDrag(commit) {
+    cancelTouchPress();
+    const drag = touchCardDrag; if (!drag) return;
+    touchCardDrag = null;
+    cancelAnimationFrame(drag.frame); drag.ghost.remove(); drag.card.classList.remove('dragging'); document.body.classList.remove('touch-dragging');
+    suppressClickUntil = Date.now() + 450;
+    if (!commit || !drag.drop || state.busy) { clearDragStyle(); return; }
+    const destination = C.statuses.indexOf(drag.drop.column.dataset.status);
+    await dropKanbanCard(drag.id, drag.drop.column, drag.drop.target, drag.y);
+    if (destination >= 0) scrollKanbanTo(destination, null, 'auto');
+  }
+  document.addEventListener('touchend', () => endTouchCardDrag(true));
+  document.addEventListener('touchcancel', () => endTouchCardDrag(false));
+  document.addEventListener('contextmenu', event => { if (touchPress || touchCardDrag) event.preventDefault(); });
   window.addEventListener('storage', event => { if (event.key === storageKey && !state.busy && !hasPendingSaves() && !bulkDeleteDraft && !document.querySelector('dialog[open]')) refresh(true); });
   setInterval(() => { if (isCloud && state.mode !== 'personal' && !document.hidden && !document.querySelector('dialog[open]') && !bulkDeleteDraft && !state.busy && !hasPendingSaves() && !document.activeElement?.matches('.cell-input')) refresh(true); }, 45000);
   const requestedView = location.hash.slice(1) || new URLSearchParams(location.search).get('view') || document.body.dataset.initialView;
