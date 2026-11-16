@@ -86,7 +86,7 @@ Do not bundle visual redesign, data migration, backend write-path refactor and n
 
 > **Never move a production deployment, and never create a new Apps Script version or deployment, on your own initiative.** Production changes only after the owner has tested on `/dev` and approved in writing. The full steps are in `docs/RELEASE.md`; this section is the rule that governs them.
 
-Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive.file`, Picker; the public `/exec` in the README) is the current production target. The older **shared host** and **starter template** are staged packages and are not released unless the owner names them. **Independent installs** are the owner's own copies.
+Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive.file`, Picker; the public `/exec` in the README) is the current production target. The **starter template** stays supported: its launcher is staged with the Option 2 `/exec` URL and released only when the owner names it. The older **shared host** is a staged package and is not released unless the owner names it. **Independent installs** are the owner's own copies.
 
 ```text
 [ Local change + version + release notes + tag ]

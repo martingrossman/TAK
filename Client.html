@@ -75,6 +75,8 @@
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
+  /** Set when the app was opened for a specific spreadsheet (starter copy launcher) that Google has not yet let it read. */
+  let requestedSheetId = '';
   const pickerAuth = isCloud ? {
     token: document.body.dataset?.oauthToken || '',
     appId: document.body.dataset?.pickerAppId || '',
@@ -99,6 +101,7 @@
     gapi.load('picker', () => {
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setMimeTypes('application/vnd.google-apps.spreadsheet');
+      if (requestedSheetId && typeof view.setFileIds === 'function') view.setFileIds(requestedSheetId);
       const builder = new google.picker.PickerBuilder()
         .setAppId(pickerAuth.appId)
         .setOAuthToken(pickerAuth.token)
@@ -112,6 +115,7 @@
           syncText('Connecting sheet…');
           try {
             await rpc('selectProjectSheet', fileId);
+            requestedSheetId = '';
             setBusy(false);
             await refresh();
             notify('Connected to Google Sheet');
@@ -167,10 +171,10 @@
     $('#view-content').innerHTML = `
       <div class="empty-state">
         ${icon('sheet')}
-        <h2>Connect your project spreadsheet</h2>
-        <p>TAK only accesses the specific Google Sheet you select or create.</p>
+        <h2>${requestedSheetId ? 'Allow TAK to open your spreadsheet' : 'Connect your project spreadsheet'}</h2>
+        <p>${requestedSheetId ? 'Choose <strong>Select your spreadsheet</strong> and pick your copy in the Google window. This is needed once. ' : ''}TAK only accesses the specific Google Sheet you select or create.</p>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
-          <button type="button" class="button primary" id="pick-google-sheet">Select existing Google Sheet</button>
+          <button type="button" class="button primary" id="pick-google-sheet">${requestedSheetId ? 'Select your spreadsheet' : 'Select existing Google Sheet'}</button>
           <button type="button" class="button secondary" id="create-google-sheet">Create blank TAK Sheet</button>
           <button type="button" class="button secondary" id="create-sample-google-sheet">Create TAK Sheet with sample data</button>
           ${canCancel ? '<button type="button" class="button subtle" id="cancel-switch-sheet">Back to current sheet</button>' : ''}
@@ -1853,6 +1857,7 @@
     try {
       const project = await rpc('getProject');
       if (project && project.needsPicker) {
+        requestedSheetId = project.requestedSheetId || '';
         renderConnectSheetPrompt(false);
         return;
       }

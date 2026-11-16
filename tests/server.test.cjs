@@ -790,6 +790,14 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   const savedSecond = h.api.saveIssue({ summary: 'First task in second sheet', startDate: '2026-11-16' });
   assert.equal(savedSecond.id, 'PRJ-1');
 
+  // A starter copy opened by its launcher: the ID is known but drive.file access is not granted until the user picks it.
+  userProps.set('TAK_ACTIVE_SHEET_ID', 'starter-copy-id-0123456789');
+  const launched = h.api.getProject();
+  assert.equal(launched.needsPicker, true);
+  assert.equal(launched.requestedSheetId, 'starter-copy-id-0123456789');
+  assert.equal(userProps.has('TAK_ACTIVE_SHEET_ID'), false);
+  h.api.selectProjectSheet('picker-book-2');
+
   // The Roadmap tab is created through the same Sheets API wrapper, which must support header formatting.
   vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), h.api);
   h.rangeReads = [];

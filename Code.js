@@ -251,7 +251,8 @@ function getProject(explicitId) {
     var msg = error && error.message ? error.message : String(error);
     if (!explicitId && /Requested entity was not found|not found|caller does not have permission|Run setupTracker/i.test(msg)) {
       userProperties_().deleteProperty('TAK_ACTIVE_SHEET_ID');
-      return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
+      // A starter copy opened through its launcher arrives with its ID but without drive.file access; name it so the Picker can offer that one file.
+      return browserValue_({ needsPicker: true, requestedSheetId: /^[A-Za-z0-9_-]{20,100}$/.test(String(id)) ? String(id) : '', issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
     }
     throw error;
   }

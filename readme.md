@@ -33,7 +33,7 @@ Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensit
 
 ## Choose how to run TAK
 
-**For normal use, copy the starter Google Sheet and choose Open tracker. You do not deploy anything yourself.** The other setups below are for trying TAK, developing it, or maintaining an independent installation.
+**For normal use, open the TAK Google Web App above, or copy the starter Google Sheet and choose 🔷 TAK → Open tracker. You do not deploy anything yourself.** The first time you open a copied starter sheet, TAK asks you to select that spreadsheet once. The other setups below are for trying TAK, developing it, or maintaining an independent installation.
 
 There are two ways to store tasks: in a browser or in a Google spreadsheet. There are four ways to run the app:
 

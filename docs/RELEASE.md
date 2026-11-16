@@ -8,7 +8,7 @@ How a change gets from this repository to the two places TAK runs, in a fixed or
 | --- | --- | --- | --- |
 | **Option 2 web app** | The repository root pushed as-is: `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
 | **Shared host** (older) | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
-| **Starter template** | The bound launcher script in the public starter spreadsheet | New copies only | Pushed to the template project; **existing copies keep the script they were made with** |
+| **Starter template** | The bound launcher script in the public starter spreadsheet; **🔷 TAK → Open tracker** opens the Option 2 web app for that copy | New copies only | Pushed to the template project; **existing copies keep the script they were made with** |
 | **Independent install** | An owner-only copy attached to someone's own spreadsheet ([INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md)) | That owner | Owner updates by hand; the maintainer's own install uses the same `clasp` flow below |
 
 The demo on GitHub Pages is separate: it publishes automatically from `implement_mvp` and never touches Apps Script.
@@ -80,17 +80,17 @@ npx.cmd @google/clasp deploy -i <HOST_DEPLOYMENT_ID> -V <NEW_VERSION_NUMBER> -d 
 
 ## Release the starter template
 
-Only when the launcher or `Code.js`/`SharedHost.js` copies bundled in the template changed. Release the host first, because the template embeds the host's verified `/exec` URL.
+Only when the launcher or `Code.js`/`SharedHost.js` copies bundled in the template changed, or to repoint the template at the Option 2 web app. Release the web app first, because the template embeds its verified `/exec` URL.
 
 ```powershell
 # from the repository root
 $env:TAK_SCRIPT_ID = "<TEMPLATE_SCRIPT_ID>"
-node scripts/stage-package.mjs template "<HOST_EXEC_URL>"
+node scripts/stage-package.mjs template "<OPTION2_EXEC_URL>"
 cd .release\template
 npx.cmd @google/clasp push -f
 ```
 
-The template is a container-bound script, so there is no `/dev` page: test by making a **fresh copy** of the starter spreadsheet and choosing **🔷 TAK → Open tracker**. It must open the shared app and load the copy's tracker. Do this before you let anyone use the public template link. The template has no deployments to move, so there is no `clasp version` or `clasp deploy` step; record the tag in the release notes. Do not change the template's link sharing (Viewer).
+The template is a container-bound script, so there is no `/dev` page: test by making a **fresh copy** of the starter spreadsheet and choosing **🔷 TAK → Open tracker**. It must open the web app. On the first open the app cannot read the copy yet (`drive.file`), so it shows **Allow TAK to open your spreadsheet**: choose **Select your spreadsheet**, pick the copy, and confirm its tasks load. Later opens go straight to the tracker. Do this before you let anyone use the public template link. The template has no deployments to move, so there is no `clasp version` or `clasp deploy` step; record the tag in the release notes. Do not change the template's link sharing (Viewer).
 
 Existing copies keep their old bound script. Say so in the release notes if a fix needs the new launcher.
 

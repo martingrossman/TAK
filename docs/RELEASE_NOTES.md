@@ -13,6 +13,7 @@ Newest first. One entry per released version. The version number is set once, in
 - Added a **Roadmap** view (key `4`): streams as lanes, drag to move or resize items, custom date range, milestone icons, colours and vertical lines.
 - Fixed the milestone editor ignoring stream and date changes.
 - Roadmap edits appear at once and save in the background; quick successive moves are merged, and a failed save restores the last saved state with a message.
+- Starter template copies can open in the Google web app: the first open asks the user to select their copy once. The public template needs its launcher updated separately ([RELEASE.md](RELEASE.md)).
 - Fixed saving and deleting Roadmap items in the Google web app (Sheets API mode): header formatting is supported and queued writes are now flushed.
 - No change to stored data; the roadmap layout is kept in the browser.
 
