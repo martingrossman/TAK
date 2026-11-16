@@ -29,6 +29,7 @@ This file is a navigation and status index. It does not approve new product scop
 | [LEGACY_SCOPE_MAPPING.md](LEGACY_SCOPE_MAPPING.md) | Scope reconciliation reference | How broad original requirements were retained, narrowed, or deferred for the focused MVP. Needs alignment with the new TAK decisions. |
 | [PHASE_0_REVIEW.md](PHASE_0_REVIEW.md) | Audit and checkpoint evidence | Historical findings and later checkpoints. Read their dates/revisions; this is not a fresh implementation plan or blanket release certification. |
 | [Manual Google test.md](<Manual Google test.md>) | Draft live checklist | Manual Apps Script/Sheets smoke testing. Refresh its revision and record the actual test workbook, schema, environment, and deployment before using it as release evidence. |
+| [OPTION2_SHARING_GUIDE.md](OPTION2_SHARING_GUIDE.md) | Operational reference | Architecture and sharing guide for Deployment Option 2 (Google Picker + `drive.file` scope + Sheets API v4). |
 
 ## Historical documents
 
