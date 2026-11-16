@@ -108,6 +108,31 @@ npx.cmd @google/clasp deploy -i <DEPLOYMENT_ID> -V <NEW_VERSION_NUMBER> -d "vX.Y
 
 People who run TAK from the source ZIP update by following [INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md) after you publish the tag.
 
+## Helper scripts
+
+Two npm scripts remove the copy-and-paste. Neither stores an ID in the repository.
+
+**`npm run clasp:info`** is read-only. It runs `clasp deployments` and prints the script ID, the draft (`@HEAD`) deployment ID, the `/dev` URL, and every versioned deployment with its `/exec` URL. If there is exactly one versioned deployment it names it as production; if there are several it says so and leaves the choice to you. Pass the staged folder for the host or template:
+
+```powershell
+npm.cmd run clasp:info -- .release/host
+```
+
+Set `TAK_WORKSPACE_DOMAIN` first if your Google Workspace needs the `/a/macros/<domain>/` form of the `/dev` URL.
+
+**`npm run release`** performs steps 5 and 6 (push, freeze, deploy) for you, and only a person can run it:
+
+```powershell
+$env:TAK_HOST_SCRIPT_ID = "<HOST_SCRIPT_ID>"
+$env:TAK_HOST_DEPLOYMENT_ID = "<HOST_DEPLOYMENT_ID>"
+npm.cmd run release -- host --dry-run     # checks everything, changes nothing
+npm.cmd run release -- host               # asks you to type vX.Y.Z, then deploys
+```
+
+For an independent install use `npm.cmd run release -- install` with `TAK_DEPLOYMENT_ID` set (the script comes from your `.clasp.json`). The template has no deployments, so it has no release command.
+
+It refuses unless all of these hold: it is running in an interactive terminal (not CI, not a script or agent); the tracked files are clean; `HEAD` carries the tag `vX.Y.Z` that matches `package.json`; `Version.js` matches; `docs/RELEASE_NOTES.md` has an entry; the IDs are set in your shell; and the deployment you named exists and is not `@HEAD`. It then asks you to type the version, runs `clasp push -f`, `clasp version` and `clasp deploy -i … -V …`, and prints the previous production version as your rollback target. It still assumes you tested on `/dev` and approved first. After it finishes, do the `/exec` check and `git push origin vX.Y.Z`.
+
 ## Roll back
 
 Production rollback is one command and needs no code change. Find the last good version with `clasp versions`, then re-point the deployment:

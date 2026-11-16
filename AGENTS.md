@@ -110,6 +110,8 @@ Targets: the **shared host** (`USER_ACCESSING`, one `/exec` for all users), the 
 
 **Versioning.** The version is written in exactly one place, `package.json` (`npm version <patch|minor|major> --no-git-tag-version`). The build generates `Version.js` and the header badge. Add the version to `docs/RELEASE_NOTES.md` (table row and entry) in the same change. Use one `vX.Y.Z` for the Git tag, Apps Script version description and deployment description. Do not edit `docs/RELEASE.md` examples when releasing.
 
+**Scripts.** `npm run release` performs the production steps and is for a person at an interactive terminal; it refuses CI and non-interactive runs. **An agent must never run it.** `npm run clasp:info` is read-only but still runs `clasp`, so it needs the same approval as any other `clasp` command.
+
 **Never commit** script IDs, deployment IDs, spreadsheet IDs, the shared `/exec` URL, tokens or `.clasprc.json`. Use placeholders in docs. The repository's `.clasp.json` is the maintainer's; do not rely on it for the host or template.
 
 **Rollback** is re-pointing the deployment to the last good version (`clasp deploy -i <ID> -V <GOOD_N>`), after the owner agrees. Do not delete users' spreadsheets or rows.
