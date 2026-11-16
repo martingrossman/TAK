@@ -19,7 +19,7 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 
 **Prefer to start from a spreadsheet?** Make a [copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. The first time, TAK shows **Allow TAK to open your spreadsheet**: choose **Select your spreadsheet** and pick your copy. After that the menu opens your tracker directly.
 
-Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensitive `drive.file` scope, so it can only access the specific spreadsheet you explicitly select in Google Picker or create through the app. See the [Option 2 architecture and sharing guide](docs/OPTION2_SHARING_GUIDE.md) for team collaboration and deployment details, or the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md) for independent installations. The version in the top bar (for example `v1.1.0`) matches the [release notes](docs/RELEASE_NOTES.md).
+Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensitive `drive.file` scope, so it can only access the specific spreadsheet you explicitly select in Google Picker or create through the app. See the [Option 2 architecture and sharing guide](docs/OPTION2_SHARING_GUIDE.md) for team collaboration and deployment details, or the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md) for independent installations. The version in the top bar (for example `v1.1.0`) matches the [changelog](CHANGELOG.md).
 
 [**Choose your setup**](#choose-how-to-run-tak) · [**Sharing guide**](docs/OPTION2_SHARING_GUIDE.md) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local development**](#project-setup) · [**Privacy**](#privacy) · [**Independent installation**](docs/INSTALL_FROM_SOURCE.md)
 
@@ -262,7 +262,7 @@ The Google commands require a verified target project. The repository root is th
 
 ## Publishing and updates
 
-**For maintainers:** publishing the browser demo, the Google web app and the starter template are separate actions. Choose the destination that should receive the change. The full steps and rules are in [docs/RELEASE.md](docs/RELEASE.md); released versions are listed in [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
+**For maintainers:** publishing the browser demo, the Google web app and the starter template are separate actions. Choose the destination that should receive the change. The full steps and rules are in [docs/RELEASE.md](docs/RELEASE.md); every version is listed in [CHANGELOG.md](CHANGELOG.md).
 
 | Action | What changes | Who receives it? |
 | --- | --- | --- |
@@ -301,7 +301,7 @@ This updates only the browser demo. Google-backed TAK updates require a separate
 
 ### Release the Google web app
 
-1. Set the version (`npm version <patch|minor|major> --no-git-tag-version`), run `npm run build`, add the entry to [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md), and commit.
+1. Set the version (`npm version <patch|minor|major> --no-git-tag-version`), run `npm run build`, add the entry to [CHANGELOG.md](CHANGELOG.md), and commit.
 2. `clasp push -f` from the repository root updates only `/dev`. Test there.
 3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same.
 4. Check the live app shows the new version, then `git push origin vX.Y.Z`.

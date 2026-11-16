@@ -33,9 +33,16 @@ test('AGENTS.md carries the release gate and names the generated files', () => {
   assert.match(agents, /explicit written approval/);
 });
 
-test('release notes list this version in the table and as the newest entry', () => {
-  const notes = read('docs/RELEASE_NOTES.md');
+test('the changelog lists this version in the table and as the newest entry', () => {
+  const notes = read('CHANGELOG.md');
   assert.match(notes, new RegExp('^\\| ' + version.replace(/\./g, '\\.') + ' \\| \\d{4}-\\d{2}-\\d{2} \\|', 'm'));
   const headings = [...notes.matchAll(/^## v(\d+\.\d+\.\d+) — /gm)].map(match => match[1]);
   assert.equal(headings[0], version);
+});
+
+test('Version.js shows the version and its changelog summary where the Apps Script editor displays it', () => {
+  const source = read('Version.js');
+  assert.match(source, new RegExp('^/\\*\\*\\n \\* TAK v' + version.replace(/\./g, '\\.') + ' \\(\\d{4}-\\d{2}-\\d{2} - .+\\)\\n'));
+  const context = {}; vm.createContext(context); vm.runInContext(source, context);
+  assert.equal(context.TAK_APP_VERSION, version);
 });

@@ -12,7 +12,7 @@ function repo(overrides = {}) {
   fs.mkdirSync(path.join(dir, 'docs'));
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.2.3' }));
   fs.writeFileSync(path.join(dir, 'Version.js'), "function takAppVersion_() { return '1.2.3'; }\n");
-  fs.writeFileSync(path.join(dir, 'docs', 'RELEASE_NOTES.md'), overrides.notes || '| Version | Date | Summary |\n| --- | --- | --- |\n| 1.2.3 | 2026-11-16 | Faster saves & safer retries |\n\n## v1.2.3 — 2026-11-16\n\n- Notes.\n');
+  fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), overrides.notes || '| Version | Date | Summary |\n| --- | --- | --- |\n| 1.2.3 | 2026-11-16 | Faster saves & safer retries |\n\n## v1.2.3 — 2026-11-16\n\n- Notes.\n');
   return dir;
 }
 function harness(dir, options = {}) {

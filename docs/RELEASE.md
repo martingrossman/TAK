@@ -27,7 +27,7 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 2. `npm run check` passes (builds `CoreScript.html` and `dist/index.html`, runs the Node tests). Run the targeted Playwright specs for what changed, as in [TESTING.md](../TESTING.md).
 3. Choose the next semantic version (`vX.Y.Z`: patch for fixes, minor for features, major for breaking storage or behavior) and set it **only** in `package.json`: `npm version <patch|minor|major> --no-git-tag-version`.
 4. Run `npm run build`. It generates `Version.js` (the backend's `takAppVersion_()`) and the header badge from `package.json`, so there is nothing else to edit by hand. Commit the regenerated files.
-5. Add the release notes to [RELEASE_NOTES.md](RELEASE_NOTES.md): one entry for the new version at the top and a row in its table (a Node test fails if they disagree with `package.json`). Say what changed and anything users must do. For the template, say that existing copies are unchanged.
+5. Add the entry to [CHANGELOG.md](../CHANGELOG.md): one entry for the new version at the top and a row in its table (a Node test fails if they disagree with `package.json`). Say what changed and anything users must do. For the template, say that existing copies are unchanged.
 6. Commit, then tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
 
 The same `vX.Y.Z` appears in the Git tag, `package.json`, `Version.js`, the header badge (hidden on phones), the release notes, the Apps Script version description and the deployment description. Only `package.json` is written by hand.
@@ -132,7 +132,7 @@ npm.cmd run release -- host               # asks you to type vX.Y.Z, then deploy
 
 For an independent install use `npm.cmd run release -- install` with `TAK_DEPLOYMENT_ID` set (the script comes from your `.clasp.json`). The template has no deployments, so it has no release command.
 
-It refuses unless all of these hold: it is running in an interactive terminal (not CI, not a script or agent); the tracked files are clean; `HEAD` carries the tag `vX.Y.Z` that matches `package.json`; `Version.js` matches; `docs/RELEASE_NOTES.md` has an entry; the IDs are set in your shell; and the deployment you named exists and is not `@HEAD`. It then asks you to type the version, runs `clasp push -f`, `clasp version` and `clasp deploy -i … -V …`, and prints the previous production version as your rollback target. It still assumes you tested on `/dev` and approved first. After it finishes, do the `/exec` check and `git push origin vX.Y.Z`.
+It refuses unless all of these hold: it is running in an interactive terminal (not CI, not a script or agent); the tracked files are clean; `HEAD` carries the tag `vX.Y.Z` that matches `package.json`; `Version.js` matches; `CHANGELOG.md` has an entry; the IDs are set in your shell; and the deployment you named exists and is not `@HEAD`. It then asks you to type the version, runs `clasp push -f`, `clasp version` and `clasp deploy -i … -V …`, and prints the previous production version as your rollback target. It still assumes you tested on `/dev` and approved first. After it finishes, do the `/exec` check and `git push origin vX.Y.Z`.
 
 ## Roll back
 
