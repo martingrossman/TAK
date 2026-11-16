@@ -1,14 +1,16 @@
 /** Google Sheets storage, Google Picker (drive.file) and web-app entry points. */
 var PICKER_CONFIG = {
   APP_ID: '487430968051',
-  API_KEY: ''
+  API_KEY: '',
+  WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxbNXIOk0h9lvx5HJ77kseMsUTLabGHI4VtLqRBqHM/dev'
 };
 function pickerConfig_() {
   var props = null;
   try { props = typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties ? PropertiesService.getScriptProperties() : null; } catch (ignore) {}
   return {
     appId: (props && props.getProperty && props.getProperty('PICKER_APP_ID')) || PICKER_CONFIG.APP_ID || '',
-    apiKey: (props && props.getProperty && props.getProperty('PICKER_API_KEY')) || PICKER_CONFIG.API_KEY || ''
+    apiKey: (props && props.getProperty && props.getProperty('PICKER_API_KEY')) || PICKER_CONFIG.API_KEY || '',
+    webAppUrl: (props && props.getProperty && props.getProperty('WEBAPP_URL')) || PICKER_CONFIG.WEBAPP_URL || ''
   };
 }
 function setPickerConfig(appId, apiKey) {
@@ -252,6 +254,9 @@ function getProject(explicitId) {
       return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
     }
     throw error;
+  }
+  if (hasSheetsApi_() && typeof book.getSheetByName === 'function' && !book.getSheetByName('🔷 Open TAK')) {
+    try { ensureOpenTakTab_(book); } catch (ignore) {}
   }
   if (typeof trackerMode_ === 'function' && trackerMode_() === 'personal') personalSaveMetadata_(book.getId(), book, true);
   var issues = readIssues_(book);
@@ -1572,9 +1577,96 @@ function webAppLaunchUrl_(book) {
     if (!url && typeof ScriptApp !== 'undefined' && ScriptApp.getService && typeof ScriptApp.getService === 'function') {
       url = ScriptApp.getService().getUrl() || '';
     }
+    if (!url) url = pickerConfig_().webAppUrl || '';
   } catch (ignore) {}
   if (!url || !book || typeof book.getId !== 'function') return '';
   return url + (url.indexOf('?') < 0 ? '?' : '&') + 'sheet=' + encodeURIComponent(book.getId()) + '&view=kanban';
+}
+function buildOpenTakTabRequests_(targetBook, issuesSheetId) {
+  var launchUrl = webAppLaunchUrl_(targetBook);
+  if (!launchUrl || typeof targetBook.insertSheet !== 'function') return [];
+  var requests = [];
+  if (issuesSheetId !== undefined && issuesSheetId !== null) {
+    requests.push({
+      repeatCell: {
+        range: { sheetId: issuesSheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 0.09, green: 0.24, blue: 0.21 },
+            textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true, link: { uri: launchUrl } },
+            wrapStrategy: 'WRAP'
+          },
+          note: '🔷 Click the link on this cell (or open the "🔷 Open TAK" tab at the bottom) to open this spreadsheet in TAK Tracker:\n' + launchUrl
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat,wrapStrategy),note'
+      }
+    });
+  }
+  var openTab = targetBook.getSheetByName('🔷 Open TAK') || targetBook.insertSheet('🔷 Open TAK');
+  if (openTab && typeof openTab.getSheetId === 'function') {
+    var openTabId = openTab.getSheetId();
+    requests.push(
+      {
+        updateSheetProperties: {
+          properties: { sheetId: openTabId, index: 1 },
+          fields: 'index'
+        }
+      },
+      {
+        updateDimensionProperties: {
+          range: { sheetId: openTabId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
+          properties: { pixelSize: 640 },
+          fields: 'pixelSize'
+        }
+      },
+      {
+        updateDimensionProperties: {
+          range: { sheetId: openTabId, dimension: 'ROWS', startIndex: 0, endIndex: 1 },
+          properties: { pixelSize: 46 },
+          fields: 'pixelSize'
+        }
+      },
+      {
+        updateCells: {
+          start: { sheetId: openTabId, rowIndex: 0, columnIndex: 0 },
+          rows: [
+            {
+              values: [{
+                userEnteredValue: { stringValue: '🔷 Open TAK Project Tracker (Sheet · Kanban · Gantt) ↗' },
+                userEnteredFormat: {
+                  backgroundColor: { red: 0.09, green: 0.24, blue: 0.21 },
+                  verticalAlignment: 'MIDDLE',
+                  textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true, fontSize: 12, link: { uri: launchUrl } }
+                }
+              }]
+            },
+            {
+              values: [{
+                userEnteredValue: { stringValue: launchUrl },
+                userEnteredFormat: {
+                  textFormat: { foregroundColor: { red: 0.05, green: 0.36, blue: 0.8 }, bold: true, link: { uri: launchUrl } }
+                }
+              }]
+            },
+            {
+              values: [{
+                userEnteredValue: { stringValue: 'Click the link above to open this spreadsheet in the TAK Web App. Your tasks are stored in the Issues tab.' }
+              }]
+            }
+          ],
+          fields: 'userEnteredValue,userEnteredFormat'
+        }
+      }
+    );
+  }
+  return requests;
+}
+function ensureOpenTakTab_(book) {
+  if (!hasSheetsApi_() || !book) return;
+  var issuesSheet = book.getSheetByName('Issues');
+  var issuesSheetId = issuesSheet && typeof issuesSheet.getSheetId === 'function' ? issuesSheet.getSheetId() : null;
+  var requests = buildOpenTakTabRequests_(book, issuesSheetId);
+  if (requests.length) Sheets.Spreadsheets.batchUpdate({ requests: requests }, book.getId());
 }
 function formatSheet_(sheet, book) {
   var fields = TrackerCore.fields;
@@ -1630,66 +1722,7 @@ function formatSheet_(sheet, book) {
         });
       }
     });
-    var launchUrl = webAppLaunchUrl_(targetBook);
-    if (launchUrl && typeof targetBook.insertSheet === 'function') {
-      var openTab = targetBook.getSheetByName('🔷 Open TAK') || targetBook.insertSheet('🔷 Open TAK');
-      if (openTab && typeof openTab.getSheetId === 'function') {
-        var openTabId = openTab.getSheetId();
-        requests.push(
-          {
-            updateSheetProperties: {
-              properties: { sheetId: openTabId, index: 1 },
-              fields: 'index'
-            }
-          },
-          {
-            updateDimensionProperties: {
-              range: { sheetId: openTabId, dimension: 'COLUMNS', startIndex: 0, endIndex: 1 },
-              properties: { pixelSize: 640 },
-              fields: 'pixelSize'
-            }
-          },
-          {
-            updateDimensionProperties: {
-              range: { sheetId: openTabId, dimension: 'ROWS', startIndex: 0, endIndex: 1 },
-              properties: { pixelSize: 46 },
-              fields: 'pixelSize'
-            }
-          },
-          {
-            updateCells: {
-              start: { sheetId: openTabId, rowIndex: 0, columnIndex: 0 },
-              rows: [
-                {
-                  values: [{
-                    userEnteredValue: { stringValue: '🔷 Open TAK Project Tracker (Sheet · Kanban · Gantt) ↗' },
-                    userEnteredFormat: {
-                      backgroundColor: { red: 0.09, green: 0.24, blue: 0.21 },
-                      verticalAlignment: 'MIDDLE',
-                      textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true, fontSize: 12, link: { uri: launchUrl } }
-                    }
-                  }]
-                },
-                {
-                  values: [{
-                    userEnteredValue: { stringValue: launchUrl },
-                    userEnteredFormat: {
-                      textFormat: { foregroundColor: { red: 0.05, green: 0.36, blue: 0.8 }, bold: true, link: { uri: launchUrl } }
-                    }
-                  }]
-                },
-                {
-                  values: [{
-                    userEnteredValue: { stringValue: 'Click the link above to open this spreadsheet in the TAK Web App. Your tasks are stored in the Issues tab.' }
-                  }]
-                }
-              ],
-              fields: 'userEnteredValue,userEnteredFormat'
-            }
-          }
-        );
-      }
-    }
+    requests = requests.concat(buildOpenTakTabRequests_(targetBook, sheetId));
     Sheets.Spreadsheets.batchUpdate({ requests: requests }, targetBook.getId());
     return;
   }
