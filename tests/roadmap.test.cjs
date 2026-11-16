@@ -171,3 +171,13 @@ test('a Roadmap tab from before milestone styling is read as is and gains the ne
   assert.equal(h.api.getRoadmap().items[0].icon, 'flag');
   assert.ok(h.balanced());
 });
+
+test('an empty Roadmap tab left by a failed first save is repaired instead of rejected', () => {
+  const h = harness();
+  h.sheets.set('Roadmap', fakeSheet('Roadmap', []));
+  assert.equal(h.api.getRoadmap().items.length, 0);
+  const stream = h.api.saveRoadmapItem({ type: 'Stream', title: 'Mobile', color: 'rose' }, '');
+  assert.equal(stream.id, 'RM-1');
+  assert.equal(h.sheets.get('Roadmap').rows[0][0], 'ID');
+  assert.equal(h.sheets.get('Roadmap').frozen, 1);
+});

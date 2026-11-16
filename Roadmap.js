@@ -19,6 +19,14 @@ function roadmapSheet_(book, create) {
   }
   var headers = sheet.getRange(1, 1, 1, TAK_ROADMAP_HEADERS_.length).getValues()[0].map(function (value) { return String(value == null ? '' : value).trim(); });
   if (headers.join('|') === TAK_ROADMAP_HEADERS_.join('|')) return sheet;
+  /** An earlier failed save can leave an empty tab behind; treat it as new instead of refusing to load. */
+  if (headers.every(function (value) { return !value; }) && sheet.getLastRow() === 0) {
+    if (!create) return null;
+    sheet.getRange(1, 1, 1, TAK_ROADMAP_HEADERS_.length).setValues([TAK_ROADMAP_HEADERS_]).setFontWeight('bold');
+    sheet.getRange(1, 1, sheet.getMaxRows(), TAK_ROADMAP_HEADERS_.length).setNumberFormat('@');
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
   var legacy = headers.slice(0, TAK_ROADMAP_LEGACY_COLUMNS_).join('|') === TAK_ROADMAP_HEADERS_.slice(0, TAK_ROADMAP_LEGACY_COLUMNS_).join('|') && headers.slice(TAK_ROADMAP_LEGACY_COLUMNS_).every(function (value) { return !value; });
   if (!legacy) throw new Error('The Roadmap tab has different column headers. Restore them as ' + TAK_ROADMAP_HEADERS_.join(', ') + ', or rename that tab.');
   if (create) sheet.getRange(1, TAK_ROADMAP_LEGACY_COLUMNS_ + 1, 1, TAK_ROADMAP_HEADERS_.length - TAK_ROADMAP_LEGACY_COLUMNS_).setValues([TAK_ROADMAP_HEADERS_.slice(TAK_ROADMAP_LEGACY_COLUMNS_)]).setFontWeight('bold');
