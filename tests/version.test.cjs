@@ -25,6 +25,14 @@ test('the header badge and Apps Script allowlists carry the version', () => {
   assert.match(read('docs/INSTALL_FROM_SOURCE.md'), /SharedHost\.js · Version\.js/);
 });
 
+test('AGENTS.md carries the release gate and names the generated files', () => {
+  const agents = read('AGENTS.md');
+  assert.match(agents, /## Release and deployment gate/);
+  assert.match(agents, /docs\/RELEASE\.md/);
+  assert.match(agents, /`CoreScript\.html`, `Version\.js` and `dist\/index\.html` are generated/);
+  assert.match(agents, /explicit written approval/);
+});
+
 test('release notes list this version in the table and as the newest entry', () => {
   const notes = read('docs/RELEASE_NOTES.md');
   assert.match(notes, new RegExp('^\\| ' + version.replace(/\./g, '\\.') + ' \\| \\d{4}-\\d{2}-\\d{2} \\|', 'm'));

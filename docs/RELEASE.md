@@ -14,7 +14,7 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 
 ## Rules
 
-- **Production is human-gated.** An agent or script may push to `/dev`. Moving a production deployment (`clasp deploy -i … -V …`) happens only after the owner has tested on `/dev` and says so in writing ("approved", "deploy to prod").
+- **Production is human-gated.** A push to `/dev` needs the owner's go-ahead for that target project (see the release gate in [AGENTS.md](../AGENTS.md)). Moving a production deployment (`clasp deploy -i … -V …`) happens only after the owner has tested on `/dev` and says so in writing ("approved", "deploy to prod").
 - **No IDs in the repository.** Script IDs, deployment IDs, spreadsheet IDs and the shared `/exec` URL stay outside source control (a password manager or your shell profile). Examples below use placeholders.
 - **Never run `clasp` from the repository root for the shared host.** The root has no `SharedConfig.js`, so it builds an independent install. Host and template folders are staged with `scripts/stage-package.mjs`.
 - **Release from a clean, tagged checkout** of the branch you intend to ship, after `npm run check` passes.
