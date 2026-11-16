@@ -1,0 +1,33 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const root = path.join(__dirname, '..');
+const read = name => fs.readFileSync(path.join(root, name), 'utf8');
+const version = JSON.parse(read('package.json')).version;
+
+test('package.json holds a plain semantic version', () => {
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+});
+
+test('generated Version.js agrees with package.json (run npm run build if this fails)', () => {
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(read('Version.js'), context);
+  assert.equal(context.takAppVersion_(), version);
+});
+
+test('the header badge and Apps Script allowlists carry the version', () => {
+  assert.match(read('Index.html'), /<span class="brand-version" title="TAK version <\?= takAppVersion_\(\) \?>">v<\?= takAppVersion_\(\) \?><\/span>/);
+  assert.ok(read('.claspignore').split(/\r?\n/).includes('!Version.js'));
+  assert.match(read('scripts/google-package.mjs'), /'SharedHost','Version'/);
+  assert.match(read('docs/INSTALL_FROM_SOURCE.md'), /SharedHost\.js · Version\.js/);
+});
+
+test('release notes list this version in the table and as the newest entry', () => {
+  const notes = read('docs/RELEASE_NOTES.md');
+  assert.match(notes, new RegExp('^\\| ' + version.replace(/\./g, '\\.') + ' \\| \\d{4}-\\d{2}-\\d{2} \\|', 'm'));
+  const headings = [...notes.matchAll(/^## v(\d+\.\d+\.\d+) — /gm)].map(match => match[1]);
+  assert.equal(headings[0], version);
+});

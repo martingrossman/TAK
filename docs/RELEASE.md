@@ -24,11 +24,12 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 
 1. Make sure the working tree is clean and you are on the branch to ship (`git status`).
 2. `npm run check` passes (builds `CoreScript.html` and `dist/index.html`, runs the Node tests). Run the targeted Playwright specs for what changed, as in [TESTING.md](../TESTING.md).
-3. Choose the next semantic version (`vX.Y.Z`: patch for fixes, minor for features, major for breaking storage or behavior) and update it in `package.json`: `npm version <patch|minor|major> --no-git-tag-version`.
-4. Commit, then tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
-5. Write the release notes: a short list of what changed and anything users must do. For the template, say that existing copies are unchanged.
+3. Choose the next semantic version (`vX.Y.Z`: patch for fixes, minor for features, major for breaking storage or behavior) and set it **only** in `package.json`: `npm version <patch|minor|major> --no-git-tag-version`.
+4. Run `npm run build`. It generates `Version.js` (the backend's `takAppVersion_()`) and the header badge from `package.json`, so there is nothing else to edit by hand. Commit the regenerated files.
+5. Add the release notes to [RELEASE_NOTES.md](RELEASE_NOTES.md): one entry for the new version at the top and a row in its table (a Node test fails if they disagree with `package.json`). Say what changed and anything users must do. For the template, say that existing copies are unchanged.
+6. Commit, then tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
 
-The same `vX.Y.Z` is used everywhere: Git tag, `package.json`, the Apps Script version description and the deployment description.
+The same `vX.Y.Z` appears in the Git tag, `package.json`, `Version.js`, the header badge (hidden on phones), the release notes, the Apps Script version description and the deployment description. Only `package.json` is written by hand.
 
 ## Release the shared host
 
@@ -57,7 +58,7 @@ npx.cmd @google/clasp push -f
 https://script.google.com/macros/s/<HEAD_DEPLOYMENT_ID>/dev?sheet=<TEST_COPY_ID>&view=kanban
 ```
 
-Check Sheet, Kanban and Gantt, create, edit, move and delete a task, refresh and confirm it persisted, and exercise whatever this release changed. Live users on `/exec` are unaffected.
+Confirm the header badge shows the new `vX.Y.Z` (on a desktop-width window), check Sheet, Kanban and Gantt, create, edit, move and delete a task, refresh and confirm it persisted, and exercise whatever this release changed. Live users on `/exec` are unaffected.
 
 **4. Stop and get approval.** Do not continue until the owner confirms the `/dev` test.
 
@@ -74,7 +75,7 @@ npx.cmd @google/clasp deployments
 npx.cmd @google/clasp deploy -i <HOST_DEPLOYMENT_ID> -V <NEW_VERSION_NUMBER> -d "vX.Y.Z - <short release notes>"
 ```
 
-**7. Verify production.** Open the real `/exec` link from a private test copy with **🔷 TAK → Open tracker**, load a tracker, and make one change. Confirm the deployment still reads `USER_ACCESSING` (a deployment readback or **Deploy → Manage deployments**). Then `git push origin vX.Y.Z`.
+**7. Verify production.** Open the real `/exec` link from a private test copy with **🔷 TAK → Open tracker**, load a tracker, confirm the badge shows the released version, and make one change. Confirm the deployment still reads `USER_ACCESSING` (a deployment readback or **Deploy → Manage deployments**). Then `git push origin vX.Y.Z`.
 
 ## Release the starter template
 

@@ -338,6 +338,7 @@
 .topbar{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;min-height:46px;height:auto;padding:6px var(--page-gutter);gap:8px 18px;border-bottom:1px solid var(--line);background:var(--surface)}
 .brand-group,.header-tools,.view-nav{display:flex;align-items:center}
 .brand-group{gap:12px;min-width:0;margin-right:auto}
+.brand-version{margin-left:-6px;color:var(--muted);font-size:var(--text-meta);font-weight:500;line-height:1;white-space:nowrap}
 .brand{padding:0;font-size:18px;font-weight:700;letter-spacing:-.5px;line-height:1;color:var(--ink)}
 .sync-status{max-width:none;padding:2px 8px;border-radius:10px;gap:5px;background:var(--primary-soft);color:var(--primary-dark);font-size:var(--text-meta);font-weight:500;line-height:1.3}
 .sync-status::before{width:6px;height:6px;flex:none;background:currentColor}
@@ -434,6 +435,7 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"identity create" "views tools";gap:6px 8px}
   .brand-group{grid-area:identity;flex-wrap:wrap;gap:4px 8px}
   .brand-group .brand{font-size:18px}
+  .brand-version{display:none}
   #create-issue{grid-area:create;justify-self:end;min-height:44px}
   .view-nav{grid-area:views;justify-self:start}
   .view-nav button{min-height:44px;padding:4px 10px}

@@ -10,12 +10,12 @@ Sign in to the Google account that should own the tracker and create a blank Goo
 
 In the spreadsheet, choose **Extensions → Apps Script** and give the attached project a name such as **My TAK tracker**. For each `.js` file below, choose **+ → Script**, enter its name without `.js`, then paste the matching file's full contents. For each `.html` file, choose **+ → HTML** and do the same. Keep `Index.html` as an HTML file, and include the generated `CoreScript.html`.
 
-**Script files (13):**
+**Script files (14):**
 
 ```text
 Code.js · PersonalBatch.js · Core.js · Schema.js · Migrations.js
 Environment.js · Repository.js · History.js · Authorization.js
-Settings.js · Ordering.js · Comments.js · SharedHost.js
+Settings.js · Ordering.js · Comments.js · SharedHost.js · Version.js
 ```
 
 **HTML files (8):**
