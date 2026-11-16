@@ -190,7 +190,7 @@ test('Escape cancels a drag, a failed save puts the item back, and Alt + arrows 
     localStorage.setItem('tak.roadmap.v1', JSON.stringify(items));
   });
   await dragBy(page, bar, 120);
-  await expect(page.locator('#toast')).toContainText('was not moved');
+  await expect(page.locator('#toast')).toContainText('was not saved');
   const left = await bar.evaluate(element => element.style.left);
   await page.reload();
   expect(await page.getByRole('button', { name: 'Guest checkout', exact: true }).evaluate(element => element.style.left)).toBe(left);

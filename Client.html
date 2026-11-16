@@ -3681,7 +3681,7 @@
     const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
     const colour = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
     const marker = `<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>`;
-    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
   }
   function renderRoadmap() {
     const range = roadmap.range, content = $('#view-content');
@@ -3714,7 +3714,7 @@
     const lanes = streams.map((stream, index) => {
       const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
       const bars = packRoadmapLanes(children.filter(item => item.type === 'Increment'), range).map(lane => `<div class="roadmap-lane">${lane.map(({ item, left, right }) =>
-        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) ? ' saving' : ''}${item.startDate < range.start ? ' clip-start' : ''}${item.endDate > range.end ? ' clip-end' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Drag to move, drag an end to change dates; Alt + arrows nudges.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
+        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}${item.startDate < range.start ? ' clip-start' : ''}${item.endDate > range.end ? ' clip-end' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Drag to move, drag an end to change dates; Alt + arrows nudges.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
       const marks = children.filter(item => item.type === 'Milestone').map(item => roadmapMilestone(item, range)).join('');
       const hidden = roadmap.items.filter(item => item.streamId === stream.id).length - children.length;
       return `<section class="roadmap-stream" data-roadmap-color="${escape(stream.color)}" aria-label="${escape(stream.title)}">
@@ -3743,7 +3743,7 @@
   const roadmapDialog = $('#roadmap-dialog'), roadmapForm = $('#roadmap-form');
   function openRoadmapItem(id, preset = {}) {
     const current = id ? roadmap.items.find(item => item.id === id) : null;
-    if (id && !current) return;
+    if (id && (!current || roadmapIsTemp(id))) return;
     const type = current?.type || preset.type || 'Increment';
     const streams = roadmapStreams();
     if (type === 'Increment' && !streams.length) { notify('Add a stream first, then add increments to it.', true); return; }
@@ -3784,37 +3784,87 @@
     }
     return input;
   }
-  async function saveRoadmapForm() {
-    if (roadmap.saving) return;
-    const input = roadmapFormInput(), status = $('#roadmap-status');
-    try { C.validateRoadmapItem(C.prepareRoadmapItem(input, roadmap.items.find(item => item.id === input.id) || null), roadmap.items); }
-    catch (error) { status.textContent = error.message; return; }
-    roadmap.saving = true; status.textContent = 'Saving…'; $('#roadmap-save').disabled = true;
-    try {
-      const saved = await roadmapRpc('saveRoadmapItem', input, roadmap.editing.version);
-      roadmap.items = roadmap.items.some(item => item.id === saved.id) ? roadmap.items.map(item => item.id === saved.id ? saved : item) : [...roadmap.items, saved];
-      roadmapDialog.close(); renderRoadmap(); notify(`Saved ${saved.title}`);
-    } catch (error) { status.textContent = `Not saved: ${error.message || error}. Your changes are still here.`; }
-    finally { roadmap.saving = false; $('#roadmap-save').disabled = false; }
+  const roadmapIsTemp = id => String(id).startsWith('pending-');
+  let roadmapTempCount = 0;
+  /** A change made while the same item is still being saved is merged and sent right after, so edits never wait on the network. */
+  roadmap.queued = new Map(); roadmap.creating = new Map();
+  async function roadmapResolveStream(input) {
+    if (input.streamId && roadmapIsTemp(input.streamId)) return { ...input, streamId: (await roadmap.creating.get(input.streamId)).id };
+    return input;
   }
-  async function deleteRoadmapForm() {
-    const current = roadmap.items.find(item => item.id === roadmap.editing?.id);
-    if (!current || roadmap.saving) return;
-    const status = $('#roadmap-status');
-    if ($('#roadmap-delete').dataset.confirm !== current.id) { $('#roadmap-delete').dataset.confirm = current.id; status.textContent = `Select Delete again to remove ${current.title}.`; return; }
-    roadmap.saving = true; status.textContent = 'Deleting…';
+  async function flushRoadmapItem(id, input, confirmed) {
+    roadmap.pending.add(id);
     try {
-      await roadmapRpc('deleteRoadmapItem', current.id, current.version);
-      roadmap.items = roadmap.items.filter(item => item.id !== current.id);
-      roadmapDialog.close(); renderRoadmap(); notify(`Deleted ${current.title}`);
-    } catch (error) { status.textContent = `Not deleted: ${error.message || error}`; }
-    finally { roadmap.saving = false; delete $('#roadmap-delete').dataset.confirm; }
+      while (input) {
+        const saved = await roadmapRpc('saveRoadmapItem', { ...(await roadmapResolveStream(input)), id }, confirmed.version);
+        confirmed = saved;
+        const next = roadmap.queued.get(id); roadmap.queued.delete(id);
+        roadmap.items = roadmap.items.map(other => other.id !== id ? other : next ? { ...other, version: saved.version } : saved);
+        input = next || null;
+      }
+    } catch (error) {
+      roadmap.queued.delete(id);
+      roadmap.items = roadmap.items.map(other => other.id === id ? confirmed : other);
+      notify(`${confirmed.title} was not saved: ${error.message || error}`, true);
+    } finally {
+      roadmap.pending.delete(id);
+      const hadFocus = document.activeElement?.dataset?.roadmapOpen === id;
+      if (state.view === 'roadmap') renderRoadmap();
+      if (hadFocus) $(`[data-roadmap-open="${CSS.escape(id)}"]`)?.focus();
+    }
+  }
+  function saveRoadmapForm() {
+    const input = roadmapFormInput(), status = $('#roadmap-status');
+    const current = input.id ? roadmap.items.find(item => item.id === input.id) : null;
+    let prepared;
+    try { prepared = C.prepareRoadmapItem(input, current || null); C.validateRoadmapItem(prepared, roadmap.items); }
+    catch (error) { status.textContent = error.message; return; }
+    roadmapDialog.close();
+    if (current) {
+      const { id, ...fields } = input;
+      roadmap.items = roadmap.items.map(other => other.id === current.id ? { ...other, ...prepared, id: current.id, version: other.version } : other);
+      renderRoadmap();
+      if (roadmap.pending.has(current.id)) roadmap.queued.set(current.id, { ...(roadmap.queued.get(current.id) || {}), ...fields });
+      else flushRoadmapItem(current.id, fields, current);
+      return;
+    }
+    const tempId = `pending-${++roadmapTempCount}`;
+    const order = prepared.type === 'Stream' ? Math.max(0, ...roadmapStreams().map(stream => stream.order)) + 1 : prepared.order;
+    roadmap.items = [...roadmap.items, { ...prepared, id: tempId, version: '0', order }];
+    renderRoadmap();
+    const request = (async () => roadmapRpc('saveRoadmapItem', await roadmapResolveStream(input), ''))();
+    roadmap.creating.set(tempId, request);
+    request.then(saved => {
+      roadmap.items = roadmap.items.map(other => other.id === tempId ? saved : other.streamId === tempId ? { ...other, streamId: saved.id } : other);
+    }).catch(error => {
+      roadmap.items = roadmap.items.filter(other => other.id !== tempId);
+      notify(`${prepared.title || 'The new item'} was not saved: ${error.message || error}`, true);
+    }).finally(() => { if (state.view === 'roadmap') renderRoadmap(); });
+  }
+  function deleteRoadmapForm() {
+    const current = roadmap.items.find(item => item.id === roadmap.editing?.id);
+    if (!current || roadmapIsTemp(current.id)) return;
+    const status = $('#roadmap-status');
+    if (roadmap.pending.has(current.id)) { status.textContent = 'Wait a moment: this item is still saving.'; return; }
+    if ($('#roadmap-delete').dataset.confirm !== current.id) { $('#roadmap-delete').dataset.confirm = current.id; status.textContent = `Select Delete again to remove ${current.title}.`; return; }
+    if (current.type === 'Stream' && roadmap.items.some(item => item.streamId === current.id)) { status.textContent = 'Move or delete this stream’s items before deleting the stream.'; return; }
+    delete $('#roadmap-delete').dataset.confirm;
+    roadmapDialog.close();
+    roadmap.items = roadmap.items.filter(item => item.id !== current.id);
+    renderRoadmap();
+    roadmapRpc('deleteRoadmapItem', current.id, current.version).catch(error => {
+      roadmap.items = [...roadmap.items, current];
+      notify(`${current.title} was not deleted: ${error.message || error}`, true);
+    }).finally(() => { if (state.view === 'roadmap') renderRoadmap(); });
   }
   async function moveRoadmapStream(id, direction) {
     const streams = roadmapStreams(), index = streams.findIndex(stream => stream.id === id), other = streams[index + direction];
-    if (!other || roadmap.saving) return;
+    if (!other || roadmap.saving || streams.some(stream => roadmapIsTemp(stream.id) || roadmap.pending.has(stream.id))) return;
     roadmap.saving = true;
     const ordered = streams.slice(); [ordered[index], ordered[index + direction]] = [ordered[index + direction], ordered[index]];
+    const orders = new Map(ordered.map((stream, position) => [stream.id, position + 1]));
+    roadmap.items = roadmap.items.map(item => orders.has(item.id) ? { ...item, order: orders.get(item.id) } : item);
+    renderRoadmap(); $(`[data-roadmap-move="${CSS.escape(id)}"][data-direction="${direction}"]`)?.focus();
     try {
       for (const [position, stream] of ordered.entries()) {
         if (stream.order === position + 1) continue;
@@ -3883,37 +3933,26 @@
     if (cancel || !drag.moved) { if (drag.moved) renderRoadmap(); return null; }
     return drag;
   }
-  async function commitRoadmapChange(item, changes, focusAfter = false) {
+  function commitRoadmapChange(item, changes, focusAfter = false) {
     const previous = roadmap.items.find(other => other.id === item.id);
-    if (!previous || roadmap.pending.has(item.id)) return;
+    if (!previous || roadmapIsTemp(previous.id)) return;
     const changed = Object.keys(changes).filter(key => changes[key] !== previous[key]);
     if (!changed.length) { renderRoadmap(); return; }
-    const input = { id: item.id }; changed.forEach(key => { input[key] = changes[key]; });
-    try { C.validateRoadmapItem(C.prepareRoadmapItem(input, previous), roadmap.items); }
+    const input = {}; changed.forEach(key => { input[key] = changes[key]; });
+    try { C.validateRoadmapItem(C.prepareRoadmapItem({ id: item.id, ...input }, previous), roadmap.items); }
     catch (error) { renderRoadmap(); notify(error.message, true); return; }
     roadmap.items = roadmap.items.map(other => other.id === item.id ? { ...other, ...input } : other);
-    roadmap.pending.add(item.id);
     renderRoadmap();
     if (focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
-    try {
-      const saved = await roadmapRpc('saveRoadmapItem', input, previous.version);
-      roadmap.items = roadmap.items.map(other => other.id === saved.id ? saved : other);
-    } catch (error) {
-      roadmap.items = roadmap.items.map(other => other.id === item.id ? previous : other);
-      notify(`${previous.title} was not moved: ${error.message || error}`, true);
-    } finally {
-      roadmap.pending.delete(item.id);
-      const hadFocus = document.activeElement?.dataset?.roadmapOpen === item.id;
-      if (state.view === 'roadmap') renderRoadmap();
-      if (hadFocus || focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
-    }
+    if (roadmap.pending.has(item.id)) roadmap.queued.set(item.id, { ...(roadmap.queued.get(item.id) || {}), ...input });
+    else flushRoadmapItem(item.id, input, previous);
   }
   $('#view-content').addEventListener('pointerdown', event => {
     if (state.view !== 'roadmap' || event.button !== 0 || event.pointerType === 'touch' || roadmapDrag) return;
     const element = event.target.closest('.roadmap-bar, .roadmap-milestone');
     if (!element) return;
     const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
-    if (!item || roadmap.pending.has(item.id) || roadmap.saving) return;
+    if (!item || roadmapIsTemp(item.id) || roadmap.saving) return;
     const track = element.closest('.roadmap-lane');
     const edge = event.target.closest('.roadmap-handle')?.dataset.edge;
     roadmapDrag = { element, item: { ...item }, pointer: event.pointerId, x: event.clientX, y: event.clientY, dayWidth: track.getBoundingClientRect().width / roadmapRangeDays(roadmap.range), mode: edge || 'move', moved: false };
@@ -3942,7 +3981,7 @@
     if (!element || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
     event.preventDefault(); event.stopPropagation();
     const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
-    if (!item || roadmap.pending.has(item.id)) return;
+    if (!item || roadmapIsTemp(item.id)) return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       const days = (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 7 : 1);
       commitRoadmapChange(item, item.type === 'Increment' ? { startDate: C.addDays(item.startDate, days), endDate: C.addDays(item.endDate, days) } : { startDate: C.addDays(item.startDate, days) }, true);
