@@ -4439,6 +4439,10 @@
   setInterval(() => { if (isCloud && state.mode !== 'personal' && !document.hidden && !document.querySelector('dialog[open]') && !bulkDeleteDraft && !state.busy && !hasPendingSaves() && !document.activeElement?.matches('.cell-input')) refresh(true); }, 45000);
   const requestedView = location.hash.slice(1) || new URLSearchParams(location.search).get('view') || document.body.dataset.initialView;
   state.view = ['sheet', 'kanban', 'gantt'].includes(requestedView) ? requestedView : 'kanban';
+  if (requestedView === 'privacy' && $('#privacy') && $('#help-dialog')) {
+    $('#privacy').open = true;
+    $('#help-dialog').showModal();
+  }
   updateUndoControl();
   refresh();
 })();

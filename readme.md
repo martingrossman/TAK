@@ -8,15 +8,18 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
 
 ## Start with Google Sheets
 
-1. Sign in to Google and [make a private copy of the TAK starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy).
-2. Open your copy. If the menu has not appeared yet, reload the sheet. Choose **🔷 TAK → Open tracker**.
-3. Authorize with the Google account that owns your copy if prompted. TAK opens in a full browser tab, starting in Kanban. Switch to Sheet or Gantt from the top bar. If your browser blocks the new tab, click **Open tracker ↗** in the small launcher.
+### [▶ Open TAK Google Web App](https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec)
 
-Your copy starts with a simple example: three Epics, three Stories, and seven Tasks covering a customer portal, team planning, and delivery updates. Replace or remove the examples as you make the project your own. Your tasks stay in **your Google spreadsheet**. You do not need to publish an app, copy code, or share your sheet publicly. Bookmark the opened TAK tab for later, including on your phone.
+1. Open the **[TAK Google Web App](https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec)** and sign in with your Google account.
+2. On the welcome screen, choose how to connect your spreadsheet:
+   - **Create TAK Sheet with sample data** — creates a new formatted spreadsheet in your Google Drive pre-loaded with 13 starter Epics, Stories, and Tasks.
+   - **Create blank TAK Sheet** — creates a fresh empty tracker spreadsheet in your Google Drive.
+   - **Select existing Google Sheet** — opens the native Google Picker to connect any existing TAK spreadsheet (or a [private copy of the TAK starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy)).
+3. Bookmark the TAK Web App tab for later (including on your phone), and use **Switch Sheet** in the top bar anytime to switch between project spreadsheets.
 
-The shared app requests Google Sheets access and your email identity, then runs using your own Google permissions. Google may show an **unverified-app warning** during this initial release; Google verification is not yet complete. The [browser demo](https://martingrossman.github.io/TAK/) remains separate and saves only in your browser. Developers attaching TAK to a different blank spreadsheet can use the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md).
+Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensitive `drive.file` scope, so it can only access the specific spreadsheet you explicitly select in Google Picker or create through the app. See the [Option 2 architecture and sharing guide](docs/OPTION2_SHARING_GUIDE.md) for team collaboration and deployment details, or the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md) for independent installations.
 
-[**Choose your setup**](#choose-how-to-run-tak) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local development**](#project-setup) · [**Publishing and updates**](#publishing-and-updates) · [**Independent installation**](docs/INSTALL_FROM_SOURCE.md)
+[**Choose your setup**](#choose-how-to-run-tak) · [**Sharing guide**](docs/OPTION2_SHARING_GUIDE.md) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local development**](#project-setup) · [**Privacy**](#privacy) · [**Independent installation**](docs/INSTALL_FROM_SOURCE.md)
 
 [**Kanban demo**](https://martingrossman.github.io/TAK/#kanban) · [**Sheet demo**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt demo**](https://martingrossman.github.io/TAK/#gantt)
 
@@ -506,3 +509,10 @@ This is a Jira-style tracker; it does not connect to Atlassian Jira. For release
 ## Naming and compatibility
 
 TAK continues the existing tracker and its saved data. Browser keys beginning with `sheetflow.`, Apps Script properties beginning with `SHEETFLOW_`, and internal `SheetFlow` namespaces retain their existing names for compatibility. The repository, app, menus, preview and new exports use TAK.
+
+## Privacy
+
+- **Data ownership:** TAK does not store your tasks on any third-party database or external server.
+- **Browser demo (`https://martingrossman.github.io/TAK/`):** Saves changes locally in your browser's `localStorage` only.
+- **Google Web App:** Requests only the non-sensitive `https://www.googleapis.com/auth/drive.file` scope to read and write the specific Google Drive spreadsheet you explicitly select via Google Picker or create through the app.
+- **No tracking or sharing:** TAK does not sell, share, or transmit your Google user data to third parties. Contact: `martin.grossman@gmail.com`.

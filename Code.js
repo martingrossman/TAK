@@ -2,7 +2,7 @@
 var PICKER_CONFIG = {
   APP_ID: '487430968051',
   API_KEY: '',
-  WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbxbNXIOk0h9lvx5HJ77kseMsUTLabGHI4VtLqRBqHM/dev'
+  WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec'
 };
 function pickerConfig_() {
   var props = null;
