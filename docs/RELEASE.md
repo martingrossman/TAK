@@ -6,7 +6,8 @@ How a change gets from this repository to the two places TAK runs, in a fixed or
 
 | Target | What it is | Who gets it | How it updates |
 | --- | --- | --- | --- |
-| **Shared host** | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
+| **Option 2 web app** | The repository root pushed as-is: `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
+| **Shared host** (older) | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
 | **Starter template** | The bound launcher script in the public starter spreadsheet | New copies only | Pushed to the template project; **existing copies keep the script they were made with** |
 | **Independent install** | An owner-only copy attached to someone's own spreadsheet ([INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md)) | That owner | Owner updates by hand; the maintainer's own install uses the same `clasp` flow below |
 
@@ -14,9 +15,9 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 
 ## Rules
 
-- **Production is human-gated.** A push to `/dev` needs the owner's go-ahead for that target project (see the release gate in [AGENTS.md](../AGENTS.md)). Moving a production deployment (`clasp deploy -i … -V …`) happens only after the owner has tested on `/dev` and says so in writing ("approved", "deploy to prod").
+- **Production is human-gated.** A push to `/dev` is allowed on a committed, checked change (`@HEAD` is visible only to project editors; see the release gate in [AGENTS.md](../AGENTS.md)). Moving a production deployment (`clasp deploy -i … -V …`) happens only after the owner has tested on `/dev` and says so in writing ("approved", "deploy to prod").
 - **No IDs in the repository.** Script IDs, deployment IDs, spreadsheet IDs and the shared `/exec` URL stay outside source control (a password manager or your shell profile). Examples below use placeholders.
-- **Never run `clasp` from the repository root for the shared host.** The root has no `SharedConfig.js`, so it builds an independent install. Host and template folders are staged with `scripts/stage-package.mjs`.
+- **Never run `clasp` from the repository root for the older shared host, and never push a staged host package to the Option 2 project.** The root has no `SharedConfig.js`, so it builds an independent install. Host and template folders are staged with `scripts/stage-package.mjs`.
 - **Release from a clean, tagged checkout** of the branch you intend to ship, after `npm run check` passes.
 - Back up before you deploy: note the current production version number from `clasp deployments`; that is your rollback target.
 
