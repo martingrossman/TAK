@@ -1977,7 +1977,24 @@ function openSheetsApiBook_(spreadsheetId) {
             var blanks = Array.from({ length: numRows }, function () { return Array(numCols).fill(''); });
             return this.setValues(blanks);
           },
-          setNote: function () { return this; }
+          setNote: function () { return this; },
+          /** Formatting is queued as a Sheets API request and sent before the values on flush, so '@' keeps later values as text. */
+          setFontWeight: function (weight) {
+            pendingRequests.push({ repeatCell: {
+              range: { sheetId: props.sheetId, startRowIndex: row - 1, endRowIndex: row - 1 + numRows, startColumnIndex: col - 1, endColumnIndex: col - 1 + numCols },
+              cell: { userEnteredFormat: { textFormat: { bold: weight === 'bold' } } },
+              fields: 'userEnteredFormat.textFormat.bold'
+            } });
+            return this;
+          },
+          setNumberFormat: function (format) {
+            pendingRequests.push({ repeatCell: {
+              range: { sheetId: props.sheetId, startRowIndex: row - 1, endRowIndex: row - 1 + numRows, startColumnIndex: col - 1, endColumnIndex: col - 1 + numCols },
+              cell: { userEnteredFormat: { numberFormat: format === '@' ? { type: 'TEXT' } : { type: 'NUMBER', pattern: format } } },
+              fields: 'userEnteredFormat.numberFormat'
+            } });
+            return this;
+          }
         };
       }
     };

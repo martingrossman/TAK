@@ -725,6 +725,8 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
             const sheetId = book.sheets.size + 1;
             book.sheets.set(title, { sheetId, rows: [] });
             replies.push({ addSheet: { properties: { sheetId, title, gridProperties: { rowCount: 1000, columnCount: 26 } } } });
+          } else if (req.repeatCell) {
+            (book.formats ||= []).push(req.repeatCell);
           } else if (req.deleteDimension && req.deleteDimension.range.dimension === 'ROWS') {
             for (const s of book.sheets.values()) {
               if (s.sheetId === req.deleteDimension.range.sheetId) {
@@ -786,4 +788,16 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   assert.equal(createdSecond.spreadsheetId, 'picker-book-2');
   const savedSecond = h.api.saveIssue({ summary: 'First task in second sheet', startDate: '2026-11-16' });
   assert.equal(savedSecond.id, 'PRJ-1');
+
+  // The Roadmap tab is created through the same Sheets API wrapper, which must support header formatting.
+  vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), h.api);
+  const stream = h.api.saveRoadmapItem({ type: 'Stream', title: 'Mobile', color: 'rose' }, '');
+  assert.equal(stream.id, 'RM-1');
+  const second = books.get('picker-book-2');
+  assert.equal(second.sheets.get('Roadmap').rows[0][0], 'ID');
+  assert.ok(second.formats.some(f => f.cell.userEnteredFormat.textFormat && f.cell.userEnteredFormat.textFormat.bold), 'header is bold');
+  assert.ok(second.formats.some(f => f.cell.userEnteredFormat.numberFormat && f.cell.userEnteredFormat.numberFormat.type === 'TEXT'), 'cells are stored as text');
+  assert.equal(second.sheets.get('Roadmap').rows[1][0], 'RM-1', 'the new stream was written to the sheet');
+  h.api.deleteRoadmapItem('RM-1', stream.version);
+  assert.equal(second.sheets.get('Roadmap').rows.length, 1, 'the deleted stream row is removed');
 });

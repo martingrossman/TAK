@@ -87,6 +87,7 @@ function saveRoadmapItem(input, expectedVersion) {
     var range = sheet.getRange(row, 1, 1, TAK_ROADMAP_HEADERS_.length);
     if (!current) range.setNumberFormat('@');
     range.setValues([values]);
+    if (typeof flushBook_ === 'function') flushBook_(book);
     item.version = String(revision);
     return clientRoadmapItem_(item);
   });
@@ -101,6 +102,7 @@ function deleteRoadmapItem(id, expectedVersion) {
     if (String(expectedVersion) !== current.version) throw new Error('This roadmap item changed elsewhere. Refresh before deleting it.');
     if (current.type === 'Stream' && items.some(function (item) { return item.streamId === current.id; })) throw new Error('Move or delete this stream’s items before deleting the stream.');
     sheet.deleteRow(current._row);
+    if (typeof flushBook_ === 'function') flushBook_(book);
     return { id: id, deleted: true };
   });
 }
