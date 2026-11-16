@@ -60,19 +60,31 @@
     appId: document.body.dataset?.pickerAppId || '',
     apiKey: document.body.dataset?.pickerApiKey || ''
   } : null;
-  function openGoogleSheetPicker() {
+  async function openGoogleSheetPicker() {
     if (!isCloud || !window.gapi) {
       notify('Google Picker is still loading. Try again in a moment.', true);
       return;
     }
+    if (!pickerAuth.apiKey) {
+      const enteredKey = window.prompt('Enter your Google Picker API Key (this will be saved in Apps Script Script Properties):');
+      if (!enteredKey || !enteredKey.trim()) return;
+      try {
+        await rpc('setPickerConfig', pickerAuth.appId, enteredKey.trim());
+        pickerAuth.apiKey = enteredKey.trim();
+      } catch (error) {
+        showError(error);
+        return;
+      }
+    }
     gapi.load('picker', () => {
       const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
         .setMimeTypes('application/vnd.google-apps.spreadsheet');
-      const picker = new google.picker.PickerBuilder()
+      const builder = new google.picker.PickerBuilder()
         .setAppId(pickerAuth.appId)
         .setOAuthToken(pickerAuth.token)
-        .setDeveloperKey(pickerAuth.apiKey)
-        .addView(view)
+        .addView(view);
+      if (pickerAuth.apiKey) builder.setDeveloperKey(pickerAuth.apiKey);
+      const picker = builder
         .setCallback(async data => {
           if (data.action !== google.picker.Action.PICKED) return;
           const fileId = data.docs[0].id;

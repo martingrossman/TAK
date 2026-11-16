@@ -661,7 +661,7 @@ test('bulk delete rechecks revisions and outside links after reserving an interr
   }
 });
 
-test('Apps Script deployment allowlist contains zero SpreadsheetApp references for drive.file verification', () => {
+test('Apps Script deployment allowlist contains zero SpreadsheetApp or UrlFetchApp references for drive.file verification', () => {
   const path = require('node:path');
   const root = path.resolve(__dirname, '..');
   const allowlist = fs.readFileSync(path.join(root, '.claspignore'), 'utf8')
@@ -672,7 +672,10 @@ test('Apps Script deployment allowlist contains zero SpreadsheetApp references f
   for (const file of allowlist) {
     const content = fs.readFileSync(path.join(root, file), 'utf8');
     assert.equal(content.includes('SpreadsheetApp'), false, `${file} must not reference SpreadsheetApp`);
+    assert.equal(content.includes('UrlFetchApp'), false, `${file} must not reference UrlFetchApp`);
   }
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'appsscript.json'), 'utf8'));
+  assert.deepEqual(manifest.oauthScopes, ['https://www.googleapis.com/auth/drive.file']);
 });
 
 test('Google Picker drive.file flow signals needsPicker and operates via Sheets API v4 adapter', () => {
@@ -702,7 +705,7 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
       },
       get(id) {
         const book = books.get(id);
-        assert.ok(book, 'Expected spreadsheet to exist');
+        if (!book) throw new Error('GoogleJsonResponseException: API call to sheets.spreadsheets.get failed with error: Requested entity was not found.');
         return {
           spreadsheetId: id,
           spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${id}/edit`,
@@ -761,6 +764,10 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
       }
     }
   };
+  h.props.set('SPREADSHEET_ID', 'legacy-unpicked-id');
+  const unpickedLegacy = h.api.getProject();
+  assert.equal(unpickedLegacy.needsPicker, true);
+
   const created = h.api.createNewProjectSheet('My Picker Tracker');
   assert.equal(created.spreadsheetId, 'picker-book-1');
   assert.equal(userProps.get('TAK_ACTIVE_SHEET_ID'), 'picker-book-1');
