@@ -21,7 +21,10 @@ const quoteWindows = arg => /[\s"&|<>^%]/.test(arg) ? '"' + arg.replace(/"/g, '\
 /** Run `npx @google/clasp <args>` in `cwd`. `spawn` is injectable for tests. */
 export function runClasp(args, cwd, spawn = spawnSync, platform = process.platform) {
   const windows = platform === 'win32';
-  const result = spawn(windows ? 'npx.cmd' : 'npx', ['@google/clasp', ...(windows ? args.map(quoteWindows) : args)], { cwd, encoding: 'utf8', shell: windows });
+  // On Windows npx is a .cmd file, so it needs a shell; pass one quoted command string (Node warns on args plus shell).
+  const result = windows
+    ? spawn(['npx.cmd', '@google/clasp', ...args.map(quoteWindows)].join(' '), { cwd, encoding: 'utf8', shell: true })
+    : spawn('npx', ['@google/clasp', ...args], { cwd, encoding: 'utf8', shell: false });
   if (result.error) throw new Error('Could not run clasp: ' + result.error.message);
   return { status: result.status, stdout: result.stdout || '', stderr: result.stderr || '' };
 }

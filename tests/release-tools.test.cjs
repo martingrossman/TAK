@@ -39,9 +39,8 @@ test('parseDeployments, safeDescription and the Windows quoting of clasp argumen
   assert.equal(safeDescription('v1 - Faster saves & "safer" retries; ok'), 'v1 - Faster saves safer retries ok');
   let seen;
   runClasp(['version', 'v1.2.3 - a b'], '/x', (command, args, options) => { seen = { command, args, options }; return { status: 0, stdout: '' }; }, 'win32');
-  assert.deepEqual(seen.args, ['@google/clasp', 'version', '"v1.2.3 - a b"']);
-  assert.equal(seen.command, 'npx.cmd');
-  assert.equal(seen.options.shell, true);
+  assert.equal(seen.command, 'npx.cmd @google/clasp version "v1.2.3 - a b"');
+  assert.equal(seen.args.shell, true, 'the options object is the second argument on Windows');
   runClasp(['deployments'], '/x', (command, args, options) => { seen = { command, args, options }; return { status: 0, stdout: '' }; }, 'linux');
   assert.deepEqual([seen.command, seen.options.shell], ['npx', false]);
 });
