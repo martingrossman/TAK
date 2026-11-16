@@ -21,14 +21,34 @@
     circle: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
     stack: '<path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/>',
     flag: '<path d="M5 21V4c4-5 10 5 14 0v10c-4 5-10-5-14 0"/>',
-    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+    message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    moon: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/>'
   };
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.circle}</svg>`;
   $$('[data-icon]').forEach(el => el.innerHTML = icon(el.dataset.icon));
-  const typeColors = { Epic: '#6554c0', Story: '#008675', Task: '#0052cc', Bug: '#bf2600', Milestone: '#d97706' };
-  const statusColors = ['#7a869a', '#4c9aff', '#0052cc', '#975a16', '#00875a'];
-  const statusBg = ['#ebecf0', '#e9f2ff', '#deebff', '#fff0b3', '#e3fcef'];
-  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || '#64748B'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•', Milestone: '◆' })[type] || '•'}</span>`;
+  const themeStorageKey = 'tak.theme.v1';
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const toggle = $('#theme-toggle');
+    if (!toggle) return;
+    const next = theme === 'dark' ? 'light' : 'dark';
+    toggle.setAttribute('aria-label', `Switch to ${next} theme`);
+    toggle.title = `Switch to ${next} theme`;
+    toggle.setAttribute('aria-pressed', String(theme === 'dark'));
+    const glyph = toggle.querySelector('[data-theme-icon]');
+    if (glyph) glyph.innerHTML = icon(theme === 'dark' ? 'sun' : 'moon');
+  }
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+  $('#theme-toggle')?.addEventListener('click', () => {
+    const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem(themeStorageKey, theme); } catch (error) {}
+    applyTheme(theme);
+  });
+  const typeColors = { Epic: 'var(--type-epic)', Story: 'var(--type-story)', Task: 'var(--type-task)', Bug: 'var(--type-bug)', Milestone: 'var(--type-milestone)' };
+  const statusColors = [0, 1, 2, 3, 4].map(i => `var(--status-${i})`);
+  const statusBg = [0, 1, 2, 3, 4].map(i => `var(--status-bg-${i})`);
+  const typeIcon = type => `<span class="type-icon" style="--type-color:${typeColors[type] || 'var(--type-other)'}" title="${escape(type)}">${({ Epic: 'ϟ', Story: '▮', Task: '✓', Bug: '•', Milestone: '◆' })[type] || '•'}</span>`;
   const today = () => { const d = new Date(); return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'); };
   const shortDateFormat = new Intl.DateTimeFormat('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' });
   const monthFormat = new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' });
@@ -37,7 +57,7 @@
   const timestamp = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : '—';
   const initials = name => name.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
   function avatar(name) {
-    const colors = ['#deebff', '#eae6ff', '#e3fcef', '#fff0b3'];
+    const colors = [0, 1, 2, 3].map(i => `var(--avatar-${i})`);
     return `<span class="avatar ${name ? '' : 'unassigned'}" title="${escape(name || 'Unassigned')}" style="--avatar-bg:${colors[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length]}">${escape(name ? initials(name) : '?')}</span>`;
   }
   const isCloud = !!(window.google && google.script && google.script.run);
@@ -762,7 +782,7 @@
     if (!saved) { state.activeSavedView = ''; renderSavedViews(); return; }
     const view = saved.state;
     state.activeSavedView = saved.id;
-    state.view = ['sheet', 'kanban', 'gantt'].includes(view.view) ? view.view : 'kanban';
+    state.view = ['sheet', 'kanban', 'gantt', 'roadmap'].includes(view.view) ? view.view : 'kanban';
     state.query = String(view.query || ''); state.types = Array.isArray(view.types) ? view.types.filter(type => C.types.includes(type)) : [];
     state.priority = C.priorities.includes(view.priority) ? view.priority : ''; state.tag = String(view.tag || '');
     state.startAfter = C.validDate(view.startAfter) ? view.startAfter : ''; state.dueBefore = C.validDate(view.dueBefore) ? view.dueBefore : '';
@@ -2170,11 +2190,19 @@
     if (renderedView.current && currentScroll) scrollByView[renderedView.current] = currentScroll;
     const restoreScroll = renderedView.current === state.view ? currentScroll : scrollByView[state.view];
     renderedView.current = state.view;
-    $('#view-title').textContent = { sheet: 'Sheet', kanban: 'Kanban', gantt: 'Gantt' }[state.view];
+    $('#view-title').textContent = { sheet: 'Sheet', kanban: 'Kanban', gantt: 'Gantt', roadmap: 'Roadmap' }[state.view];
+    document.body.dataset.activeView = state.view;
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
     const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
-    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
+    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.', roadmap: 'Drag increments and milestones to reschedule them or move them to another stream; drag a bar end to change its dates. Alt + arrows nudges the focused item. Select an item to edit it.' }[state.view];
+    if (state.view === 'roadmap') {
+      sheetViewportObserver?.disconnect();
+      $('#sheet-actions').replaceChildren();
+      if (!roadmap.loaded && !roadmap.loading && !roadmap.error) loadRoadmap(); else renderRoadmap();
+      arrangeWorkspaceTools();
+      return;
+    }
     const hasPendingRows = pendingQuickTasks().length || entryVisible;
     if (!state.issues.length && !hasPendingRows) {
       $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug — or start with sample tasks.</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px;"><button class="button primary" data-new="Backlog">Create your first issue</button><button class="button secondary" id="load-sample-empty" type="button">Load sample data</button></div></div>`;
@@ -2289,7 +2317,7 @@
       <div class="card-footer">
         <label class="card-assignee-field" title="Assignee: ${escape(issue.assignee || 'Unassigned')}">${avatar(issue.assignee)}<input type="text" data-card-assignee="${escape(issue.id)}" value="${escape(issue.assignee)}" placeholder="Assignee" aria-label="Assignee for ${escape(issue.id)}"></label>
         <label class="card-due-field${overdue ? ' overdue' : ''}" title="${isMilestone ? (dueDate ? 'Target date: ' + escape(dueDate) : 'Set target date') : (dueDate ? 'Due: ' + escape(dueDate) : 'Set due date')}">
-          <span class="card-due-badge">${isMilestone ? '<span style="color:#d97706;font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
+          <span class="card-due-badge">${isMilestone ? '<span style="color:var(--type-milestone);font-size:12px;line-height:1">◆</span>' : icon(issue.status === 'Done' ? 'check' : 'calendar')}<span class="card-due-text">${dueDate ? escape(shortDate(dueDate)) : (isMilestone ? '+Target' : '+Date')}</span></span>
           <input type="date" class="card-due-input" data-card-due="${escape(issue.id)}" value="${escape(dueDate || '')}" aria-label="${isMilestone ? 'Target date' : 'Due date'} for ${escape(issue.summary)}">
         </label>
         <button type="button" class="card-comment-btn" data-card-comment-toggle="${escape(issue.id)}" title="${commentsCount ? commentsCount + ' comments · Click to add' : 'Add quick comment'}" aria-label="Add comment to ${escape(issue.id)}">
@@ -2480,7 +2508,7 @@
       const doneCount = lane.items.filter(issue => issue.status === 'Done').length;
       const collapsed = laneCollapsed(lane);
       const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
-      const identity = `<span class="type-icon" style="--type-color:#d97706" title="Milestone">◆</span>`;
+      const identity = `<span class="type-icon" style="--type-color:var(--type-milestone)" title="Milestone">◆</span>`;
       const name = `<strong title="Project Milestones">Project Milestones</strong>`;
       const heading = inGantt
         ? `<span class="gantt-lane-copy"><span class="gantt-lane-meta">${identity}</span>${name}</span>`
@@ -2508,7 +2536,7 @@
     const range = dates?.startDate && dates?.dueDate ? `<span class="swimlane-dates">${shortDate(dates.startDate)} – ${shortDate(dates.dueDate)}</span>` : '';
     const inGantt = extraClass === 'gantt-lane-title', inSheet = extraClass === 'sheet-lane-title';
     const identity = epic ? `<span class="swimlane-epic-type">${typeIcon('Epic')}</span>${taskTypeBadge(epic.taskTypeId)}` : '';
-    const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || '#ebecf0'};--status-color:${statusColors[statusIndex] || '#5e6c84'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
+    const statusBadge = epic ? `<span class="status-badge ${inGantt ? 'gantt-status-dot' : ''}" aria-label="${escape(epic.status)}" style="--status-bg:${statusBg[statusIndex] || 'var(--status-bg-0)'};--status-color:${statusColors[statusIndex] || 'var(--status-1)'}" title="${escape(epic.status)}">${escape(epic.status)}</span>` : '';
     const name = `<strong title="${escape(lane.label)}">${escape(lane.label)}</strong>`;
     const heading = inGantt
       ? `<span class="gantt-lane-copy">${epic ? `<span class="gantt-lane-meta">${identity}${statusBadge}</span>` : ''}${name}</span>`
@@ -3097,12 +3125,12 @@
       const visible = (scheduled || startOnly) && rawStart < days && rawEnd > 0 && (startOnly || right > left);
       if (visible && scheduled) positions.set(issue.id, { left, right, y });
       const index = C.statuses.indexOf(issue.status), colors = {
-        Epic: ['#F5F3FF', '#6D28D9', '#DDD6FE'],
-        Story: ['#ECFEFF', '#0E7490', '#A5F3FC'],
-        Task: ['#EFF6FF', '#1D4ED8', '#BFDBFE'],
-        Bug: ['#FEF2F2', '#B91C1C', '#FECACA'],
-        Milestone: ['#FFFBEB', '#D97706', '#FDE68A']
-      }[issue.type] || ['#EFF6FF', '#1D4ED8', '#BFDBFE'];
+        Epic: ['var(--bar-epic-bg)', 'var(--bar-epic-fg)', 'var(--bar-epic-line)'],
+        Story: ['var(--bar-story-bg)', 'var(--bar-story-fg)', 'var(--bar-story-line)'],
+        Task: ['var(--bar-task-bg)', 'var(--bar-task-fg)', 'var(--bar-task-line)'],
+        Bug: ['var(--bar-bug-bg)', 'var(--bar-bug-fg)', 'var(--bar-bug-line)'],
+        Milestone: ['var(--bar-milestone-bg)', 'var(--bar-milestone-fg)', 'var(--bar-milestone-line)']
+      }[issue.type] || ['var(--bar-task-bg)', 'var(--bar-task-fg)', 'var(--bar-task-line)'];
       if (issue.type === 'Milestone') {
         const milestoneDate = schedule.dueDate || schedule.startDate;
         const hasDate = milestoneDate && C.validDate(milestoneDate);
@@ -3191,13 +3219,13 @@
     issues.forEach(issue => C.split(issue.dependencies).forEach(id => {
       const from = positions.get(id), to = positions.get(issue.id); if (!from || !to) return;
       const turn = from.right + 12;
-      links += `<path d="M${from.right},${from.y} H${turn} V${to.y} H${to.left}" fill="none" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`;
+      links += `<path d="M${from.right},${from.y} H${turn} V${to.y} H${to.left}" fill="none" stroke="var(--link-line)" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrow)"/>`;
     }));
     const todayOffset = C.dateNumber(today()) - C.dateNumber(start);
     const labelMin = Math.min(180, Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)))), labelMax = Math.min(480, Math.max(1, Math.round(window.innerWidth * 0.6)));
     const rangeLabel = `Full timeline: ${shortDate(start)} – ${shortDate(end)} · ${state.zoom === 'days' ? '8 weeks' : state.zoom === 'weeks' ? '16 weeks' : state.zoom === 'twoWeeks' ? '24 weeks' : '12 months'}`;
     const headerHeight = state.zoom === 'weeks' || state.zoom === 'twoWeeks' ? 70 : 58;
-    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="#CBD5E1"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
+    $('#view-content').innerHTML = `<div class="gantt-tools"><div class="left"><button class="button secondary" data-timeline="-1" aria-label="Earlier dates">←</button><button class="button secondary" data-timeline="today">Today</button><button class="button secondary" data-timeline="1" aria-label="Later dates">→</button><input id="timeline-date" type="date" aria-label="Timeline start" value="${start}" min="1900-01-01" max="2200-01-01"></div><div class="right"><span class="gantt-range" title="Scroll horizontally to see the full date range">${rangeLabel}</span><select id="timeline-zoom" aria-label="Timeline scale">${options([{ value: 'days', label: 'Days' }, { value: 'weeks', label: 'Weeks' }, { value: 'twoWeeks', label: '2 Weeks' }, { value: 'months', label: 'Months' }], state.zoom)}</select></div></div><div class="gantt-viewport"><div class="gantt-grid" style="--label-width:${state.ganttLabelWidth}px;--gantt-header-height:${headerHeight}px"><div class="gantt-header gantt-header-${state.zoom}"><div class="gantt-label-head">ISSUE / TIMELINE</div><div class="gantt-resize-gutter gantt-resizer" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize Gantt label pane" aria-valuemin="${labelMin}" aria-valuemax="${labelMax}" aria-valuenow="${state.ganttLabelWidth}" title="Drag or use arrow keys to resize"></div><div class="gantt-dates">${ticks.join('')}</div></div>${rows}<svg class="timeline-links" width="${width}" height="${rowsHeight}" aria-hidden="true"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10" fill="none" stroke="var(--link-line)"/></marker></defs>${links}</svg>${todayOffset >= 0 && todayOffset < days ? `<div class="today-line" style="left:calc(var(--label-width,260px) + ${todayOffset * dayWidth + dayWidth / 2}px)"></div>` : ''}</div></div><div class="gantt-legend">${C.types.map(type => `<span><i style="background:${typeColors[type]}"></i>${type}</span>`).join('')}<span>┄ Dependency</span><span>Shaded bar = progress</span></div>`;
     addEpicViewControls('gantt', epicIds, $('#view-content .gantt-tools .left'));
     $('#view-content .gantt-tools .right').insertAdjacentHTML('afterbegin', '<button type="button" id="gantt-unparent-drop" class="gantt-unparent-drop" data-gantt-unparent hidden>Drop here to unparent</button>');
     $('#view-content .gantt-legend').insertAdjacentHTML('beforeend', '<span class="gantt-drag-help">⠿ Drag labels to reorder or change parent</span>');
@@ -3518,8 +3546,445 @@
     if (next?.matches('[data-command-index]')) next.focus();
     else if (event.key === 'ArrowUp') commandQuery.focus();
   });
+  /* ---------- Product roadmap ---------- */
+  const roadmapStorageKey = trackerStorageKey('tak.roadmap.v1');
+  const roadmapMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const roadmapRangeStorageKey = trackerStorageKey('tak.roadmap.range.v1');
+  const roadmapYearRange = year => ({ start: `${year}-01-01`, end: `${year}-12-31` });
+  const roadmapRangeDays = range => (Date.parse(range.end + 'T00:00:00Z') - Date.parse(range.start + 'T00:00:00Z')) / 86400000 + 1;
+  function roadmapRangeError(start, end) {
+    if (!C.validDate(start) || !C.validDate(end)) return 'Choose both a start and an end date for the roadmap.';
+    if (end < start) return 'The roadmap end date must be on or after its start date.';
+    const days = roadmapRangeDays({ start, end });
+    if (days < 7) return 'Show at least one week on the roadmap.';
+    if (days > 1827) return 'Show at most five years on the roadmap.';
+    return '';
+  }
+  function storedRoadmapRange() {
+    try {
+      const range = JSON.parse(localStorage.getItem(roadmapRangeStorageKey) || 'null');
+      if (range && !roadmapRangeError(range.start, range.end)) return { start: range.start, end: range.end };
+    } catch (error) {}
+    return roadmapYearRange(Number(today().slice(0, 4)));
+  }
+  const roadmapLinesStorageKey = trackerStorageKey('tak.roadmap.lines.v1');
+  const storedRoadmapLines = () => { try { return localStorage.getItem(roadmapLinesStorageKey) === 'all'; } catch (error) { return false; } };
+  const roadmap = { items: [], loaded: false, loading: false, error: '', range: storedRoadmapRange(), allLines: storedRoadmapLines(), editing: null, saving: false };
+  function setRoadmapRange(start, end, focusSelector = '') {
+    const error = roadmapRangeError(start, end);
+    if (error) notify(error, true);
+    else {
+      roadmap.range = { start, end };
+      try { localStorage.setItem(roadmapRangeStorageKey, JSON.stringify(roadmap.range)); } catch (storageError) {}
+    }
+    renderRoadmap();
+    if (focusSelector) $(focusSelector)?.focus();
+  }
+  function addRoadmapMonths(date, months) {
+    const value = new Date(Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1 + months, 1));
+    return value.toISOString().slice(0, 10);
+  }
+  function shiftRoadmapRange(direction) {
+    const { start, end } = roadmap.range, after = C.addDays(end, 1);
+    if (start.endsWith('-01') && after.endsWith('-01')) {
+      const months = (Number(after.slice(0, 4)) - Number(start.slice(0, 4))) * 12 + Number(after.slice(5, 7)) - Number(start.slice(5, 7));
+      return setRoadmapRange(addRoadmapMonths(start, months * direction), C.addDays(addRoadmapMonths(after, months * direction), -1), `[data-roadmap-shift="${direction}"]`);
+    }
+    const days = roadmapRangeDays(roadmap.range) * direction;
+    setRoadmapRange(C.addDays(start, days), C.addDays(end, days), `[data-roadmap-shift="${direction}"]`);
+  }
+  function roadmapTicks(range) {
+    const months = [];
+    let year = Number(range.start.slice(0, 4)), month = Number(range.start.slice(5, 7));
+    for (;;) {
+      const first = `${year}-${String(month).padStart(2, '0')}-01`;
+      if (first > range.end) break;
+      months.push({ year, month, first });
+      month += 1; if (month > 12) { month = 1; year += 1; }
+    }
+    const step = months.length > 36 ? 12 : months.length > 18 ? 3 : 1;
+    const nowMonth = today().slice(0, 7);
+    return months.filter((entry, index) => index === 0 || (entry.month - 1) % step === 0).map((entry, index) => {
+      const name = roadmapMonths[entry.month - 1];
+      const label = step === 12 ? String(entry.year) : (index === 0 || entry.month === 1 || (step === 3 && entry.month === 1)) ? `${name} ${entry.year}` : name;
+      return { left: roadmapPosition(entry.first < range.start ? range.start : entry.first, range), label, current: step === 1 && entry.first.slice(0, 7) === nowMonth };
+    });
+  }
+  function localRoadmap() {
+    const raw = localStorage.getItem(roadmapStorageKey);
+    if (raw) return JSON.parse(raw);
+    const items = C.roadmapSample(Number(today().slice(0, 4))).map(item => ({ ...item, version: '1' }));
+    localStorage.setItem(roadmapStorageKey, JSON.stringify(items));
+    return items;
+  }
+  function localRoadmapCall(method, args) {
+    const items = localRoadmap();
+    if (method === 'getRoadmap') return { items };
+    if (method === 'saveRoadmapItem') {
+      const [input, expected] = args, current = input.id ? items.find(item => item.id === input.id) : null;
+      if (input.id && !current) throw new Error('This roadmap item no longer exists. Refresh the roadmap.');
+      if (current && String(expected) !== current.version) throw new Error('This roadmap item changed elsewhere. Refresh, then apply your change again.');
+      const item = C.prepareRoadmapItem(input, current);
+      if (!current) {
+        item.id = 'RM-' + (items.reduce((max, other) => Math.max(max, Number(/^RM-(\d+)$/.exec(other.id)?.[1]) || 0), 0) + 1);
+        if (item.type === 'Stream' && !(Number(input.order) > 0)) item.order = items.filter(other => other.type === 'Stream').reduce((max, other) => Math.max(max, other.order), 0) + 1;
+      }
+      C.validateRoadmapItem(item, items);
+      item.version = String((Number(current?.version) || 0) + 1);
+      const next = current ? items.map(other => other.id === item.id ? item : other) : [...items, item];
+      localStorage.setItem(roadmapStorageKey, JSON.stringify(next));
+      return item;
+    }
+    if (method === 'deleteRoadmapItem') {
+      const [id, expected] = args, current = items.find(item => item.id === id);
+      if (!current) throw new Error('This roadmap item no longer exists. Refresh the roadmap.');
+      if (String(expected) !== current.version) throw new Error('This roadmap item changed elsewhere. Refresh before deleting it.');
+      if (current.type === 'Stream' && items.some(item => item.streamId === id)) throw new Error('Move or delete this stream’s items before deleting the stream.');
+      localStorage.setItem(roadmapStorageKey, JSON.stringify(items.filter(item => item.id !== id)));
+      return { id, deleted: true };
+    }
+    throw new Error('Unsupported roadmap operation.');
+  }
+  function roadmapRpc(method, ...args) {
+    if (isCloud) return rpc(method, ...args);
+    return new Promise((resolve, reject) => { try { resolve(localRoadmapCall(method, args)); } catch (error) { reject(error); } });
+  }
+  async function loadRoadmap(force = false) {
+    if (roadmap.loading || (roadmap.loaded && !force)) return;
+    roadmap.loading = true; roadmap.error = '';
+    if (state.view === 'roadmap') renderRoadmap();
+    try { roadmap.items = (await roadmapRpc('getRoadmap')).items || []; roadmap.loaded = true; }
+    catch (error) { roadmap.error = error.message || String(error); }
+    finally { roadmap.loading = false; if (state.view === 'roadmap') renderRoadmap(); }
+  }
+  const roadmapStreams = () => roadmap.items.filter(item => item.type === 'Stream').sort((a, b) => a.order - b.order || a.id.localeCompare(b.id, undefined, { numeric: true }));
+  function roadmapPosition(date, range) {
+    const start = Date.parse(range.start + 'T00:00:00Z'), end = Date.parse(C.addDays(range.end, 1) + 'T00:00:00Z'), value = Date.parse(date + 'T00:00:00Z');
+    return Math.max(0, Math.min(100, (value - start) / (end - start) * 100));
+  }
+  function roadmapInRange(item, range) {
+    const from = item.startDate, to = item.type === 'Increment' ? item.endDate : item.startDate;
+    return C.validDate(from) && C.validDate(to) && from <= range.end && to >= range.start;
+  }
+  function packRoadmapLanes(items, range) {
+    const lanes = [];
+    items.slice().sort((a, b) => a.startDate.localeCompare(b.startDate) || a.endDate.localeCompare(b.endDate)).forEach(item => {
+      const left = roadmapPosition(item.startDate, range), right = Math.min(100, Math.max(left + 0.6, roadmapPosition(C.addDays(item.endDate, 1), range)));
+      const lane = lanes.find(entries => entries[entries.length - 1].right + 0.4 <= left);
+      const entry = { item, left, right };
+      if (lane) lane.push(entry); else lanes.push([entry]);
+    });
+    return lanes;
+  }
+  function roadmapMilestone(item, range) {
+    const left = roadmapPosition(item.startDate, range), flip = left > 78;
+    const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
+    const colour = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
+    const marker = `<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
+  }
+  function renderRoadmap() {
+    const range = roadmap.range, content = $('#view-content');
+    const nowDate = today(), showToday = nowDate >= range.start && nowDate <= range.end;
+    const thisYear = roadmapYearRange(Number(nowDate.slice(0, 4))), isThisYear = range.start === thisYear.start && range.end === thisYear.end;
+    const head = `<div class="roadmap-tools"><div class="left">
+      <button class="button secondary icon-only" type="button" data-roadmap-shift="-1" aria-label="Show the previous period">←</button>
+      <label class="roadmap-range-field"><span>From</span><input type="date" data-roadmap-range="start" value="${escape(range.start)}" aria-label="Roadmap starts on"></label>
+      <label class="roadmap-range-field"><span>To</span><input type="date" data-roadmap-range="end" value="${escape(range.end)}" aria-label="Roadmap ends on"></label>
+      <button class="button secondary icon-only" type="button" data-roadmap-shift="1" aria-label="Show the next period">→</button>
+      <button class="button secondary" type="button" data-roadmap-this-year${isThisYear ? ' disabled' : ''}>This year</button>
+      </div><div class="right">
+      <button class="button secondary" type="button" data-roadmap-lines aria-pressed="${roadmap.allLines}" title="Draw a vertical line at every milestone. Off shows lines only where a milestone asks for one.">${roadmap.allLines ? 'All milestone lines' : 'Milestone lines'}</button>
+      <button class="button secondary" type="button" data-roadmap-new="Milestone">Add milestone</button>
+      <button class="button primary" type="button" data-roadmap-new="Stream">Add stream</button></div></div>`;
+    if (roadmap.error) { content.innerHTML = head + `<div class="error-banner" role="alert">Roadmap could not load: ${escape(roadmap.error)} <button type="button" data-roadmap-retry>Retry</button></div>`; return; }
+    if (!roadmap.loaded) { content.innerHTML = head + '<div class="empty-state"><div class="loader"></div><p>Loading roadmap…</p></div>'; return; }
+    const streams = roadmapStreams();
+    if (!roadmap.items.length) { content.innerHTML = head + `<div class="empty-state">${icon('flag')}<h2>Plan your roadmap in streams.</h2><p>Add a stream for each product area, then add increments and milestones to it.</p><button class="button primary" type="button" data-roadmap-new="Stream">Add stream</button></div>`; return; }
+    const ticks = roadmapTicks(range);
+    const months = ticks.map(tick => `<span style="left:${tick.left.toFixed(3)}%"${tick.current ? ' class="current"' : ''}>${escape(tick.label)}</span>`).join('');
+    const gridLines = ticks.filter(tick => tick.left > 0.01).map(tick => `<i style="left:${tick.left.toFixed(3)}%"></i>`).join('');
+    const topMilestones = roadmap.items.filter(item => item.type === 'Milestone' && !item.streamId && roadmapInRange(item, range));
+    const streamColour = new Map(streams.map(stream => [stream.id, stream.color]));
+    const milestoneLines = roadmap.items.filter(item => item.type === 'Milestone' && (item.line || roadmap.allLines) && roadmapInRange(item, range)).map(item => {
+      const key = C.roadmapColors.includes(item.color) ? item.color : streamColour.get(item.streamId) || '';
+      return `<div class="roadmap-mline${item.line ? ' marked' : ''}" data-for="${escape(item.id)}"${key ? ` data-roadmap-color="${key}"` : ''} style="--x:${(roadmapPosition(item.startDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>`;
+    }).join('');
+    const todayLine = showToday ? `<div class="roadmap-today" style="--today:${(roadmapPosition(nowDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>` : '';
+    const lanes = streams.map((stream, index) => {
+      const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
+      const bars = packRoadmapLanes(children.filter(item => item.type === 'Increment'), range).map(lane => `<div class="roadmap-lane">${lane.map(({ item, left, right }) =>
+        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) ? ' saving' : ''}${item.startDate < range.start ? ' clip-start' : ''}${item.endDate > range.end ? ' clip-end' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Drag to move, drag an end to change dates; Alt + arrows nudges.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
+      const marks = children.filter(item => item.type === 'Milestone').map(item => roadmapMilestone(item, range)).join('');
+      const hidden = roadmap.items.filter(item => item.streamId === stream.id).length - children.length;
+      return `<section class="roadmap-stream" data-roadmap-color="${escape(stream.color)}" aria-label="${escape(stream.title)}">
+        <div class="roadmap-stream-head">
+          <button type="button" class="roadmap-stream-title" data-roadmap-open="${escape(stream.id)}" data-roadmap-stream-id="${escape(stream.id)}"><span class="roadmap-swatch" aria-hidden="true"></span><span>${escape(stream.title)}</span></button>
+          <span class="roadmap-stream-actions">
+            <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="-1" aria-label="Move ${escape(stream.title)} up"${index === 0 ? ' disabled' : ''}>↑</button>
+            <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="1" aria-label="Move ${escape(stream.title)} down"${index === streams.length - 1 ? ' disabled' : ''}>↓</button>
+          </span>
+          <button type="button" class="roadmap-add" data-roadmap-new="Increment" data-stream="${escape(stream.id)}">+ Add increment</button>
+          ${hidden > 0 ? `<small class="roadmap-hidden">${hidden} outside this range</small>` : ''}
+        </div>
+        <div class="roadmap-track">${marks ? `<div class="roadmap-lane roadmap-marks">${marks}</div>` : ''}${bars || (marks ? '' : '<div class="roadmap-lane roadmap-empty-lane"></div>')}</div>
+      </section>`;
+    }).join('');
+    content.innerHTML = head + `<div class="roadmap-viewport"><div class="roadmap-grid">
+      <div class="roadmap-months"><span class="roadmap-corner"></span><div class="roadmap-month-row">${months}</div></div>
+      <div class="roadmap-lines" aria-hidden="true">${gridLines}</div>
+      <section class="roadmap-stream roadmap-milestones" aria-label="Milestones"><div class="roadmap-stream-head"><span class="roadmap-stream-title static">Milestones</span></div>
+        <div class="roadmap-track"><div class="roadmap-lane roadmap-marks">${topMilestones.map(item => roadmapMilestone(item, range)).join('')}</div></div></section>
+      ${milestoneLines}
+      ${lanes}
+      ${todayLine}
+    </div></div>`;
+  }
+  const roadmapDialog = $('#roadmap-dialog'), roadmapForm = $('#roadmap-form');
+  function openRoadmapItem(id, preset = {}) {
+    const current = id ? roadmap.items.find(item => item.id === id) : null;
+    if (id && !current) return;
+    const type = current?.type || preset.type || 'Increment';
+    const streams = roadmapStreams();
+    if (type === 'Increment' && !streams.length) { notify('Add a stream first, then add increments to it.', true); return; }
+    const range = roadmap.range, nowDate = today();
+    const defaultStart = nowDate >= range.start && nowDate <= range.end ? nowDate : range.start;
+    const values = current || C.prepareRoadmapItem({ type, streamId: preset.streamId || (type === 'Increment' ? streams[0]?.id || '' : ''), startDate: type === 'Stream' ? '' : defaultStart, endDate: type === 'Increment' ? C.addDays(defaultStart, 27) : '' }, null);
+    roadmap.editing = { id: current?.id || '', version: current?.version || '', type };
+    $('#roadmap-title').textContent = current ? `Edit ${type.toLowerCase()}` : `New ${type.toLowerCase()}`;
+    $('#roadmap-eyebrow').textContent = current ? current.id : 'Roadmap';
+    roadmapForm.elements.roadmapTitle.value = values.title;
+    roadmapForm.elements.roadmapNotes.value = values.notes;
+    roadmapForm.elements.roadmapStart.value = values.startDate;
+    roadmapForm.elements.roadmapEnd.value = values.endDate;
+    const streamSelect = roadmapForm.elements.roadmapStream;
+    streamSelect.innerHTML = (type === 'Milestone' ? '<option value="">None (top lane)</option>' : '') + streams.map(stream => `<option value="${escape(stream.id)}">${escape(stream.title)}</option>`).join('');
+    streamSelect.value = values.streamId || (type === 'Milestone' ? '' : streams[0]?.id || '');
+    const colour = values.color || (type === 'Stream' ? C.roadmapColors[0] : '');
+    [...roadmapForm.querySelectorAll('input[name="roadmapColor"]')].forEach(input => { input.checked = input.value === colour; });
+    [...roadmapForm.querySelectorAll('input[name="roadmapIcon"]')].forEach(input => { input.checked = input.value === (values.icon || 'diamond'); });
+    roadmapForm.elements.roadmapLine.checked = values.line === true;
+    [...roadmapForm.querySelectorAll('[data-roadmap-field]')].forEach(field => { field.hidden = !field.dataset.roadmapField.split(' ').includes(type); });
+    $('#roadmap-start-label').textContent = type === 'Milestone' ? 'Date' : 'Start';
+    $('#roadmap-delete').hidden = !current;
+    $('#roadmap-status').textContent = '';
+    roadmapDialog.showModal();
+    roadmapForm.elements.roadmapTitle.focus();
+  }
+  function roadmapFormInput() {
+    const type = roadmap.editing.type, form = roadmapForm.elements;
+    const input = { type, title: form.roadmapTitle.value, notes: form.roadmapNotes.value };
+    if (roadmap.editing.id) input.id = roadmap.editing.id;
+    if (type === 'Stream') input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || C.roadmapColors[0];
+    else { input.streamId = form.roadmapStream.value; input.startDate = form.roadmapStart.value; if (type === 'Increment') input.endDate = form.roadmapEnd.value; }
+    if (type === 'Milestone') {
+      input.color = roadmapForm.querySelector('input[name="roadmapColor"]:checked')?.value || '';
+      input.icon = roadmapForm.querySelector('input[name="roadmapIcon"]:checked')?.value || '';
+      input.line = roadmapForm.elements.roadmapLine.checked;
+    }
+    return input;
+  }
+  async function saveRoadmapForm() {
+    if (roadmap.saving) return;
+    const input = roadmapFormInput(), status = $('#roadmap-status');
+    try { C.validateRoadmapItem(C.prepareRoadmapItem(input, roadmap.items.find(item => item.id === input.id) || null), roadmap.items); }
+    catch (error) { status.textContent = error.message; return; }
+    roadmap.saving = true; status.textContent = 'Saving…'; $('#roadmap-save').disabled = true;
+    try {
+      const saved = await roadmapRpc('saveRoadmapItem', input, roadmap.editing.version);
+      roadmap.items = roadmap.items.some(item => item.id === saved.id) ? roadmap.items.map(item => item.id === saved.id ? saved : item) : [...roadmap.items, saved];
+      roadmapDialog.close(); renderRoadmap(); notify(`Saved ${saved.title}`);
+    } catch (error) { status.textContent = `Not saved: ${error.message || error}. Your changes are still here.`; }
+    finally { roadmap.saving = false; $('#roadmap-save').disabled = false; }
+  }
+  async function deleteRoadmapForm() {
+    const current = roadmap.items.find(item => item.id === roadmap.editing?.id);
+    if (!current || roadmap.saving) return;
+    const status = $('#roadmap-status');
+    if ($('#roadmap-delete').dataset.confirm !== current.id) { $('#roadmap-delete').dataset.confirm = current.id; status.textContent = `Select Delete again to remove ${current.title}.`; return; }
+    roadmap.saving = true; status.textContent = 'Deleting…';
+    try {
+      await roadmapRpc('deleteRoadmapItem', current.id, current.version);
+      roadmap.items = roadmap.items.filter(item => item.id !== current.id);
+      roadmapDialog.close(); renderRoadmap(); notify(`Deleted ${current.title}`);
+    } catch (error) { status.textContent = `Not deleted: ${error.message || error}`; }
+    finally { roadmap.saving = false; delete $('#roadmap-delete').dataset.confirm; }
+  }
+  async function moveRoadmapStream(id, direction) {
+    const streams = roadmapStreams(), index = streams.findIndex(stream => stream.id === id), other = streams[index + direction];
+    if (!other || roadmap.saving) return;
+    roadmap.saving = true;
+    const ordered = streams.slice(); [ordered[index], ordered[index + direction]] = [ordered[index + direction], ordered[index]];
+    try {
+      for (const [position, stream] of ordered.entries()) {
+        if (stream.order === position + 1) continue;
+        const saved = await roadmapRpc('saveRoadmapItem', { id: stream.id, order: position + 1 }, stream.version);
+        roadmap.items = roadmap.items.map(item => item.id === saved.id ? saved : item);
+      }
+    } catch (error) { notify(`Stream order not saved: ${error.message || error}`, true); await loadRoadmap(true); }
+    finally { roadmap.saving = false; renderRoadmap(); $(`[data-roadmap-move="${CSS.escape(id)}"][data-direction="${direction}"]`)?.focus(); }
+  }
+  /* Roadmap drag: move increments and milestones in time, stretch increments, drop onto another stream. */
+  let roadmapDrag = null, suppressRoadmapClick = false;
+  roadmap.pending = new Set();
+  const roadmapDayMs = 86400000;
+  function roadmapStreamAt(x, y) {
+    const lane = document.elementsFromPoint(x, y).find(element => element.matches?.('.roadmap-stream'));
+    if (!lane) return null;
+    if (lane.classList.contains('roadmap-milestones')) return '';
+    return lane.querySelector('[data-roadmap-stream-id]')?.dataset.roadmapStreamId ?? null;
+  }
+  function roadmapDragTip(text, x, y) {
+    let tip = $('#roadmap-drag-tip');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'roadmap-drag-tip'; tip.className = 'roadmap-drag-tip'; tip.setAttribute('aria-hidden', 'true'); document.body.append(tip); }
+    tip.textContent = text; tip.hidden = false;
+    tip.style.left = `${Math.min(x + 14, innerWidth - 220)}px`; tip.style.top = `${y + 18}px`;
+  }
+  function hideRoadmapDragTip() { const tip = $('#roadmap-drag-tip'); if (tip) tip.hidden = true; }
+  function roadmapDraftLabel(draft) {
+    const stream = draft.streamId ? roadmapStreams().find(item => item.id === draft.streamId)?.title : 'Milestones';
+    const dates = draft.type === 'Increment' ? `${shortDate(draft.startDate)} – ${shortDate(draft.endDate)}` : shortDate(draft.startDate);
+    return `${dates}${stream ? ` · ${stream}` : ''}`;
+  }
+  function roadmapDragDraft(drag, event) {
+    const days = Math.round((event.clientX - drag.x) / drag.dayWidth), item = drag.item, draft = { ...item };
+    if (drag.mode === 'start') draft.startDate = C.addDays(item.startDate, days) > item.endDate ? item.endDate : C.addDays(item.startDate, days);
+    else if (drag.mode === 'end') draft.endDate = C.addDays(item.endDate, days) < item.startDate ? item.startDate : C.addDays(item.endDate, days);
+    else {
+      draft.startDate = C.addDays(item.startDate, days);
+      draft.endDate = item.type === 'Increment' ? C.addDays(item.endDate, days) : draft.startDate;
+      const stream = roadmapStreamAt(event.clientX, event.clientY);
+      if (stream !== null && (stream || item.type === 'Milestone')) draft.streamId = stream;
+    }
+    return draft;
+  }
+  function paintRoadmapDrag(drag, draft, event) {
+    const element = drag.element, range = roadmap.range;
+    const left = roadmapPosition(draft.startDate, range);
+    if (draft.type === 'Increment') {
+      const right = Math.min(100, Math.max(left + 0.6, roadmapPosition(C.addDays(draft.endDate, 1), range)));
+      element.style.left = `${left.toFixed(3)}%`; element.style.width = `${(right - left).toFixed(3)}%`;
+    } else {
+      element.classList.remove('flip'); element.style.right = 'auto'; element.style.left = `${left.toFixed(3)}%`;
+      $(`.roadmap-mline[data-for="${CSS.escape(drag.item.id)}"]`)?.style.setProperty('--x', (left / 100).toFixed(5));
+    }
+    const sameStream = draft.streamId === drag.item.streamId;
+    element.style.transform = drag.mode === 'move' && !sameStream ? `translateY(${event.clientY - drag.y}px)` : '';
+    $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
+    if (!sameStream) (draft.streamId ? $(`[data-roadmap-stream-id="${CSS.escape(draft.streamId)}"]`)?.closest('.roadmap-stream') : $('.roadmap-milestones'))?.classList.add('roadmap-drop-target');
+    roadmapDragTip(roadmapDraftLabel(draft), event.clientX, event.clientY);
+  }
+  function endRoadmapDrag(cancel) {
+    const drag = roadmapDrag; if (!drag) return null;
+    roadmapDrag = null;
+    document.body.classList.remove('roadmap-dragging');
+    hideRoadmapDragTip();
+    try { drag.element.releasePointerCapture(drag.pointer); } catch (error) {}
+    if (cancel || !drag.moved) { if (drag.moved) renderRoadmap(); return null; }
+    return drag;
+  }
+  async function commitRoadmapChange(item, changes, focusAfter = false) {
+    const previous = roadmap.items.find(other => other.id === item.id);
+    if (!previous || roadmap.pending.has(item.id)) return;
+    const changed = Object.keys(changes).filter(key => changes[key] !== previous[key]);
+    if (!changed.length) { renderRoadmap(); return; }
+    const input = { id: item.id }; changed.forEach(key => { input[key] = changes[key]; });
+    try { C.validateRoadmapItem(C.prepareRoadmapItem(input, previous), roadmap.items); }
+    catch (error) { renderRoadmap(); notify(error.message, true); return; }
+    roadmap.items = roadmap.items.map(other => other.id === item.id ? { ...other, ...input } : other);
+    roadmap.pending.add(item.id);
+    renderRoadmap();
+    if (focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
+    try {
+      const saved = await roadmapRpc('saveRoadmapItem', input, previous.version);
+      roadmap.items = roadmap.items.map(other => other.id === saved.id ? saved : other);
+    } catch (error) {
+      roadmap.items = roadmap.items.map(other => other.id === item.id ? previous : other);
+      notify(`${previous.title} was not moved: ${error.message || error}`, true);
+    } finally {
+      roadmap.pending.delete(item.id);
+      const hadFocus = document.activeElement?.dataset?.roadmapOpen === item.id;
+      if (state.view === 'roadmap') renderRoadmap();
+      if (hadFocus || focusAfter) $(`[data-roadmap-open="${CSS.escape(item.id)}"]`)?.focus();
+    }
+  }
+  $('#view-content').addEventListener('pointerdown', event => {
+    if (state.view !== 'roadmap' || event.button !== 0 || event.pointerType === 'touch' || roadmapDrag) return;
+    const element = event.target.closest('.roadmap-bar, .roadmap-milestone');
+    if (!element) return;
+    const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
+    if (!item || roadmap.pending.has(item.id) || roadmap.saving) return;
+    const track = element.closest('.roadmap-lane');
+    const edge = event.target.closest('.roadmap-handle')?.dataset.edge;
+    roadmapDrag = { element, item: { ...item }, pointer: event.pointerId, x: event.clientX, y: event.clientY, dayWidth: track.getBoundingClientRect().width / roadmapRangeDays(roadmap.range), mode: edge || 'move', moved: false };
+    element.setPointerCapture(event.pointerId);
+  });
+  $('#view-content').addEventListener('pointermove', event => {
+    const drag = roadmapDrag; if (!drag || drag.pointer !== event.pointerId) return;
+    if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+    if (!drag.moved) { drag.moved = true; document.body.classList.add('roadmap-dragging'); drag.element.classList.add('dragging'); }
+    drag.draft = roadmapDragDraft(drag, event);
+    paintRoadmapDrag(drag, drag.draft, event);
+  });
+  $('#view-content').addEventListener('pointerup', event => {
+    if (!roadmapDrag || roadmapDrag.pointer !== event.pointerId) return;
+    const drag = endRoadmapDrag(false);
+    if (!drag) return;
+    suppressRoadmapClick = true; setTimeout(() => { suppressRoadmapClick = false; }, 0);
+    const { startDate, endDate, streamId } = drag.draft;
+    commitRoadmapChange(drag.item, drag.item.type === 'Increment' ? { startDate, endDate, streamId } : { startDate, streamId });
+  });
+  $('#view-content').addEventListener('pointercancel', () => endRoadmapDrag(true));
+  document.addEventListener('keydown', event => { if (roadmapDrag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endRoadmapDrag(true); } }, true);
+  $('#view-content').addEventListener('keydown', event => {
+    if (state.view !== 'roadmap' || !event.altKey || event.ctrlKey || event.metaKey) return;
+    const element = event.target.closest?.('.roadmap-bar, .roadmap-milestone');
+    if (!element || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault(); event.stopPropagation();
+    const item = roadmap.items.find(other => other.id === element.dataset.roadmapOpen);
+    if (!item || roadmap.pending.has(item.id)) return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const days = (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 7 : 1);
+      commitRoadmapChange(item, item.type === 'Increment' ? { startDate: C.addDays(item.startDate, days), endDate: C.addDays(item.endDate, days) } : { startDate: C.addDays(item.startDate, days) }, true);
+      return;
+    }
+    const order = (item.type === 'Milestone' ? [''] : []).concat(roadmapStreams().map(stream => stream.id));
+    const next = order[order.indexOf(item.streamId) + (event.key === 'ArrowDown' ? 1 : -1)];
+    if (next === undefined) return;
+    commitRoadmapChange(item, { streamId: next }, true);
+  }, true);
+  $('#view-content').addEventListener('click', event => {
+    if (state.view !== 'roadmap') return;
+    if (suppressRoadmapClick) { suppressRoadmapClick = false; event.preventDefault(); return; }
+    const target = event.target.closest('button');
+    if (!target) return;
+    if (target.dataset.roadmapOpen) openRoadmapItem(target.dataset.roadmapOpen);
+    else if (target.dataset.roadmapNew) openRoadmapItem('', { type: target.dataset.roadmapNew, streamId: target.dataset.stream || '' });
+    else if (target.dataset.roadmapMove) moveRoadmapStream(target.dataset.roadmapMove, Number(target.dataset.direction));
+    else if (target.hasAttribute('data-roadmap-retry')) loadRoadmap(true);
+    else if (target.dataset.roadmapShift) shiftRoadmapRange(Number(target.dataset.roadmapShift));
+    else if (target.hasAttribute('data-roadmap-lines')) {
+      roadmap.allLines = !roadmap.allLines;
+      try { localStorage.setItem(roadmapLinesStorageKey, roadmap.allLines ? 'all' : 'marked'); } catch (error) {}
+      renderRoadmap(); $('[data-roadmap-lines]')?.focus();
+    }
+    else if (target.hasAttribute('data-roadmap-this-year')) { const range = roadmapYearRange(Number(today().slice(0, 4))); setRoadmapRange(range.start, range.end, '[data-roadmap-range="start"]'); }
+  });
+  $('#view-content').addEventListener('change', event => {
+    if (state.view !== 'roadmap') return;
+    const input = event.target.closest?.('[data-roadmap-range]');
+    if (!input) return;
+    const start = input.dataset.roadmapRange === 'start' ? input.value : roadmap.range.start;
+    const end = input.dataset.roadmapRange === 'end' ? input.value : roadmap.range.end;
+    setRoadmapRange(start, end, `[data-roadmap-range="${input.dataset.roadmapRange}"]`);
+  });
+  roadmapForm.addEventListener('submit', event => { event.preventDefault(); saveRoadmapForm(); });
+  $('#roadmap-cancel').addEventListener('click', () => roadmapDialog.close());
+  $('#roadmap-close').addEventListener('click', () => roadmapDialog.close());
+  $('#roadmap-delete').addEventListener('click', () => deleteRoadmapForm());
+  roadmapDialog.addEventListener('close', () => { delete $('#roadmap-delete').dataset.confirm; const id = roadmap.editing?.id; roadmap.editing = null; if (id) $(`[data-roadmap-open="${CSS.escape(id)}"]`)?.focus(); });
   function setView(view) {
-    if (!['sheet', 'kanban', 'gantt'].includes(view)) view = 'kanban';
+    if (!['sheet', 'kanban', 'gantt', 'roadmap'].includes(view)) view = 'kanban';
     state.view = view; if (location.hash !== '#' + view) location.hash = view; render();
   }
   $$('[data-view]').forEach(el => el.addEventListener('click', () => setView(el.dataset.view)));
@@ -4432,13 +4897,13 @@
     }
     else if (event.key === '/') { event.preventDefault(); $('#search').focus(); }
     else if (event.key.toLowerCase() === 'n') { event.preventDefault(); openIssue(); }
-    else if (['1', '2', '3'].includes(event.key)) setView(['sheet', 'kanban', 'gantt'][Number(event.key) - 1]);
+    else if (['1', '2', '3', '4'].includes(event.key)) setView(['sheet', 'kanban', 'gantt', 'roadmap'][Number(event.key) - 1]);
   });
   window.addEventListener('beforeunload', event => { if (state.busy || hasPendingSaves() || (dialog.open && formSnapshot() !== initialForm)) { event.preventDefault(); event.returnValue = ''; } });
   window.addEventListener('storage', event => { if (event.key === storageKey && !state.busy && !hasPendingSaves() && !bulkDeleteDraft && !document.querySelector('dialog[open]')) refresh(true); });
   setInterval(() => { if (isCloud && state.mode !== 'personal' && !document.hidden && !document.querySelector('dialog[open]') && !bulkDeleteDraft && !state.busy && !hasPendingSaves() && !document.activeElement?.matches('.cell-input')) refresh(true); }, 45000);
   const requestedView = location.hash.slice(1) || new URLSearchParams(location.search).get('view') || document.body.dataset.initialView;
-  state.view = ['sheet', 'kanban', 'gantt'].includes(requestedView) ? requestedView : 'kanban';
+  state.view = ['sheet', 'kanban', 'gantt', 'roadmap'].includes(requestedView) ? requestedView : 'kanban';
   if (requestedView === 'privacy' && $('#privacy') && $('#help-dialog')) {
     $('#privacy').open = true;
     $('#help-dialog').showModal();

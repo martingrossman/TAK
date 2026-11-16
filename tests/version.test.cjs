@@ -21,7 +21,7 @@ test('generated Version.js agrees with package.json (run npm run build if this f
 test('the header badge and Apps Script allowlists carry the version', () => {
   assert.match(read('Index.html'), /<span class="brand-version" title="TAK version <\?= takAppVersion_\(\) \?>">v<\?= takAppVersion_\(\) \?><\/span>/);
   assert.ok(read('.claspignore').split(/\r?\n/).includes('!Version.js'));
-  assert.match(read('scripts/google-package.mjs'), /'SharedHost','Version'/);
+  assert.match(read('scripts/google-package.mjs'), /'Roadmap','Version'/);
   assert.match(read('docs/INSTALL_FROM_SOURCE.md'), /SharedHost\.js · Version\.js/);
 });
 

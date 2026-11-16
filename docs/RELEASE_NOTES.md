@@ -4,7 +4,15 @@ Newest first. One entry per released version. The version number is set once, in
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.0 — 2026-11-16
+
+- Added light and dark themes with a header toggle.
+- Added a **Roadmap** view (key `4`): streams as lanes, drag to move or resize items, custom date range, milestone icons, colours and vertical lines.
+- Fixed the milestone editor ignoring stream and date changes.
+- No change to stored data; the roadmap layout is kept in the browser.
 
 ## v1.0.0 — 2026-11-16
 

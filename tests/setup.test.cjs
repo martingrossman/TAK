@@ -71,6 +71,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl =
   });
   vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(require.resolve('../SharedHost.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), context);
   return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, sidebar: () => sidebar, alert: () => alert, balanced: () => acquired === released };
 }
 

@@ -46,6 +46,12 @@ There are two ways to store tasks: in a browser or in a Google spreadsheet. Ther
 
 The browser demo and local preview do **not** synchronize with Google Sheets or with each other. Different browsers, devices and site addresses have separate browser storage. Export CSV to keep a portable copy of browser data.
 
+### Roadmap and themes
+
+**Roadmap** (shortcut `4`) plans a year in streams. Each stream holds increments (bars with start and end dates) and milestones; milestones without a stream sit in the top lane. Select any item to edit it, use the arrows beside a stream to reorder streams, and choose the visible period with the **From** and **To** dates above the grid (it opens on the current year). The arrows step by the same period length, **This year** resets it, and the choice is remembered in this browser for each tracker. Ranges from one week to five years are allowed; longer ranges label quarters or years instead of months. Drag increments and milestones to reschedule them or move them to another stream, or use Alt + arrow keys on the focused item. Each milestone can have its own icon (diamond, circle, square, triangle, star or flag) and colour, and can draw a dashed vertical line across the whole roadmap. **Milestone lines** in the toolbar shows a line for every milestone; that choice is remembered in this browser. In Google Sheets mode the roadmap is stored in its own **Roadmap** tab, created on the first save; it never changes task rows. Edits are revision-checked like tasks, so a stale tab cannot overwrite a newer change. The browser demo starts with a sample roadmap.
+
+The moon/sun button in the top bar switches between light and dark themes. Without a saved choice, TAK follows your system setting.
+
 ### Smart Notepad trial
 
 In this worktree's build, open **More → Plan notepad** to enter several lines of work. Type `Epic:` to search existing Epics; selecting one reuses it, while a new name creates an Epic. Following `Story:`, `Task:` and `Bug:` lines use that Epic until the next heading, and `#Epic` can override it. Add `@Person`, `!high` and `+5d` or `+2w` for an existing assignee, priority and inclusive weekdays. Preview the lines, correct any highlighted errors, choose the rows to create, then apply. Your notes and review remain in this browser across reloads.

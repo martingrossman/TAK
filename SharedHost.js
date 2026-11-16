@@ -26,7 +26,8 @@ function sharedTrackerRpc(sheetId, method, args) {
     getProject: getProject, saveIssue: saveIssue, createIssuesBatch: createIssuesBatch,
     updateIssuesBatch: updateIssuesBatch, deleteIssuesBatch: deleteIssuesBatch, deleteIssue: deleteIssue, moveIssue: moveIssue,
     duplicateIssue: duplicateIssue, undoDuplicateIssues: undoDuplicateIssues,
-    getTaskComments: getTaskComments, addTaskComment: addTaskComment, updateTaskComment: updateTaskComment
+    getTaskComments: getTaskComments, addTaskComment: addTaskComment, updateTaskComment: updateTaskComment,
+    getRoadmap: getRoadmap, saveRoadmapItem: saveRoadmapItem, deleteRoadmapItem: deleteRoadmapItem
   };
   if (!Object.prototype.hasOwnProperty.call(methods, method) || !Array.isArray(args) || args.length > 6) throw new Error('Unsupported tracker operation.');
   if (takSharedRequest_) throw new Error('A tracker request is already running.');

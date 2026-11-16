@@ -16,7 +16,7 @@ function harness() {
     LockService: { getScriptLock: () => ({ waitLock() { assert.equal(locked, false); locked = true; }, releaseLock() { locked = false; } }) },
     Utilities: { getUuid: () => crypto.randomUUID(), formatDate: (date, zone, format) => format === 'yyyy-MM-dd' ? date.toLocaleDateString('en-CA', { timeZone: zone }) : date.toISOString(), parseDate: value => new Date(value+'T00:00:00Z'), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, value) => crypto.createHash('sha256').update(value).digest(), base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url') }
   });
-  for (const name of ['Schema','Code','SharedHost','Authorization','Environment','Repository','History','Settings','Comments']) vm.runInContext(fs.readFileSync(require.resolve('../'+name+'.js'),'utf8'),api);
+  for (const name of ['Schema','Code','SharedHost','Authorization','Environment','Repository','History','Settings','Comments','Roadmap']) vm.runInContext(fs.readFileSync(require.resolve('../'+name+'.js'),'utf8'),api);
   function makeBook(id) {
     const tabs = {}, book = { id, tabs, writable: true, getId: () => id, getName: () => id, getUrl: () => 'https://docs.google.com/spreadsheets/d/'+id+'/edit', getSpreadsheetTimeZone: () => 'Europe/Prague', getSheetByName: name => tabs[name] || null };
     function sheet(name, headers) {

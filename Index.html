@@ -7,6 +7,7 @@
   <meta name="description"
     content="One project, three perspectives. Plan work in a sheet, move it on a board, and see the timeline.">
   <title>TAK — Project tracker</title>
+  <script>(function () { var theme; try { theme = localStorage.getItem('tak.theme.v1'); } catch (error) {} if (theme !== 'dark' && theme !== 'light') theme = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; })();</script>
   <?!= include_('Styles'); ?>
 </head>
 
@@ -23,6 +24,7 @@
       <button type="button" data-view="sheet" aria-keyshortcuts="1" title="Sheet (1)">Sheet</button>
       <button type="button" data-view="kanban" aria-keyshortcuts="2" title="Kanban (2)">Kanban</button>
       <button type="button" data-view="gantt" aria-keyshortcuts="3" title="Gantt (3)">Gantt</button>
+      <button type="button" data-view="roadmap" aria-keyshortcuts="4" title="Roadmap (4)">Roadmap</button>
     </nav>
     <div class="header-tools">
       <button id="switch-sheet" class="button subtle" type="button" hidden aria-label="Switch Sheet"
@@ -34,6 +36,7 @@
       <button id="command-open" class="button subtle" type="button" aria-label="Commands"
         aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command"
           aria-hidden="true"></span><span class="tool-label">Commands</span></button>
+      <button id="theme-toggle" class="button subtle icon-only" type="button" aria-pressed="false" aria-label="Switch to dark theme" title="Switch to dark theme"><span data-theme-icon aria-hidden="true"></span></button>
       <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts"
         aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span
           class="tool-label">Shortcuts</span></button>
@@ -443,6 +446,25 @@
         class="icon-button" aria-label="Close quick edit">×</button></div>
     <div id="triage-control"></div>
   </div>
+  <dialog id="roadmap-dialog" class="help-dialog roadmap-dialog" aria-labelledby="roadmap-title">
+    <form id="roadmap-form" novalidate>
+      <div class="dialog-header"><div><span id="roadmap-eyebrow" class="eyebrow">Roadmap</span><h2 id="roadmap-title">Edit item</h2></div><button type="button" class="icon-button" id="roadmap-close" aria-label="Close">×</button></div>
+      <div class="form-body">
+        <label class="field">Title<input name="roadmapTitle" type="text" maxlength="200" autocomplete="off" required></label>
+        <label class="field" data-roadmap-field="Increment Milestone">Stream<select name="roadmapStream"></select></label>
+        <div class="form-grid" data-roadmap-field="Increment Milestone">
+          <label class="field"><span id="roadmap-start-label">Start</span><input name="roadmapStart" type="date"></label>
+          <label class="field" data-roadmap-field="Increment">End<input name="roadmapEnd" type="date"></label>
+        </div>
+        <fieldset class="field roadmap-colors" data-roadmap-field="Stream Milestone"><legend>Colour</legend><div class="roadmap-color-row"><label class="roadmap-color roadmap-color-default" data-roadmap-field="Milestone" title="Stream colour, or neutral in the top lane"><input type="radio" name="roadmapColor" value=""><span aria-hidden="true"></span><span class="visually-hidden">Default</span></label><label class="roadmap-color" data-roadmap-color="indigo"><input type="radio" name="roadmapColor" value="indigo"><span aria-hidden="true"></span><span class="visually-hidden">Indigo</span></label><label class="roadmap-color" data-roadmap-color="teal"><input type="radio" name="roadmapColor" value="teal"><span aria-hidden="true"></span><span class="visually-hidden">Teal</span></label><label class="roadmap-color" data-roadmap-color="amber"><input type="radio" name="roadmapColor" value="amber"><span aria-hidden="true"></span><span class="visually-hidden">Amber</span></label><label class="roadmap-color" data-roadmap-color="rose"><input type="radio" name="roadmapColor" value="rose"><span aria-hidden="true"></span><span class="visually-hidden">Rose</span></label><label class="roadmap-color" data-roadmap-color="violet"><input type="radio" name="roadmapColor" value="violet"><span aria-hidden="true"></span><span class="visually-hidden">Violet</span></label><label class="roadmap-color" data-roadmap-color="green"><input type="radio" name="roadmapColor" value="green"><span aria-hidden="true"></span><span class="visually-hidden">Green</span></label><label class="roadmap-color" data-roadmap-color="slate"><input type="radio" name="roadmapColor" value="slate"><span aria-hidden="true"></span><span class="visually-hidden">Slate</span></label></div></fieldset>
+        <fieldset class="field roadmap-icons" data-roadmap-field="Milestone"><legend>Icon</legend><div class="roadmap-color-row"><label class="roadmap-icon-choice" title="Diamond"><input type="radio" name="roadmapIcon" value="diamond"><span class="roadmap-diamond" data-shape="diamond" aria-hidden="true"></span><span class="visually-hidden">Diamond</span></label><label class="roadmap-icon-choice" title="Circle"><input type="radio" name="roadmapIcon" value="circle"><span class="roadmap-diamond" data-shape="circle" aria-hidden="true"></span><span class="visually-hidden">Circle</span></label><label class="roadmap-icon-choice" title="Square"><input type="radio" name="roadmapIcon" value="square"><span class="roadmap-diamond" data-shape="square" aria-hidden="true"></span><span class="visually-hidden">Square</span></label><label class="roadmap-icon-choice" title="Triangle"><input type="radio" name="roadmapIcon" value="triangle"><span class="roadmap-diamond" data-shape="triangle" aria-hidden="true"></span><span class="visually-hidden">Triangle</span></label><label class="roadmap-icon-choice" title="Star"><input type="radio" name="roadmapIcon" value="star"><span class="roadmap-diamond" data-shape="star" aria-hidden="true"></span><span class="visually-hidden">Star</span></label><label class="roadmap-icon-choice" title="Flag"><input type="radio" name="roadmapIcon" value="flag"><span class="roadmap-diamond" data-shape="flag" aria-hidden="true"></span><span class="visually-hidden">Flag</span></label></div></fieldset>
+        <label class="roadmap-line-field" data-roadmap-field="Milestone"><input type="checkbox" name="roadmapLine"><span>Draw a vertical line across the roadmap</span></label>
+        <label class="field">Notes<textarea name="roadmapNotes" rows="3" maxlength="5000"></textarea></label>
+        <p id="roadmap-status" class="roadmap-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="dialog-footer"><button type="button" id="roadmap-delete" class="button danger" hidden>Delete</button><div><button type="button" id="roadmap-cancel" class="button secondary">Cancel</button><button type="submit" id="roadmap-save" class="button primary">Save</button></div></div>
+    </form>
+  </dialog>
   <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
     <div class="dialog-header">
       <h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help"
@@ -477,26 +499,13 @@
       <details class="shortcut-group">
         <summary>Navigate and find</summary>
         <dl class="shortcut-list">
-          <div>
-            <dt><kbd>↑</kbd> / <kbd>↓</kbd></dt>
-            <dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd>
-          </div>
-          <div>
-            <dt><kbd>/</kbd></dt>
-            <dd>Focus search</dd>
-          </div>
-          <div>
-            <dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt>
-            <dd>Switch to Sheet / Kanban / Gantt</dd>
-          </div>
-          <div>
-            <dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt>
-            <dd>Open Commands to find issues and actions</dd>
-          </div>
-          <div>
-            <dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt>
-            <dd>Focus the next / previous control</dd>
-          </div>
+          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd></div>
+          <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
+          <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> / <kbd>4</kbd></dt><dd>Switch to Sheet / Kanban / Gantt / Roadmap</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>Roadmap: move the focused item a day (with <kbd>Shift</kbd>, a week)</dd></div>
+          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Roadmap: move the focused item to the stream above / below</dd></div>
+          <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
+          <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Focus the next / previous control</dd></div>
         </dl>
       </details>
       <details class="shortcut-group">
