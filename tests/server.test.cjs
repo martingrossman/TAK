@@ -740,6 +740,7 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
       Values: {
         batchGet(id, options) {
           const book = books.get(id);
+          (h.rangeReads ||= []).push(options.ranges.slice());
           return {
             valueRanges: (options.ranges || []).map(r => {
               const name = r.replace(/^'|'$/g, '').replace(/''/g, "'");
@@ -791,6 +792,7 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
 
   // The Roadmap tab is created through the same Sheets API wrapper, which must support header formatting.
   vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), h.api);
+  h.rangeReads = [];
   const stream = h.api.saveRoadmapItem({ type: 'Stream', title: 'Mobile', color: 'rose' }, '');
   assert.equal(stream.id, 'RM-1');
   const second = books.get('picker-book-2');
@@ -798,6 +800,9 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   assert.ok(second.formats.some(f => f.cell.userEnteredFormat.textFormat && f.cell.userEnteredFormat.textFormat.bold), 'header is bold');
   assert.ok(second.formats.some(f => f.cell.userEnteredFormat.numberFormat && f.cell.userEnteredFormat.numberFormat.type === 'TEXT'), 'cells are stored as text');
   assert.equal(second.sheets.get('Roadmap').rows[1][0], 'RM-1', 'the new stream was written to the sheet');
+  h.rangeReads = [];
+  h.api.saveRoadmapItem({ type: 'Stream', title: 'Web', color: 'teal' }, '');
+  assert.ok(h.rangeReads.length > 0 && h.rangeReads.every(ranges => ranges.length === 1 && ranges[0].includes('Roadmap')), 'a roadmap save reads only the Roadmap tab');
   h.api.deleteRoadmapItem('RM-1', stream.version);
-  assert.equal(second.sheets.get('Roadmap').rows.length, 1, 'the deleted stream row is removed');
+  assert.equal(second.sheets.get('Roadmap').rows.length, 2, 'the deleted stream row is removed');
 });

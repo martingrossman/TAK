@@ -1787,7 +1787,8 @@ function createSheetsApiBook_(title) {
   return app.create(sheetTitle);
 }
 
-function openSheetsApiBook_(spreadsheetId) {
+/** onlySheets (optional) limits which tabs' cells are read; other tabs stay empty in this book object. */
+function openSheetsApiBook_(spreadsheetId, onlySheets) {
   if (!hasSheetsApi_()) {
     var app = legacySheetService_();
     if (!app || typeof app.openById !== 'function') throw new Error('Sheets API v4 service is not available.');
@@ -1804,7 +1805,7 @@ function openSheetsApiBook_(spreadsheetId) {
     sheetMetaMap[s.properties.title] = s.properties;
   });
 
-  var sheetNames = Object.keys(sheetMetaMap);
+  var sheetNames = Object.keys(sheetMetaMap).filter(function (name) { return !onlySheets || onlySheets.indexOf(name) >= 0; });
   var gridCache = {};
   if (sheetNames.length) {
     var ranges = sheetNames.map(function (name) { return "'" + name.replace(/'/g, "''") + "'"; });

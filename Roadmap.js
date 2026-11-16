@@ -33,6 +33,17 @@ function roadmapSheet_(book, create) {
   return sheet;
 }
 
+/** The roadmap touches one tab, so in the Google web app read only that tab instead of every tab of the spreadsheet. */
+function roadmapBook_() {
+  if (typeof sharedHost_ === 'function' && sharedHost_()) return getBook_();
+  if (typeof hasSheetsApi_ === 'function' && hasSheetsApi_()) {
+    var id = environmentSpreadsheetId_();
+    if (!id) throw new Error('Run setupTracker in the Apps Script editor first.');
+    return openSheetsApiBook_(id, [TAK_ROADMAP_TAB_]);
+  }
+  return getBook_();
+}
+
 function roadmapText_(value, book) {
   if (value instanceof Date) return Utilities.formatDate(value, book.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
   return String(value == null ? '' : value).trim();
@@ -63,7 +74,7 @@ function clientRoadmapItem_(item) {
 function getRoadmap() {
   return withLock_(function () {
     authorizationService_().require('read');
-    var book = getBook_();
+    var book = roadmapBook_();
     return browserValue_({ items: readRoadmap_(book).map(clientRoadmapItem_) });
   });
 }
@@ -78,7 +89,7 @@ function saveRoadmapItem(input, expectedVersion) {
   return withLock_(function () {
     authorizationService_().require('write');
     if (!input || typeof input !== 'object') throw new Error('Nothing to save.');
-    var book = getBook_(), sheet = roadmapSheet_(book, true), items = readRoadmap_(book);
+    var book = roadmapBook_(), sheet = roadmapSheet_(book, true), items = readRoadmap_(book);
     var current = input.id ? items.filter(function (item) { return item.id === input.id; })[0] : null;
     if (input.id && !current) throw new Error('This roadmap item no longer exists. Refresh the roadmap.');
     if (current && String(expectedVersion) !== current.version) throw new Error('This roadmap item changed elsewhere. Refresh, then apply your change again.');
@@ -104,7 +115,7 @@ function saveRoadmapItem(input, expectedVersion) {
 function deleteRoadmapItem(id, expectedVersion) {
   return withLock_(function () {
     authorizationService_().require('write');
-    var book = getBook_(), sheet = roadmapSheet_(book, false), items = sheet ? readRoadmap_(book) : [];
+    var book = roadmapBook_(), sheet = roadmapSheet_(book, false), items = sheet ? readRoadmap_(book) : [];
     var current = items.filter(function (item) { return item.id === id; })[0];
     if (!current) throw new Error('This roadmap item no longer exists. Refresh the roadmap.');
     if (String(expectedVersion) !== current.version) throw new Error('This roadmap item changed elsewhere. Refresh before deleting it.');
