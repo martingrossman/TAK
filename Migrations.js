@@ -127,6 +127,7 @@ function migrateLegacyIssues() {
     if (tasks.length) target.getRange(2, 1, tasks.length, SheetFlowSchema.tabs.tasks.headers.length).setValues(tasks);
     PropertiesService.getScriptProperties().setProperty('SHEETFLOW_SCHEMA_VERSION', SheetFlowSchema.version);
     markMigrationComplete_(book, legacyRows.length);
+    if (typeof flushBook_ === 'function') flushBook_(book);
     return { migratedTasks: tasks.length, migratedEpics: epics.length, spreadsheetUrl: book.getUrl(), schema: SheetFlowSchema.report(book) };
   });
 }

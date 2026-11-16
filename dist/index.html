@@ -1,9 +1,11 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="One project, three perspectives. Plan work in a sheet, move it on a board, and see the timeline.">
+  <meta name="description"
+    content="One project, three perspectives. Plan work in a sheet, move it on a board, and see the timeline.">
   <title>TAK — Project tracker</title>
   <style>
 :root{
@@ -739,7 +741,10 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
 </style>
 
 </head>
-<body data-initial-view="kanban" data-shared-sheet="">
+
+<body data-initial-view="kanban" data-shared-sheet=""
+  data-oauth-token="" data-picker-app-id=""
+  data-picker-api-key="">
   <header class="topbar">
     <div class="brand-group">
       <a class="brand" href="#kanban" aria-label="TAK home">TAK</a>
@@ -751,41 +756,78 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
       <button type="button" data-view="gantt" aria-keyshortcuts="3" title="Gantt (3)">Gantt</button>
     </nav>
     <div class="header-tools">
-      <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo" title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span class="tool-label">Undo</span></button>
-      <button id="command-open" class="button subtle" type="button" aria-label="Commands" aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command" aria-hidden="true"></span><span class="tool-label">Commands</span></button>
-      <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts" aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span class="tool-label">Shortcuts</span></button>
-      <a id="demo-github-header" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
+      <button id="switch-sheet" class="button subtle" type="button" hidden aria-label="Switch Sheet"
+        title="Switch Google Sheet"><span data-icon="sheet" aria-hidden="true"></span><span
+          class="tool-label">Switch Sheet</span></button>
+      <button id="undo-last-action" class="button subtle" type="button" disabled aria-label="Undo"
+        title="Undo the last saved issue change"><span data-icon="undo" aria-hidden="true"></span><span
+          class="tool-label">Undo</span></button>
+      <button id="command-open" class="button subtle" type="button" aria-label="Commands"
+        aria-keyshortcuts="Control+K Meta+K" title="Commands (Ctrl/Cmd + K)" disabled><span data-icon="command"
+          aria-hidden="true"></span><span class="tool-label">Commands</span></button>
+      <button id="help-button" class="button subtle" type="button" aria-label="Shortcuts" title="Keyboard shortcuts"
+        aria-haspopup="dialog" aria-controls="help-dialog"><span data-icon="help" aria-hidden="true"></span><span
+          class="tool-label">Shortcuts</span></button>
+      <a id="demo-github-header" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank"
+        rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
     </div>
-    <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New task</button>
+    <button id="create-issue" class="button primary" type="button"><span data-icon="plus" aria-hidden="true"></span>New
+      task</button>
   </header>
   <main>
     <h1 id="view-title" class="visually-hidden">Kanban</h1>
     <div class="workspace-bar">
       <div class="toolbar" aria-label="Search and filters">
-        <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search" placeholder="Search tasks by title or ID…" aria-label="Search issues"><kbd>/</kbd></label>
-        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools"><summary>Filters</summary><div class="filters tool-menu-panel">
-          <div class="filter-wide"><strong>Epic</strong><nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav></div>
-          <div class="filter-wide"><strong id="type-filter-label">All types</strong><div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div></div>
-          <label>Assignee<select id="assignee-filter" aria-label="Filter by assignee"><option value="">Anyone</option></select></label><label>Priority<select id="priority-filter" aria-label="Filter by priority"><option value="">All priorities</option></select></label><label>Status<select id="status-filter" aria-label="Filter by status"><option value="">All statuses</option></select></label>
-            <label>Tag<select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select></label>
-            <label>Sprint<select id="sprint-filter" aria-label="Filter by sprint"><option value="">All sprints</option></select></label>
-            <label class="date-filter"><span>Start on or after</span><input id="start-date-filter" type="date" aria-label="Start on or after"></label>
-            <label class="date-filter"><span>Due on or before</span><input id="due-date-filter" type="date" aria-label="Due on or before"></label>
+        <label class="search"><span data-icon="search" aria-hidden="true"></span><input id="search" type="search"
+            placeholder="Search tasks by title or ID…" aria-label="Search issues"><kbd>/</kbd></label>
+        <details id="workspace-filters" class="workspace-filters tool-menu" name="workspace-tools">
+          <summary>Filters</summary>
+          <div class="filters tool-menu-panel">
+            <div class="filter-wide"><strong>Epic</strong>
+              <nav id="epic-nav" class="epic-nav" aria-label="Filter by epic"></nav>
+            </div>
+            <div class="filter-wide"><strong id="type-filter-label">All types</strong>
+              <div id="type-filter" class="filter-menu-options" role="group" aria-label="Issue types"></div>
+            </div>
+            <label>Assignee<select id="assignee-filter" aria-label="Filter by assignee">
+                <option value="">Anyone</option>
+              </select></label><label>Priority<select id="priority-filter" aria-label="Filter by priority">
+                <option value="">All priorities</option>
+              </select></label><label>Status<select id="status-filter" aria-label="Filter by status">
+                <option value="">All statuses</option>
+              </select></label>
+            <label>Tag<select id="tag-filter" aria-label="Filter by tag">
+                <option value="">All tags</option>
+              </select></label>
+            <label>Sprint<select id="sprint-filter" aria-label="Filter by sprint">
+                <option value="">All sprints</option>
+              </select></label>
+            <label class="date-filter"><span>Start on or after</span><input id="start-date-filter" type="date"
+                aria-label="Start on or after"></label>
+            <label class="date-filter"><span>Due on or before</span><input id="due-date-filter" type="date"
+                aria-label="Due on or before"></label>
 
-        </div></details>
+          </div>
+        </details>
         <div id="workspace-view-options"></div>
-        <details id="workspace-more" class="workspace-options tool-menu" name="workspace-tools"><summary>More</summary><div class="workspace-panel tool-menu-panel">
-          <div id="mobile-view-options"></div>
-          <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
-          <button id="plan-notepad-open" class="button subtle" type="button">Plan notepad</button>
-          <button id="refresh" class="button subtle" type="button">Refresh</button>
-          <button id="export" class="button subtle" type="button">Export CSV</button>
-          <button id="add-epic" class="button subtle" type="button">New epic</button><div class="connection-card">
-              <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your project…</small>
+        <details id="workspace-more" class="workspace-options tool-menu" name="workspace-tools">
+          <summary>More</summary>
+          <div class="workspace-panel tool-menu-panel">
+            <div id="mobile-view-options"></div>
+            <button id="bulk-create-open" class="button subtle" type="button">Paste list</button>
+            <button id="plan-notepad-open" class="button subtle" type="button">Plan notepad</button>
+            <button id="refresh" class="button subtle" type="button">Refresh</button>
+            <button id="export" class="button subtle" type="button">Export CSV</button>
+            <button id="add-epic" class="button subtle" type="button">New epic</button>
+            <div class="connection-card">
+              <strong id="connection-title">Opening workspace</strong><small id="connection-detail">Loading your
+                project…</small>
               <a id="sheet-link" target="_blank" rel="noopener" hidden>Open Google Sheet ↗</a>
             </div>
-          <a id="demo-github-menu" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank" rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
-        </div></details>
+            <a id="demo-github-menu" class="button subtle" href="https://github.com/martingrossman/TAK" target="_blank"
+              rel="noopener noreferrer" aria-label="TAK source on GitHub" data-demo-only hidden>GitHub ↗</a>
+          </div>
+        </details>
         <button id="clear-filters" class="button subtle" hidden>Clear filters</button>
         <span id="issue-count" class="issue-count"></span>
       </div>
@@ -794,49 +836,89 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
           <div class="quick-entry ghost-entry" role="group" aria-label="Contextual quick create work item" hidden>
             <div class="quick-entry-context">
               <div class="quick-parent-picker">
-                <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options" autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false" aria-controls="quick-parent-options">▾</button></div>
-                <div id="quick-parent-options" class="quick-parent-options" role="listbox" aria-label="Available parents" popover="manual" hidden></div>
+                <div class="quick-parent-control"><input id="quick-parent" type="text" role="combobox"
+                    aria-autocomplete="list" aria-expanded="false" aria-controls="quick-parent-options"
+                    autocomplete="off" aria-label="Quick entry parent" placeholder="Choose or search parent…"><button
+                    id="quick-parent-toggle" type="button" aria-label="Choose parent" aria-expanded="false"
+                    aria-controls="quick-parent-options">▾</button></div>
+                <div id="quick-parent-options" class="quick-parent-options" role="listbox"
+                  aria-label="Available parents" popover="manual" hidden></div>
                 <span id="quick-parent-match-count" class="visually-hidden" role="status"></span>
               </div>
               <span id="quick-context" role="status">No parent</span>
             </div>
             <div class="quick-entry-line">
-              <input id="quick-title" type="text" maxlength="2000" autocomplete="off" placeholder="Add a task…" aria-label="New task title" aria-describedby="quick-context quick-entry-hint quick-smart-hint quick-smart-errors" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="quick-assignee-options" enterkeyhint="done">
+              <input id="quick-title" type="text" maxlength="2000" autocomplete="off" placeholder="Add a task…"
+                aria-label="New task title"
+                aria-describedby="quick-context quick-entry-hint quick-smart-hint quick-smart-errors" role="combobox"
+                aria-autocomplete="list" aria-expanded="false" aria-controls="quick-assignee-options"
+                enterkeyhint="done">
             </div>
-            <div id="quick-assignee-options" class="quick-parent-options" role="listbox" aria-label="Matching assignees" popover="manual" hidden></div>
-            <div id="quick-smart-preview" class="quick-smart-preview" role="group" aria-label="Recognized title properties" hidden></div>
+            <div id="quick-assignee-options" class="quick-parent-options" role="listbox" aria-label="Matching assignees"
+              popover="manual" hidden></div>
+            <div id="quick-smart-preview" class="quick-smart-preview" role="group"
+              aria-label="Recognized title properties" hidden></div>
             <div id="quick-smart-errors" class="quick-smart-errors" role="status" aria-live="polite" hidden></div>
             <small id="quick-smart-hint" class="quick-smart-hint">@name · 5d workdays · !high</small>
             <div class="quick-entry-actions">
               <button id="quick-add" type="button" aria-label="Create task" title="Create (Enter)">Create ↵</button>
-              <button id="quick-details" type="button" title="Open full creation details. From focused work, Shift+T/S opens the editor directly.">Details</button>
-              <details class="quick-entry-options"><summary aria-label="More creation options">More</summary><div class="quick-entry-secondary">
-                <label>Type<select id="quick-kind"><option>Task</option><option>Story</option><option>Milestone</option></select></label>
-                <label>Status<select id="quick-status"><option>Backlog</option><option>To Do</option><option>In Progress</option><option>Review</option><option>Done</option></select></label>
-                <button id="quick-clear" type="button">Discard draft</button>
-              </div><p class="quick-smart-hint">Use @"Martin Novak" for full names. Priorities: !highest, !high, !medium, !low, !lowest. Durations count Mon–Fri inclusively; 2w = 10 workdays, with no holidays. Set an exact deadline with due:today, due:tomorrow or due:YYYY-MM-DD. Use a preview chip’s × to keep a token as title text.</p></details>
+              <button id="quick-details" type="button"
+                title="Open full creation details. From focused work, Shift+T/S opens the editor directly.">Details</button>
+              <details class="quick-entry-options">
+                <summary aria-label="More creation options">More</summary>
+                <div class="quick-entry-secondary">
+                  <label>Type<select id="quick-kind">
+                      <option>Task</option>
+                      <option>Story</option>
+                      <option>Milestone</option>
+                    </select></label>
+                  <label>Status<select id="quick-status">
+                      <option>Backlog</option>
+                      <option>To Do</option>
+                      <option>In Progress</option>
+                      <option>Review</option>
+                      <option>Done</option>
+                    </select></label>
+                  <button id="quick-clear" type="button">Discard draft</button>
+                </div>
+                <p class="quick-smart-hint">Use @"Martin Novak" for full names. Priorities: !highest, !high, !medium,
+                  !low, !lowest. Durations count Mon–Fri inclusively; 2w = 10 workdays, with no holidays. Set an exact
+                  deadline with due:today, due:tomorrow or due:YYYY-MM-DD. Use a preview chip’s × to keep a token as
+                  title text.</p>
+              </details>
               <span id="quick-entry-hint">Enter to add another · Esc to close</span>
             </div>
             <div id="quick-batch" class="quick-batch" hidden>
               <label for="quick-batch-input">Pasted titles</label>
-              <small id="quick-batch-hint" class="quick-smart-hint">One literal title per line. Smart syntax applies only to single-title capture, not pasted lists.</small>
-              <textarea id="quick-batch-input" rows="6" maxlength="30000" aria-describedby="quick-batch-status quick-batch-hint"></textarea>
-              <div class="quick-batch-actions"><span id="quick-batch-status" role="status" aria-live="polite"></span><button id="quick-batch-cancel" type="button" class="button secondary">Back</button><button id="quick-batch-submit" type="button" class="button primary">Create tasks</button></div>
+              <small id="quick-batch-hint" class="quick-smart-hint">One literal title per line. Smart syntax applies
+                only to single-title capture, not pasted lists.</small>
+              <textarea id="quick-batch-input" rows="6" maxlength="30000"
+                aria-describedby="quick-batch-status quick-batch-hint"></textarea>
+              <div class="quick-batch-actions"><span id="quick-batch-status" role="status"
+                  aria-live="polite"></span><button id="quick-batch-cancel" type="button"
+                  class="button secondary">Back</button><button id="quick-batch-submit" type="button"
+                  class="button primary">Create tasks</button></div>
             </div>
           </div>
         </div>
 
-        <div id="sheet-actions"></div><div class="workspace-tools">
-          <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle" type="checkbox" checked>Group by epic</label>
-          <label class="view-toggle" title="Group all milestones into a dedicated project lane on top"><input id="milestones-top-toggle" type="checkbox">Milestones on top</label>
+        <div id="sheet-actions"></div>
+        <div class="workspace-tools">
+          <label class="view-toggle" title="Group this view into epic swimlanes"><input id="swimlanes-toggle"
+              type="checkbox" checked>Group by epic</label>
+          <label class="view-toggle" title="Group all milestones into a dedicated project lane on top"><input
+              id="milestones-top-toggle" type="checkbox">Milestones on top</label>
 
 
           <details class="workspace-saved-views tool-menu">
             <summary>Saved views</summary>
             <div class="saved-view-bar tool-menu-panel">
-              <label>Saved view <select id="saved-view-select" aria-label="Load a saved view"><option value="">Saved views…</option></select></label>
+              <label>Saved view <select id="saved-view-select" aria-label="Load a saved view">
+                  <option value="">Saved views…</option>
+                </select></label>
               <button type="button" id="save-view-open" class="button secondary">Save current view</button>
-              <button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view" hidden>Delete view</button>
+              <button type="button" id="delete-saved-view" class="button subtle" aria-label="Delete selected saved view"
+                hidden>Delete view</button>
               <span>Personal to this browser</span>
             </div>
           </details>
@@ -845,38 +927,67 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
     </div>
     <div id="active-filter-chips" class="active-filter-chips" hidden></div>
     <div id="filter-context" class="filter-context" hidden></div>
-    <div id="selection-actions" class="selection-actions" role="group" aria-label="Selected issues" hidden><span id="selection-count" role="status" aria-live="polite"></span><button type="button" class="button secondary" id="selection-edit" data-bulk-edit-open>Edit selected</button><button type="button" class="button secondary" id="selection-delete">Delete selected</button><button type="button" class="button subtle" id="selection-clear">Clear</button></div>
-    <div id="delete-recovery" class="selection-actions" role="status" hidden><span>A deletion is unconfirmed. Retry checks the original selection safely.</span><button type="button" class="button secondary" id="delete-recovery-open">Review deletion</button></div>
+    <div id="selection-actions" class="selection-actions" role="group" aria-label="Selected issues" hidden><span
+        id="selection-count" role="status" aria-live="polite"></span><button type="button" class="button secondary"
+        id="selection-edit" data-bulk-edit-open>Edit selected</button><button type="button" class="button secondary"
+        id="selection-delete">Delete selected</button><button type="button" class="button subtle"
+        id="selection-clear">Clear</button></div>
+    <div id="delete-recovery" class="selection-actions" role="status" hidden><span>A deletion is unconfirmed. Retry
+        checks the original selection safely.</span><button type="button" class="button secondary"
+        id="delete-recovery-open">Review deletion</button></div>
     <div id="error-banner" class="error-banner" role="alert" hidden></div>
     <section id="draft-recovery" aria-label="Unsaved work" hidden></section>
-    <section id="view-content" aria-labelledby="view-title"><div class="empty-state"><div class="loader"></div><h2>Opening workspace…</h2></div></section>
-    <footer class="view-footer"><span id="view-hint"></span><span id="demo-credit" data-demo-only hidden>Created by Martin Grossman</span></footer>
+    <section id="view-content" aria-labelledby="view-title">
+      <div class="empty-state">
+        <div class="loader"></div>
+        <h2>Opening workspace…</h2>
+      </div>
+    </section>
+    <footer class="view-footer"><span id="view-hint"></span><span id="demo-credit" data-demo-only hidden>Created by
+        Martin Grossman</span></footer>
   </main>
   <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="dialog-title" tabindex="-1">
     <form id="issue-form">
-      <div class="dialog-header"><div><span id="dialog-id" class="eyebrow">NEW ISSUE</span><h2 id="dialog-title">Make the next move.</h2></div><button type="button" id="close-dialog" class="icon-button" aria-label="Close issue">×</button></div>
-      <div class="form-body"><div id="form-error" class="error-banner" role="alert" hidden></div><section id="form-draft-recovery" aria-label="Draft recovery" hidden></section>
-        <label class="field">Summary <input name="summary" required maxlength="250" autocomplete="off" aria-describedby="form-error" placeholder="What needs to happen?"></label>
+      <div class="dialog-header">
+        <div><span id="dialog-id" class="eyebrow">NEW ISSUE</span>
+          <h2 id="dialog-title">Make the next move.</h2>
+        </div><button type="button" id="close-dialog" class="icon-button" aria-label="Close issue">×</button>
+      </div>
+      <div class="form-body">
+        <div id="form-error" class="error-banner" role="alert" hidden></div>
+        <section id="form-draft-recovery" aria-label="Draft recovery" hidden></section>
+        <label class="field">Summary <input name="summary" required maxlength="250" autocomplete="off"
+            aria-describedby="form-error" placeholder="What needs to happen?"></label>
         <section id="editor-primary" class="editor-section" aria-labelledby="editor-primary-title">
           <h3 id="editor-primary-title" class="editor-section-title">Properties</h3>
           <div class="form-grid">
             <label class="field">Status<select name="status"></select></label>
             <label class="field">Priority<select name="priority"></select></label>
             <label class="field">Issue type<select name="type"></select></label>
-            <label class="field">Assignee<input name="assignee" list="people" maxlength="200" placeholder="Unassigned"></label>
+            <label class="field">Assignee<input name="assignee" list="people" maxlength="200"
+                placeholder="Unassigned"></label>
             <label class="field">Parent issue<select name="parentId"></select></label>
           </div>
         </section>
-        <label class="field editor-description">Description <textarea name="description" rows="4" maxlength="20000" placeholder="Add context, acceptance criteria, or helpful links…"></textarea></label>
+        <label class="field editor-description">Description <textarea name="description" rows="4" maxlength="20000"
+            placeholder="Add context, acceptance criteria, or helpful links…"></textarea></label>
         <section id="editor-planning" class="editor-section" aria-labelledby="editor-planning-title">
           <h3 id="editor-planning-title" class="editor-section-title">Planning</h3>
           <div class="form-grid">
-            <label class="field create-advanced">Start date<input name="startDate" type="date" min="1900-01-01" max="2200-12-31"><small class="derived-date-note" hidden>Derived from scheduled child issues; edit their dates to adjust.</small></label>
-            <label class="field">Due date<input name="dueDate" type="date" min="1900-01-01" max="2200-12-31"><small class="derived-date-note" hidden>Derived from scheduled child issues; edit their dates to adjust.</small></label>
-            <label class="field create-advanced">Sprint<input name="sprint" list="sprints" maxlength="200" placeholder="e.g. Sprint 01"></label>
+            <label class="field create-advanced">Start date<input name="startDate" type="date" min="1900-01-01"
+                max="2200-12-31"><small class="derived-date-note" hidden>Derived from scheduled child issues; edit their
+                dates to adjust.</small></label>
+            <label class="field">Due date<input name="dueDate" type="date" min="1900-01-01" max="2200-12-31"><small
+                class="derived-date-note" hidden>Derived from scheduled child issues; edit their dates to
+                adjust.</small></label>
+            <label class="field create-advanced">Sprint<input name="sprint" list="sprints" maxlength="200"
+                placeholder="e.g. Sprint 01"></label>
           </div>
-          <label class="field create-advanced">Labels<input name="labels" maxlength="2000" placeholder="design, frontend, research"><small>Separate labels with commas.</small></label>
-          <label class="field create-advanced">Depends on<input name="dependencies" maxlength="2000" placeholder="PRJ-4, PRJ-5"><small>Issue IDs, separated by commas. Dependencies do not automatically move dates.</small></label>
+          <label class="field create-advanced">Labels<input name="labels" maxlength="2000"
+              placeholder="design, frontend, research"><small>Separate labels with commas.</small></label>
+          <label class="field create-advanced">Depends on<input name="dependencies" maxlength="2000"
+              placeholder="PRJ-4, PRJ-5"><small>Issue IDs, separated by commas. Dependencies do not automatically move
+              dates.</small></label>
         </section>
         <details id="editor-effort" class="editor-section editor-secondary create-advanced" open>
           <summary>Effort</summary>
@@ -890,132 +1001,367 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
           <summary>Metadata</summary>
           <div class="form-grid">
             <label class="field">Activity type<select name="taskTypeId"></select></label>
-            <label class="field">Reporter<input name="reporter" list="people" maxlength="200" placeholder="Your name"></label>
+            <label class="field">Reporter<input name="reporter" list="people" maxlength="200"
+                placeholder="Your name"></label>
           </div>
           <div id="issue-metadata" class="issue-metadata"></div>
         </details>
-        <div id="editor-related"><div id="child-issues"></div><div id="comments-section" class="comments-section"></div><label id="duplicate-subtasks-option" class="duplicate-subtasks-option" hidden><input id="duplicate-subtasks" type="checkbox"><span id="duplicate-subtasks-label">Also duplicate child issues</span></label></div>
+        <div id="editor-related">
+          <div id="child-issues"></div>
+          <div id="comments-section" class="comments-section"></div><label id="duplicate-subtasks-option"
+            class="duplicate-subtasks-option" hidden><input id="duplicate-subtasks" type="checkbox"><span
+              id="duplicate-subtasks-label">Also duplicate child issues</span></label>
+        </div>
       </div>
-      <div class="dialog-footer"><div class="issue-footer-actions"><button type="button" id="create-more-options" class="button subtle" hidden>More options</button><button type="button" id="delete-issue" class="button danger" hidden>Delete issue</button><button type="button" id="duplicate-issue" class="button secondary" hidden title="Duplicate this issue; progress and time spent reset">Duplicate</button></div><div class="dialog-actions"><span id="form-save-status" role="status" aria-live="polite"></span><button type="button" id="cancel-dialog" class="button secondary">Cancel</button><button type="submit" id="save-issue" class="button primary">Save issue</button></div></div>
+      <div class="dialog-footer">
+        <div class="issue-footer-actions"><button type="button" id="create-more-options" class="button subtle"
+            hidden>More options</button><button type="button" id="delete-issue" class="button danger" hidden>Delete
+            issue</button><button type="button" id="duplicate-issue" class="button secondary" hidden
+            title="Duplicate this issue; progress and time spent reset">Duplicate</button></div>
+        <div class="dialog-actions"><span id="form-save-status" role="status" aria-live="polite"></span><button
+            type="button" id="cancel-dialog" class="button secondary">Cancel</button><button type="submit"
+            id="save-issue" class="button primary">Save issue</button></div>
+      </div>
     </form>
   </dialog>
   <dialog id="bulk-create-dialog" class="help-dialog bulk-create-dialog" aria-labelledby="bulk-create-title">
-    <div class="dialog-header"><div><span class="eyebrow">QUICK ENTRY</span><h2 id="bulk-create-title">Paste task titles</h2></div><button type="button" id="bulk-create-close" class="icon-button" aria-label="Close paste list">×</button></div>
-    <div class="bulk-create-body"><p>Enter one literal title per line. Blank lines are ignored. Smart syntax applies only to single-title capture, not pasted lists. New tasks use Backlog and the configured default activity type.</p><label class="field" for="bulk-create-input">Task titles<textarea id="bulk-create-input" rows="10" maxlength="30000" placeholder="Prepare the launch plan&#10;Review the first draft&#10;Share feedback" aria-label="Task titles, one per line"></textarea></label><div id="bulk-create-preview" class="bulk-create-preview" role="status" aria-live="polite">Enter one or more titles.</div><div id="bulk-create-error" class="error-banner" role="alert" hidden></div></div>
-    <div class="dialog-footer"><span id="bulk-create-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-create-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-create-submit" class="button primary" disabled>Create tasks</button></div></div>
+    <div class="dialog-header">
+      <div><span class="eyebrow">QUICK ENTRY</span>
+        <h2 id="bulk-create-title">Paste task titles</h2>
+      </div><button type="button" id="bulk-create-close" class="icon-button" aria-label="Close paste list">×</button>
+    </div>
+    <div class="bulk-create-body">
+      <p>Enter one literal title per line. Blank lines are ignored. Smart syntax applies only to single-title capture,
+        not pasted lists. New tasks use Backlog and the configured default activity type.</p><label class="field"
+        for="bulk-create-input">Task titles<textarea id="bulk-create-input" rows="10" maxlength="30000"
+          placeholder="Prepare the launch plan&#10;Review the first draft&#10;Share feedback"
+          aria-label="Task titles, one per line"></textarea></label>
+      <div id="bulk-create-preview" class="bulk-create-preview" role="status" aria-live="polite">Enter one or more
+        titles.</div>
+      <div id="bulk-create-error" class="error-banner" role="alert" hidden></div>
+    </div>
+    <div class="dialog-footer"><span id="bulk-create-status" role="status" aria-live="polite"></span>
+      <div><button type="button" id="bulk-create-cancel" class="button secondary">Cancel</button><button type="button"
+          id="bulk-create-submit" class="button primary" disabled>Create tasks</button></div>
+    </div>
   </dialog>
   <dialog id="plan-notepad-dialog" class="help-dialog plan-notepad-dialog" aria-labelledby="plan-notepad-title">
-    <div class="dialog-header"><div><span class="eyebrow">PLAN WITH REVIEW</span><h2 id="plan-notepad-title">Smart Notepad</h2></div><button id="plan-notepad-close" type="button" class="icon-button" aria-label="Close Smart Notepad">×</button></div>
+    <div class="dialog-header">
+      <div><span class="eyebrow">PLAN WITH REVIEW</span>
+        <h2 id="plan-notepad-title">Smart Notepad</h2>
+      </div><button id="plan-notepad-close" type="button" class="icon-button"
+        aria-label="Close Smart Notepad">×</button>
+    </div>
     <div class="plan-notepad-body">
-      <p>Write free-form notes for Gemini, or one structured item per line to create work directly. Type Epic: to choose an existing Epic or enter a new name. Following items use that Epic unless you choose another. Nothing is sent or saved until you choose it.</p>
-      <label class="field" for="plan-notepad-input">Planning notes<textarea id="plan-notepad-input" rows="7" maxlength="30000" aria-controls="plan-notepad-suggestions" aria-expanded="false" placeholder="Epic: Launch&#10;Story: Prepare release @Martin +5d !high"></textarea></label>
-      <div id="plan-notepad-suggestions" class="plan-notepad-suggestions" role="listbox" aria-label="Notepad suggestions" hidden></div>
-      <div class="plan-notepad-actions"><button id="plan-notepad-parse" type="button" class="button secondary">Preview structured lines</button><button id="plan-notepad-prepare" type="button" class="button secondary">Prepare for Gemini</button><button id="plan-notepad-api" type="button" class="button secondary" hidden>Ask Gemini API</button></div>
-      <p id="plan-notepad-api-disclosure" hidden>Ask Gemini API sends these notes and every issue’s task fields to Gemini from this private Apps Script project. TAK may retry once if Gemini is temporarily unavailable. Review the response before applying anything.</p>
-      <div id="plan-notepad-context" class="plan-notepad-context" role="status" aria-live="polite">Your notes remain in this browser until you create work.</div>
+      <p>Write free-form notes for Gemini, or one structured item per line to create work directly. Type Epic: to choose
+        an existing Epic or enter a new name. Following items use that Epic unless you choose another. Nothing is sent
+        or saved until you choose it.</p>
+      <label class="field" for="plan-notepad-input">Planning notes<textarea id="plan-notepad-input" rows="7"
+          maxlength="30000" aria-controls="plan-notepad-suggestions" aria-expanded="false"
+          placeholder="Epic: Launch&#10;Story: Prepare release @Martin +5d !high"></textarea></label>
+      <div id="plan-notepad-suggestions" class="plan-notepad-suggestions" role="listbox"
+        aria-label="Notepad suggestions" hidden></div>
+      <div class="plan-notepad-actions"><button id="plan-notepad-parse" type="button" class="button secondary">Preview
+          structured lines</button><button id="plan-notepad-prepare" type="button" class="button secondary">Prepare for
+          Gemini</button><button id="plan-notepad-api" type="button" class="button secondary" hidden>Ask Gemini
+          API</button></div>
+      <p id="plan-notepad-api-disclosure" hidden>Ask Gemini API sends these notes and every issue’s task fields to
+        Gemini from this private Apps Script project. TAK may retry once if Gemini is temporarily unavailable. Review
+        the response before applying anything.</p>
+      <div id="plan-notepad-context" class="plan-notepad-context" role="status" aria-live="polite">Your notes remain in
+        this browser until you create work.</div>
       <div id="plan-notepad-preview" class="plan-notepad-preview" role="group" aria-label="Notepad proposal"></div>
       <button id="plan-notepad-discard" type="button" class="button subtle" hidden>Discard current review</button>
       <datalist id="plan-notepad-assignees"></datalist>
-      <details id="plan-notepad-gemini" class="plan-notepad-gemini"><summary>Use Gemini Pro manually</summary><p>Prepare downloads your full task context and notes. Upload the file in Gemini Pro, copy the prompt below, then paste its JSON proposal here. TAK never sends the file automatically.</p><button id="plan-notepad-copy" type="button" class="button secondary">Copy Gemini prompt</button> <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Open Gemini ↗</a><label class="field" for="plan-notepad-import">Gemini JSON proposal<textarea id="plan-notepad-import" rows="5" placeholder="Paste the JSON response here"></textarea></label><button id="plan-notepad-import-button" type="button" class="button secondary">Review proposal</button></details>
+      <details id="plan-notepad-gemini" class="plan-notepad-gemini">
+        <summary>Use Gemini Pro manually</summary>
+        <p>Prepare downloads your full task context and notes. Upload the file in Gemini Pro, copy the prompt below,
+          then paste its JSON proposal here. TAK never sends the file automatically.</p><button id="plan-notepad-copy"
+          type="button" class="button secondary">Copy Gemini prompt</button> <a href="https://gemini.google.com/app"
+          target="_blank" rel="noopener noreferrer">Open Gemini ↗</a><label class="field"
+          for="plan-notepad-import">Gemini JSON proposal<textarea id="plan-notepad-import" rows="5"
+            placeholder="Paste the JSON response here"></textarea></label><button id="plan-notepad-import-button"
+          type="button" class="button secondary">Review proposal</button>
+      </details>
       <div id="plan-notepad-error" class="error-banner" role="alert" hidden></div>
     </div>
-    <div class="dialog-footer"><span id="plan-notepad-status" role="status" aria-live="polite"></span><div><button id="plan-notepad-cancel" type="button" class="button secondary">Close</button><button id="plan-notepad-apply" type="button" class="button primary" disabled>Apply selected</button></div></div>
+    <div class="dialog-footer"><span id="plan-notepad-status" role="status" aria-live="polite"></span>
+      <div><button id="plan-notepad-cancel" type="button" class="button secondary">Close</button><button
+          id="plan-notepad-apply" type="button" class="button primary" disabled>Apply selected</button></div>
+    </div>
   </dialog>
   <dialog id="bulk-edit-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-edit-title">
     <form id="bulk-edit-form">
-      <div class="dialog-header"><div><span class="eyebrow">ISSUE SELECTION</span><h2 id="bulk-edit-title">Edit selected issues</h2></div><button type="button" id="bulk-edit-close" class="icon-button" aria-label="Close bulk edit">×</button></div>
-      <div class="bulk-edit-body"><p id="bulk-edit-selection-count">Selected issues will be validated together before any changes are saved.</p><label class="field" for="bulk-edit-field">Field to change<select id="bulk-edit-field" required><option value="">Choose a field…</option><option value="status">Status</option><option value="assignee">Assignee</option><option value="priority">Priority</option><option value="parentId">Epic</option><option value="taskTypeId">Activity type</option><option value="startDate">Start date</option><option value="dueDate">Due date</option></select></label><div id="bulk-edit-value-wrap"></div><div id="bulk-edit-preview" class="bulk-edit-preview" role="status" aria-live="polite">Choose a field to preview the change.</div><div id="bulk-edit-error" class="error-banner" role="alert" hidden></div></div>
-      <div class="dialog-footer"><span id="bulk-edit-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-edit-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-edit-submit" class="button primary" disabled>Apply to selected</button></div></div>
+      <div class="dialog-header">
+        <div><span class="eyebrow">ISSUE SELECTION</span>
+          <h2 id="bulk-edit-title">Edit selected issues</h2>
+        </div><button type="button" id="bulk-edit-close" class="icon-button" aria-label="Close bulk edit">×</button>
+      </div>
+      <div class="bulk-edit-body">
+        <p id="bulk-edit-selection-count">Selected issues will be validated together before any changes are saved.</p>
+        <label class="field" for="bulk-edit-field">Field to change<select id="bulk-edit-field" required>
+            <option value="">Choose a field…</option>
+            <option value="status">Status</option>
+            <option value="assignee">Assignee</option>
+            <option value="priority">Priority</option>
+            <option value="parentId">Epic</option>
+            <option value="taskTypeId">Activity type</option>
+            <option value="startDate">Start date</option>
+            <option value="dueDate">Due date</option>
+          </select></label>
+        <div id="bulk-edit-value-wrap"></div>
+        <div id="bulk-edit-preview" class="bulk-edit-preview" role="status" aria-live="polite">Choose a field to preview
+          the change.</div>
+        <div id="bulk-edit-error" class="error-banner" role="alert" hidden></div>
+      </div>
+      <div class="dialog-footer"><span id="bulk-edit-status" role="status" aria-live="polite"></span>
+        <div><button type="button" id="bulk-edit-cancel" class="button secondary">Cancel</button><button type="button"
+            id="bulk-edit-submit" class="button primary" disabled>Apply to selected</button></div>
+      </div>
     </form>
   </dialog>
-  <dialog id="bulk-delete-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-delete-title" aria-describedby="bulk-delete-description">
-    <div class="dialog-header"><h2 id="bulk-delete-title">Delete selected issues?</h2><button type="button" id="bulk-delete-close" class="icon-button" aria-label="Close deletion">×</button></div>
-    <div class="bulk-edit-body"><p id="bulk-delete-description"></p><p>Only the listed selection is deleted, never additional descendants. Unselected child or dependency references block the entire deletion.</p><ul id="bulk-delete-items"></ul><div id="bulk-delete-error" class="error-banner" role="alert" hidden></div></div>
-    <div class="dialog-footer"><span id="bulk-delete-status" role="status" aria-live="polite"></span><div><button type="button" id="bulk-delete-forget" class="button subtle" hidden>Forget retry</button><button type="button" id="bulk-delete-cancel" class="button secondary">Cancel</button><button type="button" id="bulk-delete-submit" class="button danger">Delete selected</button></div></div>
+  <dialog id="bulk-delete-dialog" class="help-dialog bulk-edit-dialog" aria-labelledby="bulk-delete-title"
+    aria-describedby="bulk-delete-description">
+    <div class="dialog-header">
+      <h2 id="bulk-delete-title">Delete selected issues?</h2><button type="button" id="bulk-delete-close"
+        class="icon-button" aria-label="Close deletion">×</button>
+    </div>
+    <div class="bulk-edit-body">
+      <p id="bulk-delete-description"></p>
+      <p>Only the listed selection is deleted, never additional descendants. Unselected child or dependency references
+        block the entire deletion.</p>
+      <ul id="bulk-delete-items"></ul>
+      <div id="bulk-delete-error" class="error-banner" role="alert" hidden></div>
+    </div>
+    <div class="dialog-footer"><span id="bulk-delete-status" role="status" aria-live="polite"></span>
+      <div><button type="button" id="bulk-delete-forget" class="button subtle" hidden>Forget retry</button><button
+          type="button" id="bulk-delete-cancel" class="button secondary">Cancel</button><button type="button"
+          id="bulk-delete-submit" class="button danger">Delete selected</button></div>
+    </div>
   </dialog>
   <dialog id="saved-view-dialog" class="help-dialog saved-view-dialog" aria-labelledby="saved-view-title">
-    <form id="saved-view-form"><div class="dialog-header"><div><span class="eyebrow">PERSONAL VIEW</span><h2 id="saved-view-title">Save this view</h2></div><button type="button" id="saved-view-close" class="icon-button" aria-label="Close save view">×</button></div><div class="saved-view-body"><p>Save the current filters, view, sorting, visible columns and collapse state in this browser.</p><label class="field">View name<input id="saved-view-name" required maxlength="60" autocomplete="off" placeholder="e.g. Bugs to review"></label><div id="saved-view-error" class="error-banner" role="alert" hidden></div></div><div class="dialog-footer"><span></span><div><button type="button" id="saved-view-cancel" class="button secondary">Cancel</button><button type="submit" class="button primary">Save view</button></div></div></form>
+    <form id="saved-view-form">
+      <div class="dialog-header">
+        <div><span class="eyebrow">PERSONAL VIEW</span>
+          <h2 id="saved-view-title">Save this view</h2>
+        </div><button type="button" id="saved-view-close" class="icon-button" aria-label="Close save view">×</button>
+      </div>
+      <div class="saved-view-body">
+        <p>Save the current filters, view, sorting, visible columns and collapse state in this browser.</p><label
+          class="field">View name<input id="saved-view-name" required maxlength="60" autocomplete="off"
+            placeholder="e.g. Bugs to review"></label>
+        <div id="saved-view-error" class="error-banner" role="alert" hidden></div>
+      </div>
+      <div class="dialog-footer"><span></span>
+        <div><button type="button" id="saved-view-cancel" class="button secondary">Cancel</button><button type="submit"
+            class="button primary">Save view</button></div>
+      </div>
+    </form>
   </dialog>
   <dialog id="command-dialog" class="help-dialog command-dialog" aria-labelledby="command-title">
-    <div class="dialog-header"><h2 id="command-title">Go to or open</h2><button id="command-close" type="button" class="icon-button" aria-label="Close commands">×</button></div>
-    <div class="command-body"><label for="command-query">Search issues and actions</label><input id="command-query" type="search" autocomplete="off" aria-controls="command-results" placeholder="Issue title or ID…"><div id="command-results" class="command-results" aria-live="polite"></div></div>
+    <div class="dialog-header">
+      <h2 id="command-title">Go to or open</h2><button id="command-close" type="button" class="icon-button"
+        aria-label="Close commands">×</button>
+    </div>
+    <div class="command-body"><label for="command-query">Search issues and actions</label><input id="command-query"
+        type="search" autocomplete="off" aria-controls="command-results" placeholder="Issue title or ID…">
+      <div id="command-results" class="command-results" aria-live="polite"></div>
+    </div>
   </dialog>
-  <div id="triage-popover" class="triage-popover" role="dialog" aria-modal="false" aria-labelledby="triage-title" hidden>
-    <div class="triage-heading"><strong id="triage-title">Edit issue</strong><button id="triage-close" type="button" class="icon-button" aria-label="Close quick edit">×</button></div>
+  <div id="triage-popover" class="triage-popover" role="dialog" aria-modal="false" aria-labelledby="triage-title"
+    hidden>
+    <div class="triage-heading"><strong id="triage-title">Edit issue</strong><button id="triage-close" type="button"
+        class="icon-button" aria-label="Close quick edit">×</button></div>
     <div id="triage-control"></div>
   </div>
   <dialog id="help-dialog" class="help-dialog shortcuts-dialog" aria-labelledby="help-title">
-    <div class="dialog-header"><h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help" aria-label="Close help" autofocus>×</button></div>
+    <div class="dialog-header">
+      <h2 id="help-title">Keyboard shortcuts &amp; help</h2><button type="button" class="icon-button" id="close-help"
+        aria-label="Close help" autofocus>×</button>
+    </div>
     <div class="help-body">
-      <section aria-labelledby="shortcuts-essentials"><h3 id="shortcuts-essentials">Start here</h3>
+      <section aria-labelledby="shortcuts-essentials">
+        <h3 id="shortcuts-essentials">Start here</h3>
         <dl class="shortcut-list">
-          <div><dt><kbd>T</kbd></dt><dd>Add a task here</dd></div>
-          <div><dt><kbd>S</kbd></dt><dd>Add a story here</dd></div>
-          <div><dt><kbd>Enter</kbd></dt><dd>Create and keep typing another</dd></div>
-          <div><dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>Create and keep typing another</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>Go back; keep the unfinished draft</dd></div>
+          <div>
+            <dt><kbd>T</kbd></dt>
+            <dd>Add a task here</dd>
+          </div>
+          <div>
+            <dt><kbd>S</kbd></dt>
+            <dd>Add a story here</dd>
+          </div>
+          <div>
+            <dt><kbd>Enter</kbd></dt>
+            <dd>Create and keep typing another</dd>
+          </div>
+          <div>
+            <dt><kbd>Shift</kbd> + <kbd>Enter</kbd></dt>
+            <dd>Create and keep typing another</dd>
+          </div>
+          <div>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>Go back; keep the unfinished draft</dd>
+          </div>
         </dl>
       </section>
-      <details class="shortcut-group"><summary>Navigate and find</summary>
+      <details class="shortcut-group">
+        <summary>Navigate and find</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd></div>
-          <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
-          <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Switch to Sheet / Kanban / Gantt</dd></div>
-          <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt><dd>Open Commands to find issues and actions</dd></div>
-          <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Focus the next / previous control</dd></div>
+          <div>
+            <dt><kbd>↑</kbd> / <kbd>↓</kbd></dt>
+            <dd>Navigate focused rows or cards. In Kanban, ← / → changes column.</dd>
+          </div>
+          <div>
+            <dt><kbd>/</kbd></dt>
+            <dd>Focus search</dd>
+          </div>
+          <div>
+            <dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt>
+            <dd>Switch to Sheet / Kanban / Gantt</dd>
+          </div>
+          <div>
+            <dt><kbd>Ctrl/Cmd</kbd> + <kbd>K</kbd></dt>
+            <dd>Open Commands to find issues and actions</dd>
+          </div>
+          <div>
+            <dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt>
+            <dd>Focus the next / previous control</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Edit focused work</summary>
+      <details class="shortcut-group">
+        <summary>Edit focused work</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>E</kbd></dt><dd>Open the focused issue</dd></div>
-          <div><dt><kbd>N</kbd></dt><dd>Open New issue</dd></div>
-          <div><dt><kbd>Shift</kbd> + <kbd>T</kbd> / <kbd>S</kbd></dt><dd>Create a task / story with the compact editor</dd></div>
-          <div><dt><kbd>Enter</kbd></dt><dd>In the issue title: submit the issue form</dd></div>
-          <div><dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt><dd>Submit the issue form, including from the description</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>Return from capture and keep unsent text. Use Discard draft in its options to discard it. Issue dialogs protect unsaved edits.</dd></div>
-          <div><dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt><dd>On a focused issue: edit priority, assignee, status, or due date</dd></div>
-          <div><dt><kbd>X</kbd></dt><dd>Toggle selection for the focused issue</dd></div>
+          <div>
+            <dt><kbd>E</kbd></dt>
+            <dd>Open the focused issue</dd>
+          </div>
+          <div>
+            <dt><kbd>N</kbd></dt>
+            <dd>Open New issue</dd>
+          </div>
+          <div>
+            <dt><kbd>Shift</kbd> + <kbd>T</kbd> / <kbd>S</kbd></dt>
+            <dd>Create a task / story with the compact editor</dd>
+          </div>
+          <div>
+            <dt><kbd>Enter</kbd></dt>
+            <dd>In the issue title: submit the issue form</dd>
+          </div>
+          <div>
+            <dt><kbd>Ctrl/Cmd</kbd> + <kbd>Enter</kbd></dt>
+            <dd>Submit the issue form, including from the description</dd>
+          </div>
+          <div>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>Return from capture and keep unsent text. Use Discard draft in its options to discard it. Issue dialogs
+              protect unsaved edits.</dd>
+          </div>
+          <div>
+            <dt><kbd>P</kbd> / <kbd>A</kbd> / <kbd>M</kbd> / <kbd>D</kbd></dt>
+            <dd>On a focused issue: edit priority, assignee, status, or due date</dd>
+          </div>
+          <div>
+            <dt><kbd>X</kbd></dt>
+            <dd>Toggle selection for the focused issue</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Sheet</summary>
+      <details class="shortcut-group">
+        <summary>Sheet</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Commit and move to the next / previous editable cell</dd></div>
-          <div><dt><kbd>Enter</kbd> / <kbd>Shift</kbd> + <kbd>Enter</kbd></dt><dd>In a text, number, or date input: commit and move down / up in the same column</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>In a text, number, or date input: cancel the unsent edit and restore the current issue value</dd></div>
-          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On the dotted row grip: reorder siblings, keeping the same parent</dd></div>
+          <div>
+            <dt><kbd>Tab</kbd> / <kbd>Shift</kbd> + <kbd>Tab</kbd></dt>
+            <dd>Commit and move to the next / previous editable cell</dd>
+          </div>
+          <div>
+            <dt><kbd>Enter</kbd> / <kbd>Shift</kbd> + <kbd>Enter</kbd></dt>
+            <dd>In a text, number, or date input: commit and move down / up in the same column</dd>
+          </div>
+          <div>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>In a text, number, or date input: cancel the unsent edit and restore the current issue value</dd>
+          </div>
+          <div>
+            <dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt>
+            <dd>On the dotted row grip: reorder siblings, keeping the same parent</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Kanban</summary>
+      <details class="shortcut-group">
+        <summary>Kanban</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt><dd>On a focused card: open the issue</dd></div>
-          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On a focused card: reorder within its column and lane</dd></div>
-          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>On a focused card: move to the previous / next status, keeping its parent</dd></div>
-          <div><dt><kbd>Enter</kbd> / <kbd>Esc</kbd></dt><dd>In an assignee input: submit / cancel the unsent change</dd></div>
+          <div>
+            <dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>
+            <dd>On a focused card: open the issue</dd>
+          </div>
+          <div>
+            <dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt>
+            <dd>On a focused card: reorder within its column and lane</dd>
+          </div>
+          <div>
+            <dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt>
+            <dd>On a focused card: move to the previous / next status, keeping its parent</dd>
+          </div>
+          <div>
+            <dt><kbd>Enter</kbd> / <kbd>Esc</kbd></dt>
+            <dd>In an assignee input: submit / cancel the unsent change</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Gantt</summary>
+      <details class="shortcut-group">
+        <summary>Gantt</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt><dd>On a task label or bar: open the issue</dd></div>
-          <div><dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt><dd>On a task label or Epic lane heading: reorder siblings</dd></div>
-          <div><dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt><dd>On a task label: remove its parent / nest under the previous sibling when valid</dd></div>
-          <div><dt><kbd>←</kbd> / <kbd>→</kbd></dt><dd>On the label/timeline divider: narrow / widen labels by 10 pixels</dd></div>
+          <div>
+            <dt><kbd>Enter</kbd> / <kbd>Space</kbd></dt>
+            <dd>On a task label or bar: open the issue</dd>
+          </div>
+          <div>
+            <dt><kbd>Alt</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></dt>
+            <dd>On a task label or Epic lane heading: reorder siblings</dd>
+          </div>
+          <div>
+            <dt><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dt>
+            <dd>On a task label: remove its parent / nest under the previous sibling when valid</dd>
+          </div>
+          <div>
+            <dt><kbd>←</kbd> / <kbd>→</kbd></dt>
+            <dd>On the label/timeline divider: narrow / widen labels by 10 pixels</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Commands</summary>
+      <details class="shortcut-group">
+        <summary>Commands</summary>
         <dl class="shortcut-list">
-          <div><dt><kbd>Enter</kbd></dt><dd>In search: run the first result. On a result: run that result.</dd></div>
-          <div><dt><kbd>↓</kbd> / <kbd>↑</kbd></dt><dd>Move through results; Up from the first returns to search</dd></div>
-          <div><dt><kbd>Esc</kbd></dt><dd>Close Commands and restore focus</dd></div>
+          <div>
+            <dt><kbd>Enter</kbd></dt>
+            <dd>In search: run the first result. On a result: run that result.</dd>
+          </div>
+          <div>
+            <dt><kbd>↓</kbd> / <kbd>↑</kbd></dt>
+            <dd>Move through results; Up from the first returns to search</dd>
+          </div>
+          <div>
+            <dt><kbd>Esc</kbd></dt>
+            <dd>Close Commands and restore focus</dd>
+          </div>
         </dl>
       </details>
-      <details class="shortcut-group"><summary>Full reference and preferences</summary>
-        <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Single-key navigation shortcuts work outside typing fields when no dialog is open; they pause during text composition.</p>
+      <details class="shortcut-group">
+        <summary>Full reference and preferences</summary>
+        <p>Use <strong>Ctrl on Windows/Linux</strong> or <strong>Cmd on macOS</strong>. Single-key navigation shortcuts
+          work outside typing fields when no dialog is open; they pause during text composition.</p>
         <label class="view-toggle"><input id="single-key-shortcuts" type="checkbox" checked>Single-key shortcuts</label>
         <div class="help-overview">
-          <p><strong>Sheet</strong> is your editable issue register. Change cells directly, or open an issue for every detail.</p>
-          <p><strong>Kanban</strong> keeps work moving. Drag a card to change status or order. Use the card's Move button for status and legal Epic moves with keyboard or touch.</p>
-          <p><strong>Gantt</strong> shows your schedule. Drag a bar to move its dates; drag its right edge to change its due date. Open an issue for precise dates and dependencies.</p>
-          <p><strong>Hierarchy:</strong> epics contain stories; tasks and bugs can belong to either. Choose an epic under Epics &amp; connection to focus on its descendants.</p>
+          <p><strong>Sheet</strong> is your editable issue register. Change cells directly, or open an issue for every
+            detail.</p>
+          <p><strong>Kanban</strong> keeps work moving. Drag a card to change status or order. Use the card's Move
+            button for status and legal Epic moves with keyboard or touch.</p>
+          <p><strong>Gantt</strong> shows your schedule. Drag a bar to move its dates; drag its right edge to change its
+            due date. Open an issue for precise dates and dependencies.</p>
+          <p><strong>Hierarchy:</strong> epics contain stories; tasks and bugs can belong to either. Choose an epic
+            under Epics &amp; connection to focus on its descendants.</p>
           <p id="help-storage"></p>
           <p>CSV export includes all fields for the currently filtered issues.</p>
         </div>
@@ -1024,9 +1370,18 @@ main{max-width:2100px;min-width:0;padding:0 var(--page-gutter) 20px;margin-inlin
   </dialog>
   <dialog id="board-move-dialog" class="help-dialog" aria-labelledby="board-move-title">
     <form id="board-move-form">
-      <div class="dialog-header"><h2 id="board-move-title">Move issue</h2><button type="button" id="board-move-close" class="icon-button" aria-label="Close move">×</button></div>
-      <div class="help-body"><p id="board-move-context"></p><label class="field">Status<select id="board-move-status"></select></label><label class="field">Epic<select id="board-move-epic" aria-describedby="board-move-note"></select></label><p id="board-move-note">Moves to the end of the destination column. Other issues keep their order.</p><div id="board-move-error" class="error-banner" role="alert" hidden></div></div>
-      <div class="dialog-footer"><button type="button" id="board-move-cancel" class="button secondary">Cancel</button><button type="submit" class="button primary">Move</button></div>
+      <div class="dialog-header">
+        <h2 id="board-move-title">Move issue</h2><button type="button" id="board-move-close" class="icon-button"
+          aria-label="Close move">×</button>
+      </div>
+      <div class="help-body">
+        <p id="board-move-context"></p><label class="field">Status<select id="board-move-status"></select></label><label
+          class="field">Epic<select id="board-move-epic" aria-describedby="board-move-note"></select></label>
+        <p id="board-move-note">Moves to the end of the destination column. Other issues keep their order.</p>
+        <div id="board-move-error" class="error-banner" role="alert" hidden></div>
+      </div>
+      <div class="dialog-footer"><button type="button" id="board-move-cancel"
+          class="button secondary">Cancel</button><button type="submit" class="button primary">Move</button></div>
     </form>
   </dialog>
   <datalist id="people"></datalist><datalist id="sprints"></datalist>
@@ -1488,7 +1843,6 @@ var TrackerCore = (function () {
 if (typeof module !== 'undefined') module.exports = TrackerCore;
 
 </script>
-
   <script>
 (() => {
   'use strict';
@@ -1546,6 +1900,63 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
+  const pickerAuth = isCloud ? {
+    token: document.body.dataset?.oauthToken || '',
+    appId: document.body.dataset?.pickerAppId || '',
+    apiKey: document.body.dataset?.pickerApiKey || ''
+  } : null;
+  function openGoogleSheetPicker() {
+    if (!isCloud || !window.gapi) {
+      notify('Google Picker is still loading. Try again in a moment.', true);
+      return;
+    }
+    gapi.load('picker', () => {
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMimeTypes('application/vnd.google-apps.spreadsheet');
+      const picker = new google.picker.PickerBuilder()
+        .setAppId(pickerAuth.appId)
+        .setOAuthToken(pickerAuth.token)
+        .setDeveloperKey(pickerAuth.apiKey)
+        .addView(view)
+        .setCallback(async data => {
+          if (data.action !== google.picker.Action.PICKED) return;
+          const fileId = data.docs[0].id;
+          setBusy(true);
+          syncText('Connecting sheet…');
+          try {
+            await rpc('selectProjectSheet', fileId);
+            setBusy(false);
+            await refresh();
+            notify('Connected to Google Sheet');
+          } catch (error) {
+            showError(error);
+          } finally {
+            setBusy(false);
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    });
+  }
+  async function createNewCloudSheet() {
+    if (!isCloud || state.busy) return;
+    setBusy(true);
+    syncText('Creating TAK spreadsheet…');
+    try {
+      await rpc('createNewProjectSheet');
+      setBusy(false);
+      await refresh();
+      notify('Created and connected new TAK Sheet');
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if ($('#switch-sheet')) {
+    $('#switch-sheet').hidden = !isCloud || Boolean(sharedSheetId);
+    $('#switch-sheet').addEventListener('click', openGoogleSheetPicker);
+  }
   $$('[data-demo-only]').forEach(element => { element.hidden = isCloud; });
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
   const defaultSheetColumnOrder = ['summary', 'status', 'assignee', 'priority', 'dueDate'];
@@ -3206,6 +3617,27 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
     setBusy(true); if (!quiet) syncText('Loading…');
     try {
       const project = await rpc('getProject');
+      if (project && project.needsPicker) {
+        state.ready = false;
+        $('#error-banner').hidden = true;
+        $('#connection-title').textContent = 'Connect a Google Sheet';
+        $('#connection-detail').textContent = 'Select an existing spreadsheet or create a new one.';
+        $('#sheet-link').hidden = true;
+        syncText('No sheet selected');
+        $('#view-content').innerHTML = `
+          <div class="empty-state">
+            ${icon('sheet')}
+            <h2>Connect your project spreadsheet</h2>
+            <p>TAK only accesses the specific Google Sheet you select or create.</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+              <button type="button" class="button primary" id="pick-google-sheet">Select existing Google Sheet</button>
+              <button type="button" class="button secondary" id="create-google-sheet">Create new TAK Sheet</button>
+            </div>
+          </div>`;
+        $('#pick-google-sheet')?.addEventListener('click', openGoogleSheetPicker);
+        $('#create-google-sheet')?.addEventListener('click', createNewCloudSheet);
+        return;
+      }
       if (!project || !Array.isArray(project.issues)) throw new Error('The server returned no valid project data. Reload the latest tracker deployment. If this continues, run startupHealthCheck in Apps Script.');
       state.issues = project.issues.map(withDraft); state.comments = project.comments || {}; state.commentsLazy = project.commentsLazy === true; state.mode = project.mode || 'team'; state.quickBatchCreate = project.quickBatchCreate === true; state.settings = project.settings || []; state.spreadsheetUrl = project.spreadsheetUrl; state.ready = true;
       $('#error-banner').hidden = true;
@@ -5810,4 +6242,5 @@ if (typeof module !== 'undefined') module.exports = TrackerCore;
 </script>
 
 </body>
+
 </html>

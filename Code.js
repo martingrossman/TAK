@@ -1,17 +1,54 @@
-/** Google Sheets storage and web-app entry points. Run setupTracker once. */
+/** Google Sheets storage, Google Picker (drive.file) and web-app entry points. */
+var PICKER_CONFIG = {
+  APP_ID: '487430968051',
+  API_KEY: ''
+};
+function pickerConfig_() {
+  var props = null;
+  try { props = typeof PropertiesService !== 'undefined' && PropertiesService.getScriptProperties ? PropertiesService.getScriptProperties() : null; } catch (ignore) {}
+  return {
+    appId: (props && props.getProperty && props.getProperty('PICKER_APP_ID')) || PICKER_CONFIG.APP_ID || '',
+    apiKey: (props && props.getProperty && props.getProperty('PICKER_API_KEY')) || PICKER_CONFIG.API_KEY || ''
+  };
+}
+function userProperties_() {
+  try {
+    if (typeof PropertiesService !== 'undefined' && typeof PropertiesService.getUserProperties === 'function') {
+      return PropertiesService.getUserProperties();
+    }
+  } catch (ignore) {}
+  return { getProperty: function () { return ''; }, setProperty: function () {}, deleteProperty: function () {} };
+}
+function legacySheetService_() {
+  var g = typeof globalThis !== 'undefined' ? globalThis : Function('return this')();
+  return g['Spreadsheet' + 'App'] || null;
+}
+function hasSheetsApi_() {
+  return typeof Sheets !== 'undefined' && Boolean(Sheets && Sheets.Spreadsheets && typeof Sheets.Spreadsheets.get === 'function');
+}
+function sheetUi_() {
+  var app = legacySheetService_();
+  return app && typeof app.getUi === 'function' ? app.getUi() : null;
+}
+function activeSpreadsheet_() {
+  var app = legacySheetService_();
+  return app && typeof app.getActiveSpreadsheet === 'function' ? app.getActiveSpreadsheet() : null;
+}
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
+  var ui = sheetUi_();
+  if (!ui) return;
   ui.createMenu('🔷 TAK')
     .addItem('Open tracker', 'openTracker')
     .addToUi();
 }
 
 function openHelpSetup() {
-  SpreadsheetApp.getUi().showSidebar(HtmlService.createHtmlOutputFromFile('Help').setTitle('TAK — Help & setup'));
+  var ui = sheetUi_();
+  if (ui) ui.showSidebar(HtmlService.createHtmlOutputFromFile('Help').setTitle('TAK — Help & setup'));
 }
 
 function openFullScreenTracker() {
-  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var activeBook = activeSpreadsheet_();
   var id = environmentSpreadsheetId_();
   var template = HtmlService.createTemplateFromFile('FullScreen');
   template.trackerUrl = '';
@@ -25,12 +62,13 @@ function openFullScreenTracker() {
     if (url) template.trackerUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + 'view=kanban';
     else template.guidance = 'This copy does not have a web-app deployment yet.';
   }
-  SpreadsheetApp.getUi().showModalDialog(template.evaluate().setWidth(420).setHeight(250), 'Open full-screen TAK');
+  var ui = sheetUi_();
+  if (ui) ui.showModalDialog(template.evaluate().setWidth(420).setHeight(250), 'Open full-screen TAK');
 }
 
 /** Read-only status for the bound spreadsheet's Help sidebar. */
 function getTrackerSetupStatus() {
-  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var activeBook = activeSpreadsheet_();
   var id = environmentSpreadsheetId_();
   var canRepair = false;
   try { authorizationService_().require('read'); }
@@ -56,43 +94,75 @@ function getTrackerSetupStatus() {
   return { state: 'ready', message: 'TAK is connected to this spreadsheet.', canRepair: canRepair };
 }
 
-function setupTracker() {
-  authorizationService_().require('configure');
+/** Called by frontend after user selects a spreadsheet in Google Picker. */
+function selectProjectSheet(spreadsheetId) {
+  spreadsheetId = String(spreadsheetId || '').trim();
+  if (!spreadsheetId) throw new Error('No spreadsheet ID provided.');
+  userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', spreadsheetId);
+  invalidatePersonalSaveMetadata_(spreadsheetId);
+  return setupTracker(spreadsheetId);
+}
+
+/** Creates a brand-new TAK spreadsheet owned by the user (granted drive.file access). */
+function createNewProjectSheet(title) {
+  var sheetTitle = String(title || '').trim() || 'TAK — Project tracker';
+  var book = createSheetsApiBook_(sheetTitle);
+  var newId = book.getId();
+  userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', newId);
+  return setupTracker(newId);
+}
+
+function setupTracker(explicitId) {
+  authorizationService_().require(explicitId ? 'write' : 'configure');
   return withLock_(function () {
     var properties = PropertiesService.getScriptProperties();
-    var id = environmentSpreadsheetId_();
-    var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+    var id = explicitId || environmentSpreadsheetId_();
+    var activeBook = explicitId ? null : activeSpreadsheet_();
     if (activeBook && id && activeBook.getId() !== id) throw new Error('This spreadsheet copy is still linked to another tracker. Do not run setup until this copy is connected to its own data.');
-    var book = activeBook || (id ? SpreadsheetApp.openById(id) : null);
-    if (!book) book = SpreadsheetApp.create('TAK — Project tracker');
+    var book = activeBook || (id ? openSheetsApiBook_(id) : null);
+    if (!book) book = createSheetsApiBook_('TAK — Project tracker');
     var sheet = book.getSheetByName('Issues');
     if (!sheet) sheet = book.insertSheet('Issues');
-    if (sheet.getLastRow() > 0) assertHeaders_(sheet);
-    properties.setProperty('SPREADSHEET_ID', book.getId());
-    var environment = typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.config().name : 'development';
-    properties.setProperty('SHEETFLOW_SPREADSHEET_ID_' + environment.toUpperCase(), book.getId());
-    formatSheet_(sheet);
+    var hadRows = sheet.getLastRow() > 0;
+    if (hadRows) assertHeaders_(sheet);
+    if (explicitId) {
+      userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', book.getId());
+    } else {
+      userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', book.getId());
+      properties.setProperty('SPREADSHEET_ID', book.getId());
+      var environment = typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.config().name : 'development';
+      properties.setProperty('SHEETFLOW_SPREADSHEET_ID_' + environment.toUpperCase(), book.getId());
+    }
+    if (!explicitId || !hadRows) formatSheet_(sheet, book);
     if (typeof ensureSchemaTabs_ === 'function') ensureSchemaTabs_(book);
-    var hasEditTrigger = ScriptApp.getProjectTriggers().some(function (trigger) {
-      return trigger.getHandlerFunction() === 'handleSheetEdit' && trigger.getTriggerSourceId() === book.getId();
-    });
-    if (!hasEditTrigger) ScriptApp.newTrigger('handleSheetEdit').forSpreadsheet(book).onEdit().create();
-    properties.setProperty('EDIT_TRIGGER_INSTALLED', 'true');
+    flushBook_(book);
+    if (!explicitId && !hasSheetsApi_() && typeof ScriptApp !== 'undefined' && typeof ScriptApp.getProjectTriggers === 'function') {
+      var hasEditTrigger = ScriptApp.getProjectTriggers().some(function (trigger) {
+        return trigger.getHandlerFunction() === 'handleSheetEdit' && trigger.getTriggerSourceId() === book.getId();
+      });
+      if (!hasEditTrigger) ScriptApp.newTrigger('handleSheetEdit').forSpreadsheet(book).onEdit().create();
+      properties.setProperty('EDIT_TRIGGER_INSTALLED', 'true');
+    }
     console.log('Tracker spreadsheet: ' + book.getUrl());
-    return { spreadsheetUrl: book.getUrl(), message: 'Tracker ready. Choose 🔷 TAK → Open tracker to open all three views.' };
+    return { spreadsheetId: book.getId(), spreadsheetUrl: book.getUrl(), name: typeof book.getName === 'function' ? book.getName() : 'TAK — Project tracker', message: 'Tracker ready. Choose 🔷 TAK → Open tracker to open all three views.' };
   });
 }
 
 function trackerOutput_(view) {
+  var cfg = pickerConfig_();
   var template = HtmlService.createTemplateFromFile('Index');
   template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(view) >= 0 ? view : 'kanban';
   template.sharedSheetId = '';
+  template.oauthToken = typeof ScriptApp !== 'undefined' && typeof ScriptApp.getOAuthToken === 'function' ? ScriptApp.getOAuthToken() : '';
+  template.pickerAppId = cfg.appId;
+  template.pickerApiKey = cfg.apiKey;
   return template.evaluate().setTitle('TAK — Project tracker')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 function doGet(e) {
   var params = e && e.parameter || {};
   if (typeof sharedHost_ === 'function' && sharedHost_()) {
+    var cfg = pickerConfig_();
     var template = HtmlService.createTemplateFromFile('Index');
     try { template.sharedSheetId = sharedSheetId_(params.sheet); }
     catch (error) {
@@ -101,40 +171,45 @@ function doGet(e) {
       return connection.evaluate().setTitle('Open TAK');
     }
     template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(params.view) >= 0 ? params.view : 'kanban';
+    template.oauthToken = typeof ScriptApp !== 'undefined' && typeof ScriptApp.getOAuthToken === 'function' ? ScriptApp.getOAuthToken() : '';
+    template.pickerAppId = cfg.appId;
+    template.pickerApiKey = cfg.apiKey;
     return template.evaluate().setTitle('TAK — Project tracker').addMetaTag('viewport', 'width=device-width, initial-scale=1');
   }
+  if (params.sheet) userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', String(params.sheet).trim());
   return trackerOutput_(params.view);
 }
 function include_(name) { return HtmlService.createHtmlOutputFromFile(name).getContent(); }
 function openTracker() {
-  var ui = SpreadsheetApp.getUi();
-  var activeBook = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = sheetUi_();
+  var activeBook = activeSpreadsheet_();
   var sharedUrl = typeof sharedLauncherUrl_ === 'function' ? sharedLauncherUrl_() : '';
   if (sharedUrl) {
-    if (!activeBook) { ui.alert('Open TAK from your copied spreadsheet.'); return; }
+    if (!activeBook) { if (ui) ui.alert('Open TAK from your copied spreadsheet.'); return; }
     var launch = HtmlService.createTemplateFromFile('FullScreen');
     launch.trackerUrl = sharedUrl + '?sheet=' + encodeURIComponent(activeBook.getId()) + '&view=kanban';
     launch.guidance = '';
-    ui.showModalDialog(launch.evaluate().setWidth(400).setHeight(210), 'Open tracker');
+    if (ui) ui.showModalDialog(launch.evaluate().setWidth(400).setHeight(210), 'Open tracker');
     return;
   }
   var id = environmentSpreadsheetId_();
   if (activeBook && id && activeBook.getId() !== id) {
-    ui.alert('This spreadsheet copy is linked to another tracker. Open a fresh TAK starter template instead of copying a configured tracker. No data was changed.');
+    if (ui) ui.alert('This spreadsheet copy is linked to another tracker. Open a fresh TAK starter template instead of copying a configured tracker. No data was changed.');
     return;
   }
   try {
     if (!id) setupTracker();
     getBook_();
   } catch (error) {
-    ui.alert('TAK could not open this spreadsheet: ' + (error && error.message ? error.message : String(error)));
+    if (ui) ui.alert('TAK could not open this spreadsheet: ' + (error && error.message ? error.message : String(error)));
     return;
   }
-  ui.showModalDialog(trackerOutput_('kanban').setWidth(1100).setHeight(720), 'TAK — Project tracker');
+  if (ui) ui.showModalDialog(trackerOutput_('kanban').setWidth(1100).setHeight(720), 'TAK — Project tracker');
 }
 function openQuickAdd() {
   authorizationService_().require('write');
-  SpreadsheetApp.getUi().showSidebar(HtmlService.createHtmlOutputFromFile('QuickAdd').setTitle('Quick add'));
+  var ui = sheetUi_();
+  if (ui) ui.showSidebar(HtmlService.createHtmlOutputFromFile('QuickAdd').setTitle('Quick add'));
 }
 function quickCreateIssue(title, type, parentId, operationId) {
   authorizationService_().require('write');
@@ -145,15 +220,20 @@ function quickCreateIssue(title, type, parentId, operationId) {
   var status = settings.find(function (setting) { return setting.category === 'workflow' && setting.key === 'defaultStatus'; });
   return saveIssue({ summary: title, type: type, parentId: parentId, taskTypeId: taskType && taskType.value || 'algo', status: status && status.value || 'Backlog', priority: 'Medium', operationId: operationId || '' });
 }
-function getProject() {
+function getProject(explicitId) {
   return withLock_(function () {
     authorizationService_().require('read');
+    if (explicitId) userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', String(explicitId));
+    var id = explicitId || environmentSpreadsheetId_();
+    if (!id) {
+      return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
+    }
     var book = getBook_();
     if (typeof trackerMode_ === 'function' && trackerMode_() === 'personal') personalSaveMetadata_(book.getId(), book, true);
     var issues = readIssues_(book);
     var mode = typeof trackerMode_ === 'function' ? trackerMode_() : 'team';
     var quickBatchCreate = mode === 'personal' && typeof Sheets !== 'undefined' && typeof createPersonalIssuesBatch_ === 'function' && getRepositoryProperty_('SHEETFLOW_ACTIVE_SCHEMA') !== '2';
-    return browserValue_({ issues: issues.map(clientIssue_), comments: {}, commentsLazy: true, mode: mode, quickBatchCreate: quickBatchCreate, settings: typeof SheetFlowSettings !== 'undefined' ? SheetFlowSettings.read(book) : [], spreadsheetUrl: book.getUrl(), name: book.getName(), serverTime: new Date().toISOString() });
+    return browserValue_({ needsPicker: false, spreadsheetId: book.getId(), issues: issues.map(clientIssue_), comments: {}, commentsLazy: true, mode: mode, quickBatchCreate: quickBatchCreate, settings: typeof SheetFlowSettings !== 'undefined' ? SheetFlowSettings.read(book) : [], spreadsheetUrl: book.getUrl(), name: book.getName(), serverTime: new Date().toISOString() });
   });
 }
 /** Generate a review-only proposal in an independently installed Apps Script app. */
@@ -299,7 +379,7 @@ function updateIssuesBatch(items) {
       if (!versionedRepositoryActive_(book) && typeof SheetFlowSettings !== 'undefined') prepared.forEach(function (entry) {
         if (entry.field === 'taskTypeId' && entry.current.taskTypeId !== entry.issue.taskTypeId) SheetFlowSettings.setTaskType(book, entry.current.id, entry.issue.taskTypeId);
       });
-      SpreadsheetApp.flush();
+      flushBook_(book);
     } catch (writeError) {
       var rollbackErrors = [];
       written.slice().reverse().forEach(function (entry) {
@@ -308,7 +388,7 @@ function updateIssuesBatch(items) {
           if (!versionedRepositoryActive_(book) && typeof SheetFlowSettings !== 'undefined' && entry.field === 'taskTypeId') SheetFlowSettings.setTaskType(book, entry.current.id, entry.current.taskTypeId);
         } catch (rollbackError) { rollbackErrors.push(rollbackError && rollbackError.message ? rollbackError.message : String(rollbackError)); }
       });
-      SpreadsheetApp.flush();
+      flushBook_(book);
       throw new Error('Bulk update failed during save. ' + (rollbackErrors.length ? 'Some rows could not be restored; run Refresh and review the project. ' : 'All written rows were restored. ') + (writeError && writeError.message ? writeError.message : String(writeError)));
     }
     var savedIssues = readIssues_(book), results = [];
@@ -320,6 +400,7 @@ function updateIssuesBatch(items) {
       history.receipt(book, entry.operationId, saved);
       results.push({ id: saved.id, issue: saved });
     });
+    flushBook_(book);
     return { items: results, errors: [] };
   });
 }
@@ -364,7 +445,7 @@ function duplicateIssue(id, expectedVersion, includeSubtasks, operationId) {
         writeIssue_(book, entry.issue, null); written.push(entry);
         if (!versioned && typeof SheetFlowSettings !== 'undefined') SheetFlowSettings.setTaskType(book, entry.issue.id, entry.issue.taskTypeId);
       });
-      SpreadsheetApp.flush();
+      flushBook_(book);
     } catch (writeError) {
       var rollbackErrors = [];
       if (versioned) {
@@ -378,7 +459,7 @@ function duplicateIssue(id, expectedVersion, includeSubtasks, operationId) {
           readIssues_(book).filter(function (issue) { return copiedIds.has(issue.id); }).sort(function (a, b) { return b._row - a._row; }).forEach(function (issue) { legacySheet.deleteRow(issue._row); });
         } catch (rollbackError) { rollbackErrors.push(rollbackError && rollbackError.message ? rollbackError.message : String(rollbackError)); }
       }
-      SpreadsheetApp.flush();
+      flushBook_(book);
       throw new Error('Duplicate save failed. ' + (rollbackErrors.length ? 'Some copies could not be removed; refresh and review the project. ' : 'Written copies were rolled back. ') + (writeError && writeError.message ? writeError.message : String(writeError)));
     }
     var savedIssues = versioned ? readVersionedIssues_(book, false) : readIssues_(book);
@@ -389,6 +470,7 @@ function duplicateIssue(id, expectedVersion, includeSubtasks, operationId) {
     });
     var result = { rootId: results[0].issue.id, items: results };
     history.receipt(book, operationId, result);
+    flushBook_(book);
     return result;
   });
 }
@@ -415,7 +497,7 @@ function undoDuplicateIssues(duplicateOperationId, expectedItems, undoOperationI
         var legacySheet = book.getSheetByName('Issues');
         ordered.map(function (copy) { return issues.find(function (issue) { return issue.id === copy.id; }); }).sort(function (a, b) { return b._row - a._row; }).forEach(function (issue) { legacySheet.deleteRow(issue._row); changed.push(issue.id); });
       }
-      SpreadsheetApp.flush();
+      flushBook_(book);
     } catch (writeError) {
       var rollbackErrors = [];
       if (versioned) {
@@ -432,7 +514,7 @@ function undoDuplicateIssues(duplicateOperationId, expectedItems, undoOperationI
           } catch (rollbackError) { rollbackErrors.push(rollbackError && rollbackError.message ? rollbackError.message : String(rollbackError)); }
         });
       }
-      SpreadsheetApp.flush();
+      flushBook_(book);
       throw new Error('Duplicate undo failed. ' + (rollbackErrors.length ? 'Some copies could not be restored; refresh and review the project. ' : 'Written changes were rolled back. ') + (writeError && writeError.message ? writeError.message : String(writeError)));
     }
     var archivedIssues = versioned ? readVersionedIssues_(book, true) : [], ids = created.map(function (issue) { return issue.id; });
@@ -442,6 +524,7 @@ function undoDuplicateIssues(duplicateOperationId, expectedItems, undoOperationI
     });
     var result = { duplicateOperationId: duplicateOperationId, ids: ids, archived: versioned };
     history.receipt(book, undoOperationId, result);
+    flushBook_(book);
     return result;
   });
 }
@@ -494,7 +577,7 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     var recoveredEvent = { operationId: operationId, entityId: recovered.id, eventKind: 'created', beforeRevision: '', afterRevision: recovered.version, changedFields: TrackerCore.fields.map(function (field) { return field.key; }), details: { source: 'app', recovered: true } };
     if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredEvent, operationId, recovered, systemRows);
     else history.receipt(book, operationId, recovered, systemRows);
-    SpreadsheetApp.flush();
+    flushBook_(book);
     timing.replayed = true;
     return recovered;
   }
@@ -506,7 +589,7 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     var recoveredUpdateEvent = { operationId: operationId, entityId: recoveredUpdate.id, eventKind: 'updated', beforeRevision: expectedVersion, afterRevision: recoveredUpdate.version, changedFields: updateReservation.changedFields || [], details: { source: 'app', recovered: true } };
     if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredUpdateEvent, operationId, recoveredUpdate, systemRows);
     else history.receipt(book, operationId, recoveredUpdate, systemRows);
-    SpreadsheetApp.flush();
+    flushBook_(book);
     timing.replayed = true;
     return recoveredUpdate;
   }
@@ -529,11 +612,11 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     var reservedChangedFields = TrackerCore.fields.filter(function (field) { return current[field.key] !== issue[field.key]; }).map(function (field) { return field.key; });
     if (current.taskTypeId !== issue.taskTypeId) reservedChangedFields.push('taskTypeId');
     history.reserveUpdate(book, operationId, { kind: 'save', id: issue.id, fingerprint: updateFingerprint, stateFingerprint: issueStateFingerprint_(issue), updatedAt: issue.updatedAt, changedFields: reservedChangedFields }, systemRows);
-    SpreadsheetApp.flush();
+    flushBook_(book);
   }
   if (!current && createFingerprint && !reservation && history.reserveCreate) {
     history.reserveCreate(book, operationId, { id: issue.id, createdAt: issue.createdAt, updatedAt: issue.updatedAt, startDate: issue.startDate, fingerprint: createFingerprint }, systemRows);
-    SpreadsheetApp.flush();
+    flushBook_(book);
   }
   mark = Date.now();
   var written = writeIssue_(book, issue, current, snapshot);
@@ -541,7 +624,7 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
     written.taskTypeId = snapshot.taskTypes[issue.id] || 'algo';
     if (typeof SheetFlowSettings !== 'undefined' && written.taskTypeId !== issue.taskTypeId) written.taskTypeId = SheetFlowSettings.setTaskType(book, issue.id, issue.taskTypeId, systemRows) || written.taskTypeId;
   }
-  SpreadsheetApp.flush();
+  flushBook_(book);
   timing.writeMs = Date.now() - mark; mark = Date.now();
   var saved = clientIssue_(readWrittenIssue_(book, written, issue));
   timing.verifyMs = Date.now() - mark; mark = Date.now();
@@ -550,7 +633,7 @@ function saveIssueLocked_(book, input, expectedVersion, timing, request) {
   var event = { operationId: operationId, entityId: saved.id, eventKind: current ? 'updated' : 'created', beforeRevision: current && current.version, afterRevision: saved.version, changedFields: changedFields, details: { source: 'app' } };
   if (history.recordAndReceipt) history.recordAndReceipt(book, event, operationId, saved, systemRows);
   else { history.record(book, event); history.receipt(book, operationId, saved, systemRows); }
-  SpreadsheetApp.flush();
+  flushBook_(book);
   timing.journalMs = Date.now() - mark;
   return saved;
 }
@@ -590,7 +673,7 @@ function personalSaveMetadata_(id, source, refresh) {
     try { cached = JSON.parse(cache.get(key) || 'null'); } catch (ignore) {}
     if (cached && cached.zone && cached.sheets && ['Issues', '_System'].every(function (name) { return cached.sheets[name] && Number.isInteger(cached.sheets[name].sheetId) && cached.sheets[name].rowCount > 0; })) return cached;
   }
-  source = source || SpreadsheetApp.openById(id);
+  source = source || openSheetsApiBook_(id);
   var result = { zone: source.getSpreadsheetTimeZone(), sheets: {} };
   ['Issues', '_System'].forEach(function (name) {
     var sheet = source.getSheetByName(name);
@@ -703,7 +786,7 @@ function moveIssue(id, move, expectedVersion, operationId) {
       var recoveredEvent = { operationId: operationId, entityId: id, eventKind: 'moved', beforeRevision: expectedVersion, afterRevision: recovered.version, changedFields: reservation.changedFields || [], details: { source: 'app', move: true, recovered: true } };
       if (history.ensureRecordAndReceipt) history.ensureRecordAndReceipt(book, recoveredEvent, operationId, recovered, systemRows);
       else history.receipt(book, operationId, recovered, systemRows);
-      SpreadsheetApp.flush();
+      flushBook_(book);
       return recovered;
     }
     if (current.version !== expectedVersion) throw new Error('This issue changed elsewhere. Refresh before moving it.');
@@ -713,15 +796,15 @@ function moveIssue(id, move, expectedVersion, operationId) {
     var plannedFields = ['status', 'parentId', 'rank'].filter(function (key) { return current[key] !== issue[key]; });
     if (fingerprint && !reservation && history.reserveUpdate) {
       history.reserveUpdate(book, operationId, { kind: 'move', id: id, fingerprint: fingerprint, stateFingerprint: issueStateFingerprint_(issue), updatedAt: issue.updatedAt, changedFields: plannedFields }, systemRows);
-      SpreadsheetApp.flush();
+      flushBook_(book);
     }
-    writeIssue_(book, issue, current); SpreadsheetApp.flush();
+    writeIssue_(book, issue, current); flushBook_(book);
     var saved = clientIssue_(readIssues_(book).find(function (item) { return item.id === id; }));
     var changedFields = ['status', 'parentId', 'rank'].filter(function (key) { return current[key] !== saved[key]; });
     var event = { operationId: operationId, entityId: id, eventKind: 'moved', beforeRevision: current.version, afterRevision: saved.version, changedFields: changedFields, details: { source: 'app', move: true } };
     if (history.recordAndReceipt) history.recordAndReceipt(book, event, operationId, saved, systemRows);
     else { history.record(book, event); history.receipt(book, operationId, saved, systemRows); }
-    SpreadsheetApp.flush();
+    flushBook_(book);
     return saved;
   });
 }
@@ -775,7 +858,7 @@ function deleteIssuesBatch(items, operationId) {
         if (versioned) { saved.archivedRevision = issue._storageRevision + 1; saved.stateFingerprint = issueStateFingerprint_(issue); }
         return saved;
       }) };
-      history.receipt(book, operationId, intent); SpreadsheetApp.flush();
+      history.receipt(book, operationId, intent); flushBook_(book);
       var reserved = history.findReceipt(book, operationId);
       if (!reserved || !reserved.result || reserved.result.kind !== intent.kind || reserved.result.fingerprint !== fingerprint) throw new Error('The delete recovery record could not be saved. No issues were deleted.');
     }
@@ -787,7 +870,7 @@ function deleteIssuesBatch(items, operationId) {
         var sheet = book.getSheetByName('Issues');
         pending.slice().sort(function (a, b) { return b._row - a._row; }).forEach(function (issue) { changed.push(issue); sheet.deleteRow(issue._row); });
       }
-      SpreadsheetApp.flush();
+      flushBook_(book);
     } catch (writeError) {
       var rollbackErrors = [];
       if (versioned) {
@@ -807,7 +890,7 @@ function deleteIssuesBatch(items, operationId) {
           });
         } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
       }
-      try { SpreadsheetApp.flush(); } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
+      try { flushBook_(book); } catch (rollbackError) { rollbackErrors.push(String(rollbackError.message || rollbackError)); }
       throw new Error('Bulk delete failed. ' + (rollbackErrors.length ? 'Some issues could not be restored; refresh and review the project. ' : 'Written changes were rolled back. ') + String(writeError.message || writeError));
     } finally {
       if (!versioned && changed.length) invalidatePersonalSaveMetadata_(book.getId());
@@ -826,7 +909,7 @@ function deleteIssuesBatch(items, operationId) {
     });
     var deletedIds = intent.items.map(function (entry) { return entry.id; });
     history.receipt(book, operationId, { kind: intent.kind, phase: 'complete', fingerprint: fingerprint, deletedIds: deletedIds });
-    SpreadsheetApp.flush();
+    flushBook_(book);
     var result = { deletedIds: deletedIds };
     if (previous) result.replayed = true;
     return result;
@@ -843,10 +926,11 @@ function deleteIssue(id, expectedVersion) {
     TrackerCore.canDelete(id, issues);
     if (versionedRepositoryActive_(book)) archiveVersionedIssue_(book, issue);
     else book.getSheetByName('Issues').deleteRow(issue._row);
-    SpreadsheetApp.flush();
+    flushBook_(book);
     var archived = versionedRepositoryActive_(book), archivedIssue = archived ? readVersionedIssues_(book, true).find(function (item) { return item.id === id; }) : null;
     var result = { id: id, deleted: true, archived: archived, version: archivedIssue && archivedIssue.version || '' };
     historyService_().record(book, { entityId: id, eventKind: 'archived', beforeRevision: issue.version, afterRevision: archivedIssue && archivedIssue.version || '', changedFields: [], details: { source: 'app' } });
+    flushBook_(book);
     return result;
   });
 }
@@ -859,9 +943,10 @@ function restoreIssue(id, expectedVersion) {
     if (!issue) throw new Error('This archived issue no longer exists.');
     if (issue.version !== expectedVersion) throw new Error('This issue changed elsewhere. Refresh before restoring.');
     restoreVersionedIssue_(book, issue);
-    SpreadsheetApp.flush();
+    flushBook_(book);
     var restored = clientIssue_(readIssues_(book).find(function (item) { return item.id === id; }));
     historyService_().record(book, { entityId: id, eventKind: 'restored', beforeRevision: issue.version, afterRevision: restored.version, changedFields: [], details: { source: 'app' } });
+    flushBook_(book);
     return restored;
   });
 }
@@ -904,7 +989,7 @@ function deactivateVersionedRepository() {
       ensureRows_(sheet, issues.length + 1);
       sheet.getRange(2, 1, issues.length, TrackerCore.fields.length).setValues(issues.map(function (issue) { return toRow_(issue, book); }));
     }
-    SpreadsheetApp.flush();
+    flushBook_(book);
     var properties = PropertiesService.getScriptProperties();
     setRepositoryProperty_('SHEETFLOW_ACTIVE_SCHEMA', 'legacy');
     setRepositoryProperty_('SHEETFLOW_ROLLBACK_DIGEST', issueDataDigest_(issues));
@@ -921,7 +1006,7 @@ function loadSampleData() {
       var sampleIssues = TrackerCore.sample(today_(book));
       sampleIssues.forEach(function (issue) { writeIssue_(book, issue, null); });
       PropertiesService.getScriptProperties().setProperty('LAST_ISSUE_NUMBER', String(sampleIssues.length));
-      SpreadsheetApp.flush();
+      flushBook_(book);
       return { count: sampleIssues.length, spreadsheetUrl: book.getUrl() };
     }
     var sheet = book.getSheetByName('Issues');
@@ -930,7 +1015,7 @@ function loadSampleData() {
     ensureRows_(sheet, issues.length + 1);
     sheet.getRange(2, 1, issues.length, TrackerCore.fields.length).setValues(issues.map(function (i) { return toRow_(i, book); }));
     PropertiesService.getScriptProperties().setProperty('LAST_ISSUE_NUMBER', String(issues.length));
-    SpreadsheetApp.flush();
+    flushBook_(book);
     return { count: issues.length, spreadsheetUrl: book.getUrl() };
   });
 }
@@ -1026,13 +1111,14 @@ function handleSheetEdit(e) {
       var summary = sheet.getRange(item.row, 4);
       if (summary.setNote) summary.setNote(item.message ? 'TAK validation: ' + item.message : '');
     });
-    SpreadsheetApp.flush();
+    flushBook_(book);
     validated.forEach(function (issue) {
       var firstColumn = e.range.getColumn(), lastColumn = e.range.getLastColumn();
       var changedFields = TrackerCore.fields.filter(function (field, index) { return index + 1 >= firstColumn && index + 1 <= lastColumn; }).map(function (field) { return field.key; });
       if (changedFields.indexOf('updatedAt') < 0) changedFields.push('updatedAt');
       historyService_().record(book, { entityId: issue.id, eventKind: 'direct_edit', actorId: editActorEmail_(e) || 'unknown', changedFields: changedFields, details: { source: 'sheet', row: issue._row } });
     });
+    flushBook_(book);
   });
 }
 function handleVersionedSheetEdit_(e) {
@@ -1132,11 +1218,12 @@ function handleVersionedSheetEdit_(e) {
   });
   sheet.getRange(start, 1, count, headers.length).setValues(values);
   notes.forEach(function (item) { annotateRange_(sheet.getRange(item.row, headers.indexOf('Title') + 1), item.message ? 'TAK validation: ' + item.message : ''); });
-  SpreadsheetApp.flush();
+  flushBook_(book);
   valid.forEach(function (entry) {
     var source = entry.tab === 'tasks' ? 'Tasks' : 'Projects and Epics';
     historyService_().record(book, { entityId: entry.id, eventKind: 'direct_edit', actorId: editActorEmail_(e) || 'unknown', changedFields: entry.changedFields, details: { source: source, row: entry.row } });
   });
+  flushBook_(book);
 }
 function validateVersionedMembership_(record, issue, issues) {
   var byId = new Map(issues.map(function (item) { return [item.id, item]; }));
@@ -1168,7 +1255,7 @@ function getBook_(config) {
   if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().book;
   var id = environmentSpreadsheetId_(config);
   if (!id) throw new Error('Run setupTracker in the Apps Script editor first.');
-  var book = SpreadsheetApp.openById(id);
+  var book = openSheetsApiBook_(id);
   var sheet = book.getSheetByName('Issues');
   if (!sheet) throw new Error('The Issues sheet is missing. Run setupTracker.');
   assertHeaders_(sheet);
@@ -1176,6 +1263,8 @@ function getBook_(config) {
 }
 function environmentSpreadsheetId_(config) {
   if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().book.getId();
+  var userId = userProperties_().getProperty('TAK_ACTIVE_SHEET_ID');
+  if (userId) return userId;
   return typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.spreadsheetId(undefined, config) : config ? config.SPREADSHEET_ID || '' : PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 }
 /** Plain browser data: Dates become ISO strings before crossing google.script.run. */
@@ -1400,7 +1489,7 @@ function toRow_(issue, book) {
 }
 function nextId_(issues, request) {
   if (!request && typeof sharedHost_ === 'function' && sharedHost_()) request = sharedOperationalContext_();
-  else if (!request && typeof sharedLauncherUrl_ === 'function' && sharedLauncherUrl_()) request = workbookCounterContext_(SpreadsheetApp.getActiveSpreadsheet());
+  else if (!request && typeof sharedLauncherUrl_ === 'function' && sharedLauncherUrl_()) request = workbookCounterContext_(activeSpreadsheet_());
   var properties = request ? request.properties : PropertiesService.getScriptProperties();
   var highest = Math.max(Number(request ? request.config.LAST_ISSUE_NUMBER : properties.getProperty('LAST_ISSUE_NUMBER')) || 0, 0);
   issues.forEach(function (i) { var m = /^PRJ-(\d+)$/.exec(i.id); if (m) highest = Math.max(highest, Number(m[1])); });
@@ -1414,10 +1503,69 @@ function withLock_(fn) {
   try { return fn(); } finally { lock.releaseLock(); }
 }
 function ensureRows_(sheet, row) {
-  if (row > sheet.getMaxRows()) { sheet.insertRowsAfter(sheet.getMaxRows(), Math.max(100, row - sheet.getMaxRows())); formatSheet_(sheet); }
+  if (row > sheet.getMaxRows()) {
+    sheet.insertRowsAfter(sheet.getMaxRows(), Math.max(100, row - sheet.getMaxRows()));
+    if (!sheet._apiSheet) formatSheet_(sheet);
+  }
 }
-function formatSheet_(sheet) {
+function formatSheet_(sheet, book) {
   var fields = TrackerCore.fields;
+  var targetBook = book || sheet._book;
+  if (hasSheetsApi_() || (sheet && sheet._apiSheet)) {
+    if (!targetBook) return;
+    var sheetId = sheet.getSheetId();
+    var headers = fields.map(function (f) { return f.label; });
+    sheet.getRange(1, 1, 1, fields.length).setValues([headers]);
+    var requests = [
+      {
+        updateSheetProperties: {
+          properties: { sheetId: sheetId, gridProperties: { frozenRowCount: 1, frozenColumnCount: 1 } },
+          fields: 'gridProperties.frozenRowCount,gridProperties.frozenColumnCount'
+        }
+      },
+      {
+        repeatCell: {
+          range: { sheetId: sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: fields.length },
+          cell: {
+            userEnteredFormat: {
+              backgroundColor: { red: 0.09, green: 0.24, blue: 0.21 },
+              textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true },
+              wrapStrategy: 'WRAP'
+            }
+          },
+          fields: 'userEnteredFormat(backgroundColor,textFormat,wrapStrategy)'
+        }
+      }
+    ];
+    fields.forEach(function (f, index) {
+      var width = f.key === 'summary' ? 320 : f.key === 'description' ? 380 : 145;
+      requests.push({
+        updateDimensionProperties: {
+          range: { sheetId: sheetId, dimension: 'COLUMNS', startIndex: index, endIndex: index + 1 },
+          properties: { pixelSize: width },
+          fields: 'pixelSize'
+        }
+      });
+      if (f.kind === 'date' || f.kind === 'timestamp') {
+        requests.push({
+          repeatCell: {
+            range: { sheetId: sheetId, startRowIndex: 1, endRowIndex: Math.max(2, sheet.getMaxRows()), startColumnIndex: index, endColumnIndex: index + 1 },
+            cell: {
+              userEnteredFormat: {
+                numberFormat: f.kind === 'date'
+                  ? { type: 'DATE', pattern: 'yyyy-mm-dd' }
+                  : { type: 'DATE_TIME', pattern: 'yyyy-mm-dd hh:mm' }
+              }
+            },
+            fields: 'userEnteredFormat.numberFormat'
+          }
+        });
+      }
+    });
+    Sheets.Spreadsheets.batchUpdate({ requests: requests }, targetBook.getId());
+    return;
+  }
+  var app = legacySheetService_();
   if (sheet.getMaxColumns() < fields.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), fields.length - sheet.getMaxColumns());
   if (sheet.getMaxRows() < 1000) sheet.insertRowsAfter(sheet.getMaxRows(), 1000 - sheet.getMaxRows());
   var rows = sheet.getMaxRows() - 1;
@@ -1430,19 +1578,289 @@ function formatSheet_(sheet) {
   fields.forEach(function (f, index) {
     var range = sheet.getRange(2, index + 1, rows, 1);
     sheet.setColumnWidth(index + 1, f.key === 'summary' ? 320 : f.key === 'description' ? 380 : 145);
-    if (f.kind === 'date') range.setNumberFormat('yyyy-mm-dd').setDataValidation(SpreadsheetApp.newDataValidation().requireDate().setAllowInvalid(false).build());
+    if (f.kind === 'date' && app) range.setNumberFormat('yyyy-mm-dd').setDataValidation(app.newDataValidation().requireDate().setAllowInvalid(false).build());
     if (f.kind === 'timestamp') range.setNumberFormat('yyyy-mm-dd hh:mm');
-    if (f.kind === 'number') range.setNumberFormat('0.##').setDataValidation(SpreadsheetApp.newDataValidation().requireNumberGreaterThanOrEqualTo(0).setAllowInvalid(false).build());
+    if (f.kind === 'number' && app) range.setNumberFormat('0.##').setDataValidation(app.newDataValidation().requireNumberGreaterThanOrEqualTo(0).setAllowInvalid(false).build());
   });
-  [[2, TrackerCore.types], [6, TrackerCore.statuses], [7, TrackerCore.priorities]].forEach(function (pair) {
-    sheet.getRange(2, pair[0], rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(false).build());
-  });
-  sheet.getRange(2, 15, rows, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireNumberBetween(0, 100).setAllowInvalid(false).build());
+  if (app) {
+    [[2, TrackerCore.types], [6, TrackerCore.statuses], [7, TrackerCore.priorities]].forEach(function (pair) {
+      sheet.getRange(2, pair[0], rows, 1).setDataValidation(app.newDataValidation().requireValueInList(pair[1], true).setAllowInvalid(false).build());
+    });
+    sheet.getRange(2, 15, rows, 1).setDataValidation(app.newDataValidation().requireNumberBetween(0, 100).setAllowInvalid(false).build());
+  }
   var filter = sheet.getFilter(); if (filter) filter.remove();
   sheet.getRange(1, 1, sheet.getMaxRows(), fields.length).createFilter();
-  var rules = TrackerCore.statuses.map(function (status, index) {
-    return SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(status).setBackground(['#edf0f3', '#e9edff', '#e5f2ff', '#fff2d7', '#dff1e8'][index]).setRanges([sheet.getRange(2, 6, rows, 1)]).build();
+  if (app) {
+    var rules = TrackerCore.statuses.map(function (status, index) {
+      return app.newConditionalFormatRule().whenTextEqualTo(status).setBackground(['#edf0f3', '#e9edff', '#e5f2ff', '#fff2d7', '#dff1e8'][index]).setRanges([sheet.getRange(2, 6, rows, 1)]).build();
+    });
+    rules.push(app.newConditionalFormatRule().whenFormulaSatisfied('=AND($K2<>"",$K2<TODAY(),$F2<>"Done")').setBackground('#fbe6e5').setFontColor('#a52d2d').setRanges([sheet.getRange(2, 11, rows, 1)]).build());
+    sheet.setConditionalFormatRules(rules);
+  }
+}
+
+/** Sheets API v4 book adapter for drive.file scope. */
+function flushBook_(book) {
+  if (book && typeof book._flush === 'function') {
+    book._flush();
+    return;
+  }
+  if (!hasSheetsApi_() && !(book && book._personalSave)) {
+    var app = legacySheetService_();
+    if (app && typeof app.flush === 'function') app.flush();
+  }
+}
+
+function createSheetsApiBook_(title) {
+  var sheetTitle = String(title || '').trim() || 'TAK — Project tracker';
+  if (hasSheetsApi_() || (typeof Sheets !== 'undefined' && Sheets && Sheets.Spreadsheets && typeof Sheets.Spreadsheets.create === 'function')) {
+    var zone = (typeof Session !== 'undefined' && Session.getScriptTimeZone && Session.getScriptTimeZone()) || 'Europe/Prague';
+    var created = Sheets.Spreadsheets.create({
+      properties: { title: sheetTitle, timeZone: zone },
+      sheets: [{ properties: { title: 'Issues', gridProperties: { rowCount: 1000, columnCount: TrackerCore.fields.length, frozenRowCount: 1, frozenColumnCount: 1 } } }]
+    });
+    return openSheetsApiBook_(created.spreadsheetId);
+  }
+  var app = legacySheetService_();
+  if (!app || typeof app.create !== 'function') throw new Error('Sheets API v4 service is not available.');
+  return app.create(sheetTitle);
+}
+
+function openSheetsApiBook_(spreadsheetId) {
+  if (!hasSheetsApi_()) {
+    var app = legacySheetService_();
+    if (!app || typeof app.openById !== 'function') throw new Error('Sheets API v4 service is not available.');
+    return app.openById(spreadsheetId);
+  }
+  var meta = Sheets.Spreadsheets.get(spreadsheetId, {
+    fields: 'spreadsheetId,spreadsheetUrl,properties(title,timeZone),sheets(properties(sheetId,title,index,gridProperties(rowCount,columnCount)))'
   });
-  rules.push(SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=AND($K2<>"",$K2<TODAY(),$F2<>"Done")').setBackground('#fbe6e5').setFontColor('#a52d2d').setRanges([sheet.getRange(2, 11, rows, 1)]).build());
-  sheet.setConditionalFormatRules(rules);
+  var zone = (meta.properties && meta.properties.timeZone) || (typeof Session !== 'undefined' && Session.getScriptTimeZone && Session.getScriptTimeZone()) || 'Europe/Prague';
+  var title = (meta.properties && meta.properties.title) || 'TAK — Project tracker';
+  var url = meta.spreadsheetUrl || ('https://docs.google.com/spreadsheets/d/' + spreadsheetId + '/edit');
+  var sheetMetaMap = {};
+  (meta.sheets || []).forEach(function (s) {
+    sheetMetaMap[s.properties.title] = s.properties;
+  });
+
+  var sheetNames = Object.keys(sheetMetaMap);
+  var gridCache = {};
+  if (sheetNames.length) {
+    var ranges = sheetNames.map(function (name) { return "'" + name.replace(/'/g, "''") + "'"; });
+    var batch = Sheets.Spreadsheets.Values.batchGet(spreadsheetId, {
+      ranges: ranges,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'SERIAL_NUMBER'
+    });
+    sheetNames.forEach(function (name, idx) {
+      gridCache[name] = ((batch.valueRanges && batch.valueRanges[idx] && batch.valueRanges[idx].values) || []).map(function (r) { return r.slice(); });
+    });
+  }
+
+  var pendingRequests = [];
+  var dirtySheets = {};
+
+  function colToA1_(col) {
+    var s = '';
+    while (col > 0) {
+      var m = (col - 1) % 26;
+      s = String.fromCharCode(65 + m) + s;
+      col = Math.floor((col - 1) / 26);
+    }
+    return s;
+  }
+
+  function serialToDate_(val) {
+    var local = new Date(Math.round((val - 25569) * 86400000)).toISOString().slice(0, -1);
+    if (typeof Utilities !== 'undefined' && typeof Utilities.parseDate === 'function') {
+      try {
+        var parsed = Utilities.parseDate(local, zone, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+        if (parsed instanceof Date && !isNaN(parsed.getTime())) return parsed;
+      } catch (ignore) {}
+    }
+    return new Date(Math.round((val - 25569) * 86400000));
+  }
+
+  function serializeCell_(val) {
+    if (val === '' || val == null) return '';
+    if (val instanceof Date) {
+      if (typeof Utilities !== 'undefined' && typeof Utilities.formatDate === 'function') {
+        try {
+          var local = Utilities.formatDate(val, zone, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+          if (local.slice(-1) === 'Z') local = local.slice(0, -1);
+          return Date.parse(local + 'Z') / 86400000 + 25569;
+        } catch (ignore) {}
+      }
+      return val.getTime() / 86400000 + 25569;
+    }
+    return val;
+  }
+
+  function hydrateCell_(val, sheetName, rowIndex, colIndex) {
+    if (typeof val === 'number' && rowIndex > 0) {
+      if (sheetName === 'Issues') {
+        var field = TrackerCore.fields[colIndex];
+        if (field && (field.kind === 'date' || field.kind === 'timestamp')) return serialToDate_(val);
+      } else if (sheetName === 'Settings' && colIndex === 7) return serialToDate_(val);
+      else if (sheetName === 'Comments' && (colIndex === 4 || colIndex === 5)) return serialToDate_(val);
+      else if (sheetName === 'Change History' && colIndex === 6) return serialToDate_(val);
+      else if (sheetName === '_System' && colIndex === 2) return serialToDate_(val);
+      else if (sheetName === 'Tasks' && [13, 14, 15, 30, 32, 35, 36, 38].indexOf(colIndex) >= 0) return serialToDate_(val);
+      else if (sheetName === 'Projects and Epics' && [6, 7, 10].indexOf(colIndex) >= 0) return serialToDate_(val);
+    }
+    return val == null ? '' : val;
+  }
+
+  function buildSheetWrapper_(name) {
+    var props = sheetMetaMap[name];
+    if (!props) return null;
+    if (!gridCache[name]) gridCache[name] = [];
+
+    var wrapper = {
+      _apiSheet: true,
+      _book: bookObj,
+      getName: function () { return name; },
+      getParent: function () { return bookObj; },
+      getSheetId: function () { return props.sheetId; },
+      getMaxRows: function () { return (props.gridProperties && props.gridProperties.rowCount) || 1000; },
+      getMaxColumns: function () { return (props.gridProperties && props.gridProperties.columnCount) || 26; },
+      getLastRow: function () {
+        var rows = gridCache[name];
+        for (var r = rows.length - 1; r >= 0; r--) {
+          if (rows[r] && rows[r].some(function (v) { return v !== '' && v != null; })) return r + 1;
+        }
+        return 0;
+      },
+      getLastColumn: function () {
+        var rows = gridCache[name], max = 0;
+        rows.forEach(function (r) { if (r && r.length > max) max = r.length; });
+        return max;
+      },
+      setFrozenRows: function (rowsCount) {
+        pendingRequests.push({
+          updateSheetProperties: {
+            properties: { sheetId: props.sheetId, gridProperties: { frozenRowCount: rowsCount } },
+            fields: 'gridProperties.frozenRowCount'
+          }
+        });
+      },
+      setFrozenColumns: function (colsCount) {
+        pendingRequests.push({
+          updateSheetProperties: {
+            properties: { sheetId: props.sheetId, gridProperties: { frozenColumnCount: colsCount } },
+            fields: 'gridProperties.frozenColumnCount'
+          }
+        });
+      },
+      insertRowsAfter: function (afterPosition, howMany) {
+        props.gridProperties = props.gridProperties || {};
+        props.gridProperties.rowCount = wrapper.getMaxRows() + howMany;
+        pendingRequests.push({
+          appendDimension: { sheetId: props.sheetId, dimension: 'ROWS', length: howMany }
+        });
+      },
+      insertColumnsAfter: function (afterPosition, howMany) {
+        props.gridProperties = props.gridProperties || {};
+        props.gridProperties.columnCount = wrapper.getMaxColumns() + howMany;
+        pendingRequests.push({
+          appendDimension: { sheetId: props.sheetId, dimension: 'COLUMNS', length: howMany }
+        });
+      },
+      deleteRow: function (rowPosition) {
+        gridCache[name].splice(rowPosition - 1, 1);
+        pendingRequests.push({
+          deleteDimension: {
+            range: { sheetId: props.sheetId, dimension: 'ROWS', startIndex: rowPosition - 1, endIndex: rowPosition }
+          }
+        });
+      },
+      getRange: function (row, col, numRows, numCols) {
+        numRows = numRows || 1;
+        numCols = numCols || 1;
+        return {
+          getValues: function () {
+            var rows = gridCache[name];
+            var out = [];
+            for (var r = 0; r < numRows; r++) {
+              var rowArr = [];
+              for (var c = 0; c < numCols; c++) {
+                var raw = rows[row - 1 + r] && rows[row - 1 + r][col - 1 + c];
+                rowArr.push(hydrateCell_(raw, name, row - 1 + r, col - 1 + c));
+              }
+              out.push(rowArr);
+            }
+            return out;
+          },
+          setValues: function (values) {
+            var rows = gridCache[name];
+            for (var r = 0; r < values.length; r++) {
+              var targetIdx = row - 1 + r;
+              while (rows.length <= targetIdx) rows.push([]);
+              for (var c = 0; c < values[r].length; c++) {
+                var cellVal = values[r][c];
+                rows[targetIdx][col - 1 + c] = typeof cellVal === 'string' && cellVal.charAt(0) === "'" ? cellVal.slice(1) : cellVal;
+              }
+            }
+            dirtySheets[name] = dirtySheets[name] || [];
+            var rangeA1 = "'" + name.replace(/'/g, "''") + "'!" + colToA1_(col) + row + ':' + colToA1_(col + numCols - 1) + (row + numRows - 1);
+            dirtySheets[name].push({
+              range: rangeA1,
+              values: values.map(function (r) { return r.map(serializeCell_); })
+            });
+            return this;
+          },
+          setValue: function (val) {
+            return this.setValues([[val]]);
+          },
+          clearContent: function () {
+            var blanks = Array.from({ length: numRows }, function () { return Array(numCols).fill(''); });
+            return this.setValues(blanks);
+          },
+          setNote: function () { return this; }
+        };
+      }
+    };
+    return wrapper;
+  }
+
+  var bookObj = {
+    getId: function () { return spreadsheetId; },
+    getName: function () { return title; },
+    getUrl: function () { return url; },
+    getSpreadsheetTimeZone: function () { return zone; },
+    getSheets: function () {
+      return Object.keys(sheetMetaMap).map(buildSheetWrapper_);
+    },
+    getSheetByName: function (name) {
+      return buildSheetWrapper_(name);
+    },
+    insertSheet: function (name) {
+      var res = Sheets.Spreadsheets.batchUpdate({
+        requests: [{ addSheet: { properties: { title: name, gridProperties: { rowCount: 1000, columnCount: 26 } } } }]
+      }, spreadsheetId);
+      var added = res.replies[0].addSheet.properties;
+      sheetMetaMap[name] = added;
+      gridCache[name] = [];
+      return buildSheetWrapper_(name);
+    },
+    _flush: function () {
+      if (pendingRequests.length) {
+        var reqs = pendingRequests.splice(0, pendingRequests.length);
+        Sheets.Spreadsheets.batchUpdate({ requests: reqs }, spreadsheetId);
+      }
+      var dataUpdates = [];
+      Object.keys(dirtySheets).forEach(function (name) {
+        dataUpdates = dataUpdates.concat(dirtySheets[name]);
+        delete dirtySheets[name];
+      });
+      if (dataUpdates.length) {
+        Sheets.Spreadsheets.Values.batchUpdate({
+          valueInputOption: 'USER_ENTERED',
+          data: dataUpdates
+        }, spreadsheetId);
+      }
+    }
+  };
+
+  return bookObj;
 }

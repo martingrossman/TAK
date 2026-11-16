@@ -33,9 +33,17 @@ function getTaskComments(taskId) {
 }
 function addTaskComment(taskId, body) {
   if (typeof SheetFlowAuth !== 'undefined') SheetFlowAuth.require('write');
-  return withLock_(function () { return browserValue_(SheetFlowComments.add(getBook_(), taskId, body)); });
+  return withLock_(function () {
+    var book = getBook_(), comment = SheetFlowComments.add(book, taskId, body);
+    if (typeof flushBook_ === 'function') flushBook_(book);
+    return browserValue_(comment);
+  });
 }
 function updateTaskComment(commentId, body) {
   if (typeof SheetFlowAuth !== 'undefined') SheetFlowAuth.require('write');
-  return withLock_(function () { return browserValue_(SheetFlowComments.update(getBook_(), commentId, body)); });
+  return withLock_(function () {
+    var book = getBook_(), comment = SheetFlowComments.update(book, commentId, body);
+    if (typeof flushBook_ === 'function') flushBook_(book);
+    return browserValue_(comment);
+  });
 }

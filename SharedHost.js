@@ -32,7 +32,7 @@ function sharedTrackerRpc(sheetId, method, args) {
   if (takSharedRequest_) throw new Error('A tracker request is already running.');
   sheetId = sharedSheetId_(sheetId);
   var actor = sharedActor_(), book;
-  try { book = SpreadsheetApp.openById(sheetId); }
+  try { book = openSheetsApiBook_(sheetId); }
   catch (error) { throw new Error('TAK cannot access this spreadsheet. Sign in with the account that owns your copy, or ask its owner for access.'); }
   var issues = book.getSheetByName('Issues'), system = book.getSheetByName('_System');
   if (!issues || !system) throw new Error('This is not a TAK starter copy. Open a fresh copy of the starter template.');
@@ -43,7 +43,11 @@ function sharedTrackerRpc(sheetId, method, args) {
   if (!SheetFlowSchema.report(book, rows).ready) throw new Error('This copy has missing or changed setup tabs. Restore them before opening TAK.');
   if (book.getSheetByName('Tasks').getLastRow() > 1 || book.getSheetByName('Projects and Epics').getLastRow() > 1) throw new Error('This tracker contains versioned records. Use its existing app; the shared starter app uses Issues storage.');
   takSharedRequest_ = { book: book, actor: actor };
-  try { return methods[method].apply(null, args); }
+  try {
+    var result = methods[method].apply(null, args);
+    if (typeof flushBook_ === 'function') flushBook_(book);
+    return result;
+  }
   finally { takSharedRequest_ = null; }
 }
 /** Read fresh operational state inside the existing mutation lock. */

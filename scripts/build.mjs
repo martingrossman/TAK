@@ -33,6 +33,10 @@ for (const name of ['Styles', 'CoreScript', 'Client']) {
 }
 html = html.replace('<?= initialView ?>', 'kanban');
 html = html.replace('<?= sharedSheetId ?>', '');
+html = html.replace('<?= oauthToken ?>', '');
+html = html.replace('<?= pickerAppId ?>', '');
+html = html.replace('<?= pickerApiKey ?>', '');
+html = html.replace(/\s*<script src="https:\/\/apis\.google\.com\/js\/api\.js" async defer><\/script>/, '');
 for (const match of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(match[1], { filename: 'browser-script' });
 if (html.includes('<?')) throw new Error('Unresolved Apps Script template');
 await mkdir(path.join(root, 'dist'), { recursive: true });

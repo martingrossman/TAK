@@ -660,3 +660,116 @@ test('bulk delete rechecks revisions and outside links after reserving an interr
     assert.equal(h.api.getProject().issues.length, 4); assert.ok(h.balanced());
   }
 });
+
+test('Apps Script deployment allowlist contains zero SpreadsheetApp references for drive.file verification', () => {
+  const path = require('node:path');
+  const root = path.resolve(__dirname, '..');
+  const allowlist = fs.readFileSync(path.join(root, '.claspignore'), 'utf8')
+    .split(/\r?\n/)
+    .filter(line => line.startsWith('!'))
+    .map(line => line.slice(1).trim());
+  assert.ok(allowlist.length > 0);
+  for (const file of allowlist) {
+    const content = fs.readFileSync(path.join(root, file), 'utf8');
+    assert.equal(content.includes('SpreadsheetApp'), false, `${file} must not reference SpreadsheetApp`);
+  }
+});
+
+test('Google Picker drive.file flow signals needsPicker and operates via Sheets API v4 adapter', () => {
+  const h = harness();
+  h.props.delete('SPREADSHEET_ID');
+  const userProps = new Map();
+  h.api.PropertiesService.getUserProperties = () => ({
+    getProperty: key => userProps.get(key) || '',
+    setProperty: (key, value) => userProps.set(key, String(value)),
+    deleteProperty: key => userProps.delete(key)
+  });
+  const unconfigured = h.api.getProject();
+  assert.equal(unconfigured.needsPicker, true);
+  assert.equal(unconfigured.issues.length, 0);
+
+  const books = new Map();
+  h.api.Sheets = {
+    Spreadsheets: {
+      create(resource) {
+        const id = 'picker-book-1';
+        books.set(id, {
+          title: resource.properties.title,
+          timeZone: resource.properties.timeZone || 'Europe/Prague',
+          sheets: new Map([['Issues', { sheetId: 1, rows: [] }]])
+        });
+        return { spreadsheetId: id };
+      },
+      get(id) {
+        const book = books.get(id);
+        assert.ok(book, 'Expected spreadsheet to exist');
+        return {
+          spreadsheetId: id,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${id}/edit`,
+          properties: { title: book.title, timeZone: book.timeZone },
+          sheets: Array.from(book.sheets.entries(), ([title, s], index) => ({
+            properties: { sheetId: s.sheetId, title, index, gridProperties: { rowCount: 1000, columnCount: 26 } }
+          }))
+        };
+      },
+      batchUpdate(request, id) {
+        const book = books.get(id);
+        const replies = [];
+        for (const req of request.requests || []) {
+          if (req.addSheet) {
+            const title = req.addSheet.properties.title;
+            const sheetId = book.sheets.size + 1;
+            book.sheets.set(title, { sheetId, rows: [] });
+            replies.push({ addSheet: { properties: { sheetId, title, gridProperties: { rowCount: 1000, columnCount: 26 } } } });
+          } else if (req.deleteDimension && req.deleteDimension.range.dimension === 'ROWS') {
+            for (const s of book.sheets.values()) {
+              if (s.sheetId === req.deleteDimension.range.sheetId) {
+                s.rows.splice(req.deleteDimension.range.startIndex, req.deleteDimension.range.endIndex - req.deleteDimension.range.startIndex);
+              }
+            }
+          }
+        }
+        return { replies };
+      },
+      Values: {
+        batchGet(id, options) {
+          const book = books.get(id);
+          return {
+            valueRanges: (options.ranges || []).map(r => {
+              const name = r.replace(/^'|'$/g, '').replace(/''/g, "'");
+              return { values: (book.sheets.get(name)?.rows || []).map(row => row.slice()) };
+            })
+          };
+        },
+        batchUpdate(request, id) {
+          const book = books.get(id);
+          for (const entry of request.data || []) {
+            const match = /^'(.+)'!([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(entry.range);
+            assert.ok(match, `Unexpected A1 range: ${entry.range}`);
+            const name = match[1].replace(/''/g, "'");
+            const startCol = match[2].split('').reduce((acc, ch) => acc * 26 + (ch.charCodeAt(0) - 64), 0);
+            const startRow = Number(match[3]);
+            const sheet = book.sheets.get(name);
+            entry.values.forEach((line, r) => {
+              while (sheet.rows.length <= startRow - 1 + r) sheet.rows.push([]);
+              line.forEach((val, c) => {
+                sheet.rows[startRow - 1 + r][startCol - 1 + c] = typeof val === 'string' && val.startsWith("'") ? val.slice(1) : val;
+              });
+            });
+          }
+        }
+      }
+    }
+  };
+  const created = h.api.createNewProjectSheet('My Picker Tracker');
+  assert.equal(created.spreadsheetId, 'picker-book-1');
+  assert.equal(userProps.get('TAK_ACTIVE_SHEET_ID'), 'picker-book-1');
+
+  const saved = h.api.saveIssue({ summary: '=Safe task via v4 API', startDate: '2026-11-16' });
+  assert.equal(saved.id, 'PRJ-1');
+  assert.equal(saved.summary, '=Safe task via v4 API');
+  const loaded = h.api.getProject();
+  assert.equal(loaded.needsPicker, false);
+  assert.equal(loaded.issues.length, 1);
+  assert.equal(loaded.issues[0].summary, '=Safe task via v4 API');
+});

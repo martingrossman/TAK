@@ -36,9 +36,10 @@ function reorderIssue(id, beforeId, expectedVersion) {
       var sheet = book.getSheetByName('Issues');
       ranks.forEach(function (rank) { var issue = issues.find(function (item) { return item.id === rank.id; }); sheet.getRange(issue._row, 21).setValue(rank.rank); });
     }
-    SpreadsheetApp.flush();
+    flushBook_(book);
     var saved = clientIssue_(readIssues_(book).find(function (issue) { return issue.id === id; }));
     historyService_().record(book, { entityId: id, eventKind: 'reordered', beforeRevision: moving.version, afterRevision: saved.version, changedFields: ['rank'], details: { beforeId: beforeId || null, status: moving.status } });
+    flushBook_(book);
     return saved;
   });
 }

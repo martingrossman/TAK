@@ -60,5 +60,9 @@ function getTrackerSettings() {
 }
 function updateTrackerSetting(id, value, active) {
   if (typeof SheetFlowAuth !== 'undefined') SheetFlowAuth.require('configure');
-  return withLock_(function () { return SheetFlowSettings.update(getBook_(), id, value, active); });
+  return withLock_(function () {
+    var book = getBook_(), result = SheetFlowSettings.update(book, id, value, active);
+    if (typeof flushBook_ === 'function') flushBook_(book);
+    return result;
+  });
 }

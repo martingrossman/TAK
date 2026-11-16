@@ -55,6 +55,63 @@
   const uiStorageKey = trackerStorageKey('sheetflow.ui.v1');
   const savedViewsStorageKey = trackerStorageKey('sheetflow.saved-views.v1');
   const noEpicLaneKey = '__no_epic__';
+  const pickerAuth = isCloud ? {
+    token: document.body.dataset?.oauthToken || '',
+    appId: document.body.dataset?.pickerAppId || '',
+    apiKey: document.body.dataset?.pickerApiKey || ''
+  } : null;
+  function openGoogleSheetPicker() {
+    if (!isCloud || !window.gapi) {
+      notify('Google Picker is still loading. Try again in a moment.', true);
+      return;
+    }
+    gapi.load('picker', () => {
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMimeTypes('application/vnd.google-apps.spreadsheet');
+      const picker = new google.picker.PickerBuilder()
+        .setAppId(pickerAuth.appId)
+        .setOAuthToken(pickerAuth.token)
+        .setDeveloperKey(pickerAuth.apiKey)
+        .addView(view)
+        .setCallback(async data => {
+          if (data.action !== google.picker.Action.PICKED) return;
+          const fileId = data.docs[0].id;
+          setBusy(true);
+          syncText('Connecting sheet…');
+          try {
+            await rpc('selectProjectSheet', fileId);
+            setBusy(false);
+            await refresh();
+            notify('Connected to Google Sheet');
+          } catch (error) {
+            showError(error);
+          } finally {
+            setBusy(false);
+          }
+        })
+        .build();
+      picker.setVisible(true);
+    });
+  }
+  async function createNewCloudSheet() {
+    if (!isCloud || state.busy) return;
+    setBusy(true);
+    syncText('Creating TAK spreadsheet…');
+    try {
+      await rpc('createNewProjectSheet');
+      setBusy(false);
+      await refresh();
+      notify('Created and connected new TAK Sheet');
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if ($('#switch-sheet')) {
+    $('#switch-sheet').hidden = !isCloud || Boolean(sharedSheetId);
+    $('#switch-sheet').addEventListener('click', openGoogleSheetPicker);
+  }
   $$('[data-demo-only]').forEach(element => { element.hidden = isCloud; });
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
   const defaultSheetColumnOrder = ['summary', 'status', 'assignee', 'priority', 'dueDate'];
@@ -1715,6 +1772,27 @@
     setBusy(true); if (!quiet) syncText('Loading…');
     try {
       const project = await rpc('getProject');
+      if (project && project.needsPicker) {
+        state.ready = false;
+        $('#error-banner').hidden = true;
+        $('#connection-title').textContent = 'Connect a Google Sheet';
+        $('#connection-detail').textContent = 'Select an existing spreadsheet or create a new one.';
+        $('#sheet-link').hidden = true;
+        syncText('No sheet selected');
+        $('#view-content').innerHTML = `
+          <div class="empty-state">
+            ${icon('sheet')}
+            <h2>Connect your project spreadsheet</h2>
+            <p>TAK only accesses the specific Google Sheet you select or create.</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+              <button type="button" class="button primary" id="pick-google-sheet">Select existing Google Sheet</button>
+              <button type="button" class="button secondary" id="create-google-sheet">Create new TAK Sheet</button>
+            </div>
+          </div>`;
+        $('#pick-google-sheet')?.addEventListener('click', openGoogleSheetPicker);
+        $('#create-google-sheet')?.addEventListener('click', createNewCloudSheet);
+        return;
+      }
       if (!project || !Array.isArray(project.issues)) throw new Error('The server returned no valid project data. Reload the latest tracker deployment. If this continues, run startupHealthCheck in Apps Script.');
       state.issues = project.issues.map(withDraft); state.comments = project.comments || {}; state.commentsLazy = project.commentsLazy === true; state.mode = project.mode || 'team'; state.quickBatchCreate = project.quickBatchCreate === true; state.settings = project.settings || []; state.spreadsheetUrl = project.spreadsheetUrl; state.ready = true;
       $('#error-banner').hidden = true;
