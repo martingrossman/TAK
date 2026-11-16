@@ -38,6 +38,8 @@ For a separate browser-tab link or phone access, follow the [optional web-app st
 
 ## Updating or administering an installation
 
+Maintainers releasing the shared app, the starter template or their own install: follow [RELEASE.md](RELEASE.md).
+
 After changing source files, regenerate `CoreScript.html`, copy changed files into Apps Script, and save. For a versioned `/exec` web app, choose **Deploy → Manage deployments → Edit → New version → Deploy**; saving source alone does not update its `/exec` link.
 
 The repository's `.clasp.json` points at the maintainer's script project. **Do not run `clasp push` from a copied checkout** until you configure and verify your own script ID. `.claspignore` includes the runtime files and excludes tests, build scripts, and `dist/`.

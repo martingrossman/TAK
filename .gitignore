@@ -6,3 +6,4 @@ playwright-report/
 .playwright-mcp/
 .obsidian/
 google project *.txt
+.release/
