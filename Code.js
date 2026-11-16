@@ -228,30 +228,28 @@ function quickCreateIssue(title, type, parentId, operationId) {
   return saveIssue({ summary: title, type: type, parentId: parentId, taskTypeId: taskType && taskType.value || 'algo', status: status && status.value || 'Backlog', priority: 'Medium', operationId: operationId || '' });
 }
 function getProject(explicitId) {
-  return withLock_(function () {
-    authorizationService_().require('read');
-    if (explicitId) userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', String(explicitId));
-    var id = explicitId || environmentSpreadsheetId_();
-    if (!id) {
+  authorizationService_().require('read');
+  if (explicitId) userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', String(explicitId));
+  var id = explicitId || environmentSpreadsheetId_();
+  if (!id) {
+    return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
+  }
+  var book;
+  try {
+    book = getBook_();
+  } catch (error) {
+    var msg = error && error.message ? error.message : String(error);
+    if (!explicitId && /Requested entity was not found|not found|caller does not have permission|Run setupTracker/i.test(msg)) {
+      userProperties_().deleteProperty('TAK_ACTIVE_SHEET_ID');
       return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
     }
-    var book;
-    try {
-      book = getBook_();
-    } catch (error) {
-      var msg = error && error.message ? error.message : String(error);
-      if (!explicitId && /Requested entity was not found|not found|caller does not have permission|Run setupTracker/i.test(msg)) {
-        userProperties_().deleteProperty('TAK_ACTIVE_SHEET_ID');
-        return browserValue_({ needsPicker: true, issues: [], comments: {}, settings: [], serverTime: new Date().toISOString() });
-      }
-      throw error;
-    }
-    if (typeof trackerMode_ === 'function' && trackerMode_() === 'personal') personalSaveMetadata_(book.getId(), book, true);
-    var issues = readIssues_(book);
-    var mode = typeof trackerMode_ === 'function' ? trackerMode_() : 'team';
-    var quickBatchCreate = mode === 'personal' && typeof Sheets !== 'undefined' && typeof createPersonalIssuesBatch_ === 'function' && getRepositoryProperty_('SHEETFLOW_ACTIVE_SCHEMA') !== '2';
-    return browserValue_({ needsPicker: false, spreadsheetId: book.getId(), issues: issues.map(clientIssue_), comments: {}, commentsLazy: true, mode: mode, quickBatchCreate: quickBatchCreate, settings: typeof SheetFlowSettings !== 'undefined' ? SheetFlowSettings.read(book) : [], spreadsheetUrl: book.getUrl(), name: book.getName(), serverTime: new Date().toISOString() });
-  });
+    throw error;
+  }
+  if (typeof trackerMode_ === 'function' && trackerMode_() === 'personal') personalSaveMetadata_(book.getId(), book, true);
+  var issues = readIssues_(book);
+  var mode = typeof trackerMode_ === 'function' ? trackerMode_() : 'team';
+  var quickBatchCreate = mode === 'personal' && typeof Sheets !== 'undefined' && typeof createPersonalIssuesBatch_ === 'function' && getRepositoryProperty_('SHEETFLOW_ACTIVE_SCHEMA') !== '2';
+  return browserValue_({ needsPicker: false, spreadsheetId: book.getId(), issues: issues.map(clientIssue_), comments: {}, commentsLazy: true, mode: mode, quickBatchCreate: quickBatchCreate, settings: typeof SheetFlowSettings !== 'undefined' ? SheetFlowSettings.read(book) : [], spreadsheetUrl: book.getUrl(), name: book.getName(), serverTime: new Date().toISOString() });
 }
 /** Generate a review-only proposal in an independently installed Apps Script app. */
 function proposePlanWithGemini(note, contextId, expectedSnapshot) {
@@ -546,10 +544,36 @@ function undoDuplicateIssues(duplicateOperationId, expectedItems, undoOperationI
     return result;
   });
 }
+function pickerCounterContext_(sheetId, baseProps, baseConfig) {
+  var uProps = userProperties_();
+  var keyName = 'LAST_ISSUE_NUMBER:' + sheetId;
+  var config = Object.assign({}, baseConfig || {});
+  config.LAST_ISSUE_NUMBER = uProps.getProperty(keyName) || '';
+  return {
+    config: config,
+    properties: {
+      getProperty: function (key) {
+        if (key === 'LAST_ISSUE_NUMBER') return uProps.getProperty(keyName) || '';
+        return baseProps && baseProps.getProperty ? baseProps.getProperty(key) : '';
+      },
+      setProperty: function (key, value) {
+        if (key === 'LAST_ISSUE_NUMBER') {
+          uProps.setProperty(keyName, String(value));
+          config.LAST_ISSUE_NUMBER = String(value);
+          return;
+        }
+        if (baseProps && baseProps.setProperty) baseProps.setProperty(key, value);
+      }
+    }
+  };
+}
 function saveRequestContext_() {
   if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedOperationalContext_();
   var properties = PropertiesService.getScriptProperties();
-  return { properties: properties, config: properties.getProperties() };
+  var config = properties.getProperties ? properties.getProperties() : {};
+  var activeSheetId = userProperties_().getProperty('TAK_ACTIVE_SHEET_ID');
+  if (activeSheetId) return pickerCounterContext_(activeSheetId, properties, config);
+  return { properties: properties, config: config };
 }
 function createIntentFingerprint_(input) {
   var keys = Object.keys(input || {}).filter(function (key) { return key !== 'operationId' && key !== '_draftKey'; }).sort();
@@ -1508,6 +1532,10 @@ function toRow_(issue, book) {
 function nextId_(issues, request) {
   if (!request && typeof sharedHost_ === 'function' && sharedHost_()) request = sharedOperationalContext_();
   else if (!request && typeof sharedLauncherUrl_ === 'function' && sharedLauncherUrl_()) request = workbookCounterContext_(activeSpreadsheet_());
+  else if (!request) {
+    var activeSheetId = userProperties_().getProperty('TAK_ACTIVE_SHEET_ID');
+    if (activeSheetId) request = pickerCounterContext_(activeSheetId, PropertiesService.getScriptProperties(), {});
+  }
   var properties = request ? request.properties : PropertiesService.getScriptProperties();
   var highest = Math.max(Number(request ? request.config.LAST_ISSUE_NUMBER : properties.getProperty('LAST_ISSUE_NUMBER')) || 0, 0);
   issues.forEach(function (i) { var m = /^PRJ-(\d+)$/.exec(i.id); if (m) highest = Math.max(highest, Number(m[1])); });

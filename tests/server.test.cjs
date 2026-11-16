@@ -692,10 +692,11 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   assert.equal(unconfigured.issues.length, 0);
 
   const books = new Map();
+  let bookCounter = 0;
   h.api.Sheets = {
     Spreadsheets: {
       create(resource) {
-        const id = 'picker-book-1';
+        const id = `picker-book-${++bookCounter}`;
         books.set(id, {
           title: resource.properties.title,
           timeZone: resource.properties.timeZone || 'Europe/Prague',
@@ -765,6 +766,7 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
     }
   };
   h.props.set('SPREADSHEET_ID', 'legacy-unpicked-id');
+  h.props.set('LAST_ISSUE_NUMBER', '50');
   const unpickedLegacy = h.api.getProject();
   assert.equal(unpickedLegacy.needsPicker, true);
 
@@ -779,4 +781,9 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   assert.equal(loaded.needsPicker, false);
   assert.equal(loaded.issues.length, 1);
   assert.equal(loaded.issues[0].summary, '=Safe task via v4 API');
+
+  const createdSecond = h.api.createNewProjectSheet('Second Picker Tracker');
+  assert.equal(createdSecond.spreadsheetId, 'picker-book-2');
+  const savedSecond = h.api.saveIssue({ summary: 'First task in second sheet', startDate: '2026-11-16' });
+  assert.equal(savedSecond.id, 'PRJ-1');
 });
