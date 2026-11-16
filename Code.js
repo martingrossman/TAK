@@ -168,7 +168,7 @@ function setupTracker(explicitId) {
 function trackerOutput_(view) {
   var cfg = pickerConfig_();
   var template = HtmlService.createTemplateFromFile('Index');
-  template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(view) >= 0 ? view : 'kanban';
+  template.initialView = ['sheet', 'kanban', 'gantt', 'roadmap'].indexOf(view) >= 0 ? view : 'kanban';
   template.sharedSheetId = '';
   template.oauthToken = typeof ScriptApp !== 'undefined' && typeof ScriptApp.getOAuthToken === 'function' ? ScriptApp.getOAuthToken() : '';
   template.pickerAppId = cfg.appId;
@@ -187,7 +187,7 @@ function doGet(e) {
       connection.message = error.message;
       return connection.evaluate().setTitle('Open TAK');
     }
-    template.initialView = ['sheet', 'kanban', 'gantt'].indexOf(params.view) >= 0 ? params.view : 'kanban';
+    template.initialView = ['sheet', 'kanban', 'gantt', 'roadmap'].indexOf(params.view) >= 0 ? params.view : 'kanban';
     template.oauthToken = typeof ScriptApp !== 'undefined' && typeof ScriptApp.getOAuthToken === 'function' ? ScriptApp.getOAuthToken() : '';
     template.pickerAppId = cfg.appId;
     template.pickerApiKey = cfg.apiKey;

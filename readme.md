@@ -240,7 +240,7 @@ In **Sheet**, drag the dotted row grip to a row's **center** to make that row th
 
 The up/down buttons and Alt + Up/Down keep the same parent and reorder siblings regardless of status. Dragging or using move controls in a column-sorted view automatically returns the Sheet to saved rank order; no separate mode button is shown. Drag moves expand the destination group, retain descendant links and preserve status, dates, dependencies and hidden siblings. Undo reverses the saved move. Inline Parent selects retain the current nested Task/Bug parent; the full editor lists all valid parent candidates and excludes self/descendants.
 
-Direct views: `#sheet`, `#kanban`, `#gantt`, and `#roadmap` (or `?view=sheet`, `?view=kanban`, `?view=gantt`).
+Direct views: `#sheet`, `#kanban`, `#gantt`, and `#roadmap` (or `?view=sheet`, `?view=kanban`, `?view=gantt`, `?view=roadmap`).
 
 Useful commands:
 

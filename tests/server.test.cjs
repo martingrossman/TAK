@@ -814,3 +814,12 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   h.api.deleteRoadmapItem('RM-1', stream.version);
   assert.equal(second.sheets.get('Roadmap').rows.length, 2, 'the deleted stream row is removed');
 });
+
+test('a direct link can open any of the four views, and unknown views fall back to Kanban', () => {
+  const h = harness();
+  let template;
+  h.api.HtmlService = { createTemplateFromFile: () => (template = { evaluate: () => ({ setTitle() { return this; }, addMetaTag() { return this; } }) }) };
+  for (const view of ['sheet', 'kanban', 'gantt', 'roadmap']) { h.api.doGet({ parameter: { view } }); assert.equal(template.initialView, view); }
+  h.api.doGet({ parameter: { view: 'nonsense' } });
+  assert.equal(template.initialView, 'kanban');
+});

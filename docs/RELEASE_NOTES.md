@@ -4,8 +4,15 @@ Newest first. One entry per released version. The version number is set once, in
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.1 — 2026-11-16
+
+- A link ending in `?view=roadmap` now opens the Roadmap in the Google web app (it opened Kanban before).
+- README describes the web app, starter template, Roadmap and release flow as they are now.
+- No change to stored data.
 
 ## v1.1.0 — 2026-11-16
 
