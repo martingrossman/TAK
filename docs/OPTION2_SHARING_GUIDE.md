@@ -8,28 +8,21 @@
 ## 1. Architecture Overview
 
 ```mermaid
-sequenceDiagram
-    actor User as User (Browser)
-    participant App as TAK Web App (Apps Script)
-    participant Picker as Google Picker Popup
-    participant Drive as User's Google Drive (Sheets API v4)
+flowchart TD
+    User(["User opens TAK Web App URL"]) --> Auth["Signs in with Google (drive.file scope)"]
+    Auth --> Check{"Has saved sheet ID in UserProperties?"}
 
-    User->>App: 1. Opens TAK Web App URL & signs in
-    App->>Drive: 2. Checks UserProperties (TAK_ACTIVE_SHEET_ID)
-    alt First visit or sheet not yet authorized
-        App-->>User: Shows "Connect your project spreadsheet"
-        alt User clicks "Select Google Sheet"
-            User->>Picker: Picks an existing spreadsheet
-            Picker-->>Drive: Grants drive.file access for that file ID
-            Picker-->>App: selectProjectSheet(fileId)
-        else User clicks "Create new TAK Sheet"
-            User->>App: createNewProjectSheet()
-            App->>Drive: Creates spreadsheet (auto-grants drive.file)
-        end
-        App->>Drive: Formats tabs & saves TAK_ACTIVE_SHEET_ID
-    end
-    App->>Drive: 3. Reads/writes tasks via Sheets.Spreadsheets.* (v4 API)
-    Drive-->>User: 4. Renders Sheet, Kanban & Gantt views
+    Check -- "No (or not yet authorized)" --> Prompt["Shows 'Connect your project spreadsheet'"]
+    Prompt -- "Select Google Sheet" --> Picker["Google Picker popup selects existing Sheet"]
+    Prompt -- "Create new TAK Sheet" --> Create["Creates new TAK Sheet in user's Drive"]
+
+    Picker --> Grant["Google grants drive.file access for selected Sheet"]
+    Create --> Grant
+    Grant --> SaveProp["Saves TAK_ACTIVE_SHEET_ID in UserProperties"]
+    SaveProp --> Ready["Reads & writes tasks via Sheets API v4"]
+
+    Check -- "Yes (already authorized)" --> Ready
+    Ready --> Views["Renders Sheet, Kanban & Gantt views"]
 ```
 
 ### Key Building Blocks
