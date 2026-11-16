@@ -105,24 +105,65 @@
       picker.setVisible(true);
     });
   }
-  async function createNewCloudSheet() {
+  async function createNewCloudSheet(withSampleData = false) {
     if (!isCloud || state.busy) return;
     setBusy(true);
-    syncText('Creating TAK spreadsheet…');
+    syncText(withSampleData ? 'Creating TAK spreadsheet with sample data…' : 'Creating TAK spreadsheet…');
     try {
-      await rpc('createNewProjectSheet');
+      await rpc('createNewProjectSheet', 'TAK — Project tracker', Boolean(withSampleData));
       setBusy(false);
       await refresh();
-      notify('Created and connected new TAK Sheet');
+      notify(withSampleData ? 'Created TAK Sheet with sample data' : 'Created and connected new TAK Sheet');
     } catch (error) {
       showError(error);
     } finally {
       setBusy(false);
     }
   }
+  async function loadSampleProjectData() {
+    if (state.busy) return;
+    setBusy(true);
+    syncText('Loading sample data…');
+    try {
+      await rpc('loadSampleData');
+      setBusy(false);
+      await refresh();
+      notify('Sample data loaded');
+    } catch (error) {
+      showError(error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function renderConnectSheetPrompt(canCancel = false) {
+    $('#error-banner').hidden = true;
+    $('#connection-title').textContent = 'Connect a Google Sheet';
+    $('#connection-detail').textContent = 'Select an existing spreadsheet or create a new one.';
+    if (!canCancel) {
+      state.ready = false;
+      $('#sheet-link').hidden = true;
+      syncText('No sheet selected');
+    }
+    $('#view-content').innerHTML = `
+      <div class="empty-state">
+        ${icon('sheet')}
+        <h2>Connect your project spreadsheet</h2>
+        <p>TAK only accesses the specific Google Sheet you select or create.</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+          <button type="button" class="button primary" id="pick-google-sheet">Select existing Google Sheet</button>
+          <button type="button" class="button secondary" id="create-google-sheet">Create blank TAK Sheet</button>
+          <button type="button" class="button secondary" id="create-sample-google-sheet">Create TAK Sheet with sample data</button>
+          ${canCancel ? '<button type="button" class="button subtle" id="cancel-switch-sheet">Back to current sheet</button>' : ''}
+        </div>
+      </div>`;
+    $('#pick-google-sheet')?.addEventListener('click', openGoogleSheetPicker);
+    $('#create-google-sheet')?.addEventListener('click', () => createNewCloudSheet(false));
+    $('#create-sample-google-sheet')?.addEventListener('click', () => createNewCloudSheet(true));
+    $('#cancel-switch-sheet')?.addEventListener('click', () => render());
+  }
   if ($('#switch-sheet')) {
     $('#switch-sheet').hidden = !isCloud || Boolean(sharedSheetId);
-    $('#switch-sheet').addEventListener('click', openGoogleSheetPicker);
+    $('#switch-sheet').addEventListener('click', () => renderConnectSheetPrompt(state.ready));
   }
   $$('[data-demo-only]').forEach(element => { element.hidden = isCloud; });
   const legacySheetColumnOrder = ['id', 'type', 'taskTypeId', 'parentId', 'summary', 'status', 'priority', 'assignee', 'startDate', 'dueDate', 'progress', 'estimate', 'sprint'];
@@ -1102,6 +1143,13 @@
       C.canDelete(issue.id, db.issues); db.issues = db.issues.filter(i => i.id !== issue.id);
       localStorage.setItem(storageKey, JSON.stringify(db)); return { id: issue.id };
     }
+    if (method === 'loadSampleData') {
+      if (db.issues.length) throw new Error('Sample data can only be added to an empty project.');
+      db.issues = C.sample(today()).map(i => ({ ...i, version: crypto.randomUUID() }));
+      db.sequence = Math.max(db.sequence || 0, db.issues.length);
+      localStorage.setItem(storageKey, JSON.stringify(db));
+      return { count: db.issues.length };
+    }
     throw new Error('Unknown operation.');
   }
   function notify(message, error = false) {
@@ -1785,24 +1833,7 @@
     try {
       const project = await rpc('getProject');
       if (project && project.needsPicker) {
-        state.ready = false;
-        $('#error-banner').hidden = true;
-        $('#connection-title').textContent = 'Connect a Google Sheet';
-        $('#connection-detail').textContent = 'Select an existing spreadsheet or create a new one.';
-        $('#sheet-link').hidden = true;
-        syncText('No sheet selected');
-        $('#view-content').innerHTML = `
-          <div class="empty-state">
-            ${icon('sheet')}
-            <h2>Connect your project spreadsheet</h2>
-            <p>TAK only accesses the specific Google Sheet you select or create.</p>
-            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
-              <button type="button" class="button primary" id="pick-google-sheet">Select existing Google Sheet</button>
-              <button type="button" class="button secondary" id="create-google-sheet">Create new TAK Sheet</button>
-            </div>
-          </div>`;
-        $('#pick-google-sheet')?.addEventListener('click', openGoogleSheetPicker);
-        $('#create-google-sheet')?.addEventListener('click', createNewCloudSheet);
+        renderConnectSheetPrompt(false);
         return;
       }
       if (!project || !Array.isArray(project.issues)) throw new Error('The server returned no valid project data. Reload the latest tracker deployment. If this continues, run startupHealthCheck in Apps Script.');
@@ -2145,7 +2176,12 @@
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
     $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.' }[state.view];
     const hasPendingRows = pendingQuickTasks().length || entryVisible;
-    if (!state.issues.length && !hasPendingRows) { $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug.</p><button class="button primary" data-new="Backlog">Create your first issue</button></div>`; syncSelection(); return; }
+    if (!state.issues.length && !hasPendingRows) {
+      $('#view-content').innerHTML = `<div class="empty-state">${icon('stack')}<h2>A fresh start for your next project.</h2><p>Create your first epic, story, task, or bug — or start with sample tasks.</p><div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px;"><button class="button primary" data-new="Backlog">Create your first issue</button><button class="button secondary" id="load-sample-empty" type="button">Load sample data</button></div></div>`;
+      $('#load-sample-empty')?.addEventListener('click', loadSampleProjectData);
+      syncSelection();
+      return;
+    }
     if (!issues.length && !hasPendingRows) { $('#view-content').innerHTML = '<div class="empty-state"><h2>No issues match these filters.</h2><p>Try a different search, or clear the filters to see everything.</p><button class="button secondary" data-clear>Clear filters</button></div>'; syncSelection(); return; }
     if (state.view === 'kanban') renderBoard(issues);
     sheetViewportObserver?.disconnect();

@@ -111,12 +111,20 @@ function selectProjectSheet(spreadsheetId) {
 }
 
 /** Creates a brand-new TAK spreadsheet owned by the user (granted drive.file access). */
-function createNewProjectSheet(title) {
+function createNewProjectSheet(title, withSampleData) {
   var sheetTitle = String(title || '').trim() || 'TAK — Project tracker';
   var book = createSheetsApiBook_(sheetTitle);
   var newId = book.getId();
   userProperties_().setProperty('TAK_ACTIVE_SHEET_ID', newId);
-  return setupTracker(newId);
+  var result = setupTracker(newId);
+  if (withSampleData) loadSampleData();
+  return result;
+}
+
+/** Clears the active sheet selection for the current user so they return to the welcome screen. */
+function disconnectProjectSheet() {
+  userProperties_().deleteProperty('TAK_ACTIVE_SHEET_ID');
+  return { needsPicker: true };
 }
 
 function setupTracker(explicitId) {
@@ -1040,14 +1048,16 @@ function deactivateVersionedRepository() {
 }
 function loadSampleData() {
   return withLock_(function () {
-    authorizationService_().require('configure');
+    var hasPickerSheet = Boolean(userProperties_().getProperty('TAK_ACTIVE_SHEET_ID'));
+    authorizationService_().require(hasPickerSheet ? 'write' : 'configure');
+    var request = saveRequestContext_();
     var book = getBook_();
     if (versionedRepositoryActive_(book)) {
       var currentV2 = readVersionedIssues_(book, false);
       if (currentV2.length) throw new Error('Sample data can only be added to an empty versioned repository.');
       var sampleIssues = TrackerCore.sample(today_(book));
       sampleIssues.forEach(function (issue) { writeIssue_(book, issue, null); });
-      PropertiesService.getScriptProperties().setProperty('LAST_ISSUE_NUMBER', String(sampleIssues.length));
+      request.properties.setProperty('LAST_ISSUE_NUMBER', String(sampleIssues.length));
       flushBook_(book);
       return { count: sampleIssues.length, spreadsheetUrl: book.getUrl() };
     }
@@ -1056,7 +1066,7 @@ function loadSampleData() {
     var issues = TrackerCore.sample(today_(book));
     ensureRows_(sheet, issues.length + 1);
     sheet.getRange(2, 1, issues.length, TrackerCore.fields.length).setValues(issues.map(function (i) { return toRow_(i, book); }));
-    PropertiesService.getScriptProperties().setProperty('LAST_ISSUE_NUMBER', String(issues.length));
+    request.properties.setProperty('LAST_ISSUE_NUMBER', String(issues.length));
     flushBook_(book);
     return { count: issues.length, spreadsheetUrl: book.getUrl() };
   });
@@ -1307,6 +1317,7 @@ function environmentSpreadsheetId_(config) {
   if (typeof sharedHost_ === 'function' && sharedHost_()) return sharedRequest_().book.getId();
   var userId = userProperties_().getProperty('TAK_ACTIVE_SHEET_ID');
   if (userId) return userId;
+  if (hasSheetsApi_() && typeof PropertiesService !== 'undefined' && typeof PropertiesService.getUserProperties === 'function' && !config) return '';
   return typeof SheetFlowEnvironment !== 'undefined' ? SheetFlowEnvironment.spreadsheetId(undefined, config) : config ? config.SPREADSHEET_ID || '' : PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
 }
 /** Plain browser data: Dates become ISO strings before crossing google.script.run. */
