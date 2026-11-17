@@ -58,14 +58,14 @@ export async function release({ target, dryRun = false, skipTemplate = false, ro
   if (!current) throw new Error('That deployment ID is not in this project. Check it with npm run clasp:info.');
   if (current.version === 'HEAD') throw new Error('That is the draft (@HEAD) deployment, not a production deployment.');
 
-  log(`Release ${tag} to the ${target === 'host' ? 'shared host' : 'independent install'}.`);
+  log(`Release ${tag} to the ${target === 'host' ? 'shared host' : withTemplate ? 'Option 2 web app and starter template' : 'independent install'}.`);
   log(`Production deployment ...${deploymentId.slice(-6)} is at version ${current.version}${current.description ? ' (' + current.description + ')' : ''}; it will move to the new version.`);
   log(`Description: ${description}`);
   if (withTemplate) log(`Then the starter template's script (...${templateId.slice(-6)}) is updated to ${tag}, opening the same /exec.`);
   else if (target === 'install') log('Starter template skipped (--skip-template).');
   if (dryRun) {
     log('[dry run] no changes made; the push, version and deploy steps would run after you type the version to confirm.');
-    call(['push', '-f']); call(['version', description]); call(['deploy', '-i', deploymentId, '-V', '<new version>', '-d', description]);
+    call(['push', '-f']); call(['version', description]); call(['deploy', '-i', `...${deploymentId.slice(-6)}`, '-V', '<new version>', '-d', description]);
     if (withTemplate) call(['push', '-f'], false, templateDir);
     return { dryRun: true, version, target, template: withTemplate };
   }

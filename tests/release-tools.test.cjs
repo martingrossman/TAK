@@ -120,6 +120,7 @@ test('a web app release deploys from the checkout, then updates the starter temp
   assert.equal(result.template, true);
   assert.doesNotMatch(h.logs.join('\n'), new RegExp(TEMPLATE_SCRIPT), 'the full template script ID is not printed');
   assert.match(h.logs.join('\n'), /Starter template updated to v1\.2\.3/);
+  assert.match(h.logs[0], /to the Option 2 web app and starter template\./);
 });
 
 test('a web app release refuses without the template script ID, and a template failure says production already moved', async () => {
@@ -142,6 +143,7 @@ test('--skip-template releases an independent install alone, and a dry run chang
   assert.ok(h.calls.every(call => call.cwd === dir));
   assert.equal(h.calls.at(-1).args[0], 'deploy');
   assert.equal(result.template, false);
+  assert.match(h.logs[0], /to the independent install\./);
   const dry = harness(dir);
   const dryResult = await release({ target: 'install', dryRun: true, ...dry.base, ask: async () => { throw new Error('a dry run must not ask'); } });
   assert.equal(dryResult.dryRun, true);
@@ -149,4 +151,6 @@ test('--skip-template releases an independent install alone, and a dry run chang
   assert.deepEqual(dry.calls.map(call => call.args[0]), ['deployments']);
   assert.match(dry.logs.join('\n'), /\[dry run\] clasp push -f\n/);
   assert.match(dry.logs.join('\n'), /\[dry run\] clasp push -f \(in the staged starter template\)/);
+  assert.match(dry.logs.join('\n'), /\[dry run\] clasp deploy -i \.\.\.abc123 -V <new version>/);
+  assert.doesNotMatch(dry.logs.join('\n'), new RegExp(HOST_DEP), 'a dry run does not print the full deployment ID either');
 });

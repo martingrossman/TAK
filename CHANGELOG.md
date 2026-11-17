@@ -4,12 +4,19 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.5 | 2026-11-17 | Release command: names the Option 2 web app correctly and hides the full deployment ID in dry runs |
 | 1.1.4 | 2026-11-17 | Release process: every web app release also updates the starter template to the same version |
 | 1.1.3 | 2026-11-17 | Roadmap: drag Milestone and Increment chips onto the grid; click renames in place, double-click opens details |
 | 1.1.2 | 2026-11-16 | Version shown in the Apps Script project; changelog moved to CHANGELOG.md |
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.5 — 2026-11-17
+
+- `npm run release -- install` now says it releases the "Option 2 web app and starter template" (or "independent install" with `--skip-template`), instead of always "independent install".
+- `--dry-run` shows only the last six characters of the production deployment ID, like a real run.
+- No change to the app's behaviour or stored data.
 
 ## v1.1.4 — 2026-11-17
 
