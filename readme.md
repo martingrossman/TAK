@@ -262,14 +262,14 @@ The Google commands require a verified target project. The repository root is th
 
 ## Publishing and updates
 
-**For maintainers:** publishing the browser demo, the Google web app and the starter template are separate actions. Choose the destination that should receive the change. The full steps and rules are in [docs/RELEASE.md](docs/RELEASE.md); every version is listed in [CHANGELOG.md](CHANGELOG.md).
+**For maintainers:** publishing the browser demo and the Google web app are separate actions. Every web app release also updates the starter template's attached script to the same version. The full steps and rules are in [docs/RELEASE.md](docs/RELEASE.md); every version is listed in [CHANGELOG.md](CHANGELOG.md).
 
 | Action | What changes | Who receives it? |
 | --- | --- | --- |
 | Run `npm run build` | Generated files on your computer | Local development only; nothing is published |
 | Publish GitHub Pages | The standalone demo website | Demo visitors after reloading; their data stays in browser storage |
 | Release the Google web app | The centrally served interface and server code | Everyone using the web app, after a reload |
-| Update the starter template | Its example data, supporting tabs and attached launcher | People making a new copy afterward; existing copies are unchanged |
+| Update the starter template (part of every web app release) | Its attached script, at the same version as the web app | People making a new copy afterward; existing copies are unchanged |
 | Update an independent Google installation | That installation's code and, when used, its published version | Only users of that installation |
 
 ```mermaid
@@ -281,7 +281,7 @@ flowchart TD
     dev --> approve["Owner tests /dev and approves"]
     approve --> web["Release the Google web app at the same /exec"]
     web --> users["All web app users after a reload"]
-    build --> starter["Stage and update the starter template"]
+    web --> starter["Update the starter template to the same version"]
     starter --> copies["Future spreadsheet copies"]
     build --> independent["Install into an independent Google project"]
     independent --> owner["That installation only"]
@@ -303,17 +303,17 @@ This updates only the browser demo. Google-backed TAK updates require a separate
 
 1. Set the version (`npm version <patch|minor|major> --no-git-tag-version`), run `npm run build`, add the entry to [CHANGELOG.md](CHANGELOG.md), and commit.
 2. `clasp push -f` from the repository root updates only `/dev`. Test there.
-3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same.
-4. Check the live app shows the new version, then `git push origin vX.Y.Z`.
+3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same. Finally it pushes the same version to the starter template's script, launching that `/exec`.
+4. Check the live app shows the new version, check the template with a fresh copy (below), then `git push origin vX.Y.Z`.
 
-The production deployment ID is read from the `TAK_DEPLOYMENT_ID` environment variable and is never stored in the repository. To roll back, point the deployment at the previous version number, as printed by the release command. Keep the deployment set to **User accessing the web app** with signed-in access.
+The production deployment ID is read from the `TAK_DEPLOYMENT_ID` environment variable and the template's script ID from `TAK_TEMPLATE_SCRIPT_ID`; neither is stored in the repository. To roll back, point the deployment at the previous version number, as printed by the release command. Keep the deployment set to **User accessing the web app** with signed-in access.
 
 ### Update the starter template
 
-Only needed when the launcher changes or the web app address changes. Stage the template package with the web app's `/exec` address and push it to the template's own script (not the web app project):
+Required in every web app release, so the template's script always carries the released version. `npm run release -- install` does it after the production deploy. To do it by hand (or to retry), stage the template package with the web app's `/exec` address and push it to the template's own script (not the web app project):
 
 ```powershell
-$env:TAK_SCRIPT_ID = "<TEMPLATE_SCRIPT_ID>"
+$env:TAK_SCRIPT_ID = $env:TAK_TEMPLATE_SCRIPT_ID
 node scripts/stage-package.mjs template "<WEB_APP_EXEC_URL>"
 cd .release\template
 npx clasp push -f

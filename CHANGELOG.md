@@ -4,11 +4,18 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.4 | 2026-11-17 | Release process: every web app release also updates the starter template to the same version |
 | 1.1.3 | 2026-11-17 | Roadmap: drag Milestone and Increment chips onto the grid; click renames in place, double-click opens details |
 | 1.1.2 | 2026-11-16 | Version shown in the Apps Script project; changelog moved to CHANGELOG.md |
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.4 — 2026-11-17
+
+- Every Option 2 web app release now also updates the starter template's script to the same version, right after production moves. `npm run release -- install` does it and needs `TAK_TEMPLATE_SCRIPT_ID` in your shell; `--skip-template` is for independent installs without a template. If the template push fails, the command says production is already released and how to retry.
+- AGENTS.md, RELEASE.md and the README describe the template step as part of every release.
+- No change to the app's behaviour or stored data. New template copies get this version; existing copies keep their script.
 
 ## v1.1.3 — 2026-11-17
 

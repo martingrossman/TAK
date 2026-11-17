@@ -8,7 +8,7 @@ How a change gets from this repository to the two places TAK runs, in a fixed or
 | --- | --- | --- | --- |
 | **Option 2 web app** | The repository root pushed as-is: `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
 | **Shared host** (older) | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
-| **Starter template** | The bound launcher script in the public starter spreadsheet; **🔷 TAK → Open tracker** opens the Option 2 web app for that copy | New copies only | Pushed to the template project; **existing copies keep the script they were made with** |
+| **Starter template** | The bound launcher script in the public starter spreadsheet; **🔷 TAK → Open tracker** opens the Option 2 web app for that copy | New copies only | **Updated in every Option 2 release**, right after production moves, to the same `vX.Y.Z`. `npm run release -- install` does it with `TAK_TEMPLATE_SCRIPT_ID`; **existing copies keep the script they were made with** |
 | **Independent install** | An owner-only copy attached to someone's own spreadsheet ([INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md)) | That owner | Owner updates by hand; the maintainer's own install uses the same `clasp` flow below |
 
 The demo on GitHub Pages is separate: it publishes automatically from `implement_mvp` and never touches Apps Script.
@@ -16,6 +16,7 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 ## Rules
 
 - **Production is human-gated.** A push to `/dev` is allowed on a committed, checked change (`@HEAD` is visible only to project editors; see the release gate in [AGENTS.md](../AGENTS.md)). Moving a production deployment (`clasp deploy -i … -V …`) happens only after the owner has tested on `/dev` and says so in writing ("approved", "deploy to prod").
+- **The starter template ships with every Option 2 release.** Once production has moved, push the same version to the template's script (it has no `/dev`, so never before production). The production approval covers it; no second approval is needed. A release is not finished until the template carries the released version and a fresh copy opens the tracker.
 - **No IDs in the repository.** Script IDs, deployment IDs, spreadsheet IDs and the shared `/exec` URL stay outside source control (a password manager or your shell profile). Examples below use placeholders.
 - **Never run `clasp` from the repository root for the older shared host, and never push a staged host package to the Option 2 project.** The root has no `SharedConfig.js`, so it builds an independent install. Host and template folders are staged with `scripts/stage-package.mjs`.
 - **Release from a clean, tagged checkout** of the branch you intend to ship, after `npm run check` passes.
@@ -80,11 +81,11 @@ npx.cmd @google/clasp deploy -i <HOST_DEPLOYMENT_ID> -V <NEW_VERSION_NUMBER> -d 
 
 ## Release the starter template
 
-Only when the launcher or `Code.js`/`SharedHost.js` copies bundled in the template changed, or to repoint the template at the Option 2 web app. Release the web app first, because the template embeds its verified `/exec` URL.
+**Part of every Option 2 web app release**, always right after production moves: the template bundles the full app code (including `Version.js`), and it must carry the version that its launcher opens. `npm run release -- install` does this step for you when `TAK_TEMPLATE_SCRIPT_ID` is set; it stages the template with the production deployment's `/exec` and pushes it after the deploy. If it reports that the template push failed, production is already released: fix the cause and retry by hand as below. Release the web app first, because the template embeds its verified `/exec` URL.
 
 ```powershell
 # from the repository root
-$env:TAK_SCRIPT_ID = "<TEMPLATE_SCRIPT_ID>"
+$env:TAK_SCRIPT_ID = $env:TAK_TEMPLATE_SCRIPT_ID
 node scripts/stage-package.mjs template "<OPTION2_EXEC_URL>"
 cd .release\template
 npx.cmd @google/clasp push -f
@@ -130,9 +131,9 @@ npm.cmd run release -- host --dry-run     # checks everything, changes nothing
 npm.cmd run release -- host               # asks you to type vX.Y.Z, then deploys
 ```
 
-For an independent install use `npm.cmd run release -- install` with `TAK_DEPLOYMENT_ID` set (the script comes from your `.clasp.json`). The template has no deployments, so it has no release command.
+For the Option 2 web app use `npm.cmd run release -- install` with `TAK_DEPLOYMENT_ID` and `TAK_TEMPLATE_SCRIPT_ID` set (the web app's script comes from your `.clasp.json`). After the deploy it pushes the same version to the starter template; it refuses to start without `TAK_TEMPLATE_SCRIPT_ID`. For an independent install that has no starter template, add `--skip-template`.
 
-It refuses unless all of these hold: it is running in an interactive terminal (not CI, not a script or agent); the tracked files are clean; `HEAD` carries the tag `vX.Y.Z` that matches `package.json`; `Version.js` matches; `CHANGELOG.md` has an entry; the IDs are set in your shell; and the deployment you named exists and is not `@HEAD`. It then asks you to type the version, runs `clasp push -f`, `clasp version` and `clasp deploy -i … -V …`, and prints the previous production version as your rollback target. It still assumes you tested on `/dev` and approved first. After it finishes, do the `/exec` check and `git push origin vX.Y.Z`.
+It refuses unless all of these hold: it is running in an interactive terminal (not CI, not a script or agent); the tracked files are clean; `HEAD` carries the tag `vX.Y.Z` that matches `package.json`; `Version.js` matches; `CHANGELOG.md` has an entry; the IDs are set in your shell; and the deployment you named exists and is not `@HEAD`. It then asks you to type the version, runs `clasp push -f`, `clasp version` and `clasp deploy -i … -V …`, prints the previous production version as your rollback target and, for `install`, pushes the starter template. It still assumes you tested on `/dev` and approved first. After it finishes, do the `/exec` check, test a fresh template copy, and `git push origin vX.Y.Z`.
 
 ## Roll back
 

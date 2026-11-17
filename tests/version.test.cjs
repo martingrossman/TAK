@@ -33,6 +33,15 @@ test('AGENTS.md carries the release gate and names the generated files', () => {
   assert.match(agents, /explicit written approval/);
 });
 
+test('every web app release also updates the starter template to the same version', () => {
+  assert.match(read('AGENTS.md'), /starter template\*\* is updated in \*\*every\*\* Option 2 release/);
+  assert.match(read('AGENTS.md'), /Then update the starter template under the same approval/);
+  assert.match(read('docs/RELEASE.md'), /The starter template ships with every Option 2 release/);
+  assert.match(read('docs/RELEASE.md'), /TAK_TEMPLATE_SCRIPT_ID/);
+  assert.match(read('readme.md'), /Every web app release also updates the starter template/);
+  assert.match(read('scripts/release.mjs'), /TAK_TEMPLATE_SCRIPT_ID/);
+});
+
 test('the changelog lists this version in the table and as the newest entry', () => {
   const notes = read('CHANGELOG.md');
   assert.match(notes, new RegExp('^\\| ' + version.replace(/\./g, '\\.') + ' \\| \\d{4}-\\d{2}-\\d{2} \\|', 'm'));

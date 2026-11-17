@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const HOST_SCRIPT = 'S'.repeat(40), HOST_DEP = 'D'.repeat(30) + 'abc123', HEAD_DEP = 'H'.repeat(40);
+const HOST_SCRIPT = 'S'.repeat(40), HOST_DEP = 'D'.repeat(30) + 'abc123', HEAD_DEP = 'H'.repeat(40), TEMPLATE_SCRIPT = 'T'.repeat(34) + 'tpl456';
 const deploymentsText = `Found 2 deployments.\n- ${HEAD_DEP} @HEAD \n- ${HOST_DEP} @7 - v0.9.0 - Earlier release\n`;
 
 function repo(overrides = {}) {
@@ -25,7 +25,7 @@ function harness(dir, options = {}) {
     return { status: 0, stdout: '', stderr: '' };
   };
   const stage = async (mode, opts) => { staged.push({ mode, opts }); return { outDir: path.join(dir, '.release', mode) }; };
-  const env = options.env || { TAK_HOST_SCRIPT_ID: HOST_SCRIPT, TAK_HOST_DEPLOYMENT_ID: HOST_DEP, TAK_DEPLOYMENT_ID: HOST_DEP };
+  const env = options.env || { TAK_HOST_SCRIPT_ID: HOST_SCRIPT, TAK_HOST_DEPLOYMENT_ID: HOST_DEP, TAK_DEPLOYMENT_ID: HOST_DEP, TAK_TEMPLATE_SCRIPT_ID: TEMPLATE_SCRIPT };
   const base = { root: dir, env, isTTY: true, ci: false, git, run, stage, log: line => logs.push(line), ask: async () => options.answer ?? 'v1.2.3' };
   return { calls, staged, logs, base };
 }
@@ -108,16 +108,45 @@ test('release moves the host deployment in order, with the typed confirmation, a
   assert.match(h.logs.join('\n'), /-V 7/);
 });
 
-test('release for an independent install runs from the checkout and a dry run changes nothing', async () => {
+test('a web app release deploys from the checkout, then updates the starter template to open the same /exec', async () => {
   const { release } = await import('../scripts/release.mjs');
   const dir = repo(), h = harness(dir);
-  await release({ target: 'install', ...h.base });
+  const result = await release({ target: 'install', ...h.base });
+  assert.deepEqual(h.staged, [{ mode: 'template', opts: { scriptId: TEMPLATE_SCRIPT, launchUrl: `https://script.google.com/macros/s/${HOST_DEP}/exec` } }]);
+  assert.deepEqual(h.calls.map(call => [call.args[0], call.cwd]), [
+    ['deployments', dir], ['push', dir], ['version', dir], ['deploy', dir],
+    ['push', path.join(dir, '.release', 'template')]
+  ], 'the template is pushed only after production has moved');
+  assert.equal(result.template, true);
+  assert.doesNotMatch(h.logs.join('\n'), new RegExp(TEMPLATE_SCRIPT), 'the full template script ID is not printed');
+  assert.match(h.logs.join('\n'), /Starter template updated to v1\.2\.3/);
+});
+
+test('a web app release refuses without the template script ID, and a template failure says production already moved', async () => {
+  const { release } = await import('../scripts/release.mjs');
+  const dir = repo();
+  const missing = harness(dir, { env: { TAK_DEPLOYMENT_ID: HOST_DEP } });
+  await assert.rejects(release({ target: 'install', ...missing.base }), /TAK_TEMPLATE_SCRIPT_ID/);
+  assert.equal(missing.calls.length, 0, 'nothing runs before the IDs are checked');
+  const h = harness(dir);
+  const templateDir = path.join(dir, '.release', 'template');
+  const run = h.base.run;
+  await assert.rejects(release({ target: 'install', ...h.base, run: (args, cwd) => cwd === templateDir ? { status: 1, stdout: '', stderr: 'no access' } : run(args, cwd) }), /Production is on v1\.2\.3, but the starter template was not updated: .*no access/);
+});
+
+test('--skip-template releases an independent install alone, and a dry run changes nothing', async () => {
+  const { release } = await import('../scripts/release.mjs');
+  const dir = repo(), h = harness(dir, { env: { TAK_DEPLOYMENT_ID: HOST_DEP } });
+  const result = await release({ target: 'install', skipTemplate: true, ...h.base });
   assert.equal(h.staged.length, 0);
   assert.ok(h.calls.every(call => call.cwd === dir));
   assert.equal(h.calls.at(-1).args[0], 'deploy');
+  assert.equal(result.template, false);
   const dry = harness(dir);
-  const result = await release({ target: 'install', dryRun: true, ...dry.base, ask: async () => { throw new Error('a dry run must not ask'); } });
-  assert.equal(result.dryRun, true);
+  const dryResult = await release({ target: 'install', dryRun: true, ...dry.base, ask: async () => { throw new Error('a dry run must not ask'); } });
+  assert.equal(dryResult.dryRun, true);
+  assert.equal(dryResult.template, true);
   assert.deepEqual(dry.calls.map(call => call.args[0]), ['deployments']);
-  assert.match(dry.logs.join('\n'), /\[dry run\] clasp push -f/);
+  assert.match(dry.logs.join('\n'), /\[dry run\] clasp push -f\n/);
+  assert.match(dry.logs.join('\n'), /\[dry run\] clasp push -f \(in the staged starter template\)/);
 });
