@@ -4,10 +4,17 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.3 | 2026-11-17 | Roadmap: drag Milestone and Increment chips onto the grid; click renames in place, double-click opens details |
 | 1.1.2 | 2026-11-16 | Version shown in the Apps Script project; changelog moved to CHANGELOG.md |
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.3 — 2026-11-17
+
+- Roadmap toolbar has **Milestone** and **Increment** chips. Drag one onto a stream (or a milestone onto the Milestones lane) to add it at that date; it appears with its name ready to type. Enter or clicking away keeps it, Esc removes it. Clicking a chip opens the full dialog instead.
+- Clicking an increment, milestone or stream name now renames it in place (Enter saves, Esc keeps the old name). Double-click, or Enter on a focused item, opens the details. F2 renames the focused item.
+- No change to stored data.
 
 ## v1.1.2 — 2026-11-16
 

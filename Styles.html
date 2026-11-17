@@ -923,6 +923,18 @@ body[data-active-view="roadmap"] .workspace-bar,body[data-active-view="roadmap"]
 body.roadmap-dragging,body.roadmap-dragging *{cursor:grabbing!important;user-select:none}
 .roadmap-stream.roadmap-drop-target .roadmap-track{background-color:var(--primary-soft)}
 .roadmap-drag-tip{position:fixed;z-index:200;padding:5px 9px;border-radius:8px;background:var(--ink);color:var(--canvas);font-size:var(--text-meta);font-weight:550;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgb(var(--shadow-rgb) / .2)}
+.roadmap-rename{height:26px;min-width:0;box-sizing:border-box;padding:0 7px;border:1.5px solid var(--primary);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-weight:550;outline:none;box-shadow:0 0 0 3px var(--primary-soft)}
+.roadmap-milestone.roadmap-draft{cursor:default}
+.roadmap-stream-title.renaming{display:flex;align-items:center;gap:9px;min-width:0}
+.roadmap-stream-title.renaming .roadmap-rename{width:100%;max-width:150px;font-size:14px;font-weight:600}
+.roadmap-milestone.roadmap-draft .roadmap-rename{width:170px}
+.roadmap-bar.roadmap-draft{display:flex;align-items:center;min-width:150px;padding:0;background:transparent;border-color:transparent;overflow:visible;cursor:default;z-index:3}
+.roadmap-bar.roadmap-draft .roadmap-rename{width:100%;height:28px}
+.roadmap-palette{display:inline-flex;align-items:center;gap:6px;margin-left:4px;padding-left:12px;border-left:1px solid var(--line)}
+.roadmap-chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px dashed var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:var(--text-control);font-weight:500;cursor:grab;touch-action:none;user-select:none}
+.roadmap-chip:hover,.roadmap-chip:focus-visible{border-style:solid;border-color:var(--primary);background:var(--primary-soft)}
+.roadmap-chip .roadmap-diamond{width:11px;height:11px;margin:0 2px}
+.roadmap-chip-bar{width:26px;height:12px;border-radius:6px;background:var(--primary);opacity:.55;flex:none}
 .roadmap-range-field{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:var(--text-control)}
 .roadmap-range-field input{height:36px;padding:0 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font-size:var(--text-control)}
 .roadmap-range-field input:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px var(--primary-soft)}

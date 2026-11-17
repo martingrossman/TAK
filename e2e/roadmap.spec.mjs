@@ -15,7 +15,7 @@ test('roadmap opens with shortcut 4, edits an increment and keeps it after reloa
   await expect(page.getByLabel('Roadmap ends on')).toHaveValue(`${year}-12-31`);
   await expect(page.locator('.roadmap-stream:not(.roadmap-milestones)')).toHaveCount(5);
 
-  await page.getByRole('button', { name: 'Help bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Help bot', exact: true }).dblclick();
   const dialog = page.getByRole('dialog', { name: 'Edit increment' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel('Title')).toBeFocused();
@@ -56,7 +56,7 @@ test('roadmap validates input, keeps the draft, and protects streams that still 
   await increment.getByRole('button', { name: 'Save' }).click();
   await expect(added.getByRole('button', { name: 'Usage dashboard' })).toBeVisible();
 
-  await added.getByRole('button', { name: 'Analytics', exact: true }).click();
+  await added.getByRole('button', { name: 'Analytics', exact: true }).dblclick();
   const edit = page.getByRole('dialog', { name: 'Edit stream' });
   await edit.getByRole('button', { name: 'Delete' }).click();
   await expect(edit.locator('#roadmap-status')).toHaveText(/Delete again/);
@@ -128,7 +128,7 @@ test('dragging an increment moves both dates and survives reload; a plain click 
   await expect(page.getByRole('dialog')).toBeHidden();
   await page.reload();
   expect((await storedItem(page, 'Help bot')).startDate).toBe(after.startDate);
-  await page.getByRole('button', { name: 'Help bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Help bot', exact: true }).dblclick();
   await expect(page.getByRole('dialog', { name: 'Edit increment' })).toBeVisible();
 });
 
@@ -259,7 +259,7 @@ test('a milestone can change icon and colour, draw its own line, and the toolbar
   await expect(lines).toHaveCount(1);
   await expect(page.locator('.roadmap-mline[data-for]')).toHaveAttribute('data-roadmap-color', 'slate');
 
-  await page.getByRole('button', { name: /^Milestone Android launch/ }).click();
+  await page.getByRole('button', { name: /^Milestone Android launch/ }).dblclick();
   const dialog = page.getByRole('dialog', { name: 'Edit milestone' });
   await expect(dialog.getByRole('radio', { name: 'Flag' })).toBeChecked();
   await expect(dialog.getByRole('radio', { name: 'Green' })).toBeChecked();
@@ -277,7 +277,7 @@ test('a milestone can change icon and colour, draw its own line, and the toolbar
   expect([saved.icon, saved.color, saved.line]).toEqual(['triangle', 'rose', true]);
 
   // Default colour and the diamond go back to the plain marker.
-  await android.click();
+  await android.dblclick();
   await dialog.getByRole('radio', { name: 'Default' }).check();
   await dialog.getByRole('radio', { name: 'Diamond' }).check();
   await dialog.getByRole('button', { name: 'Save' }).click();
@@ -285,7 +285,7 @@ test('a milestone can change icon and colour, draw its own line, and the toolbar
   await expect(android.locator('.roadmap-diamond')).toHaveAttribute('data-shape', 'diamond');
 
   // Streams have no icon or line choices, and no Default colour.
-  await page.getByRole('button', { name: 'Mobile', exact: true }).click();
+  await page.getByRole('button', { name: 'Mobile', exact: true }).dblclick();
   const stream = page.getByRole('dialog', { name: 'Edit stream' });
   await expect(stream.getByRole('group', { name: 'Icon' })).toBeHidden();
   await expect(stream.getByRole('checkbox', { name: 'Draw a vertical line across the roadmap' })).toBeHidden();
@@ -315,7 +315,7 @@ test('a milestone can change icon and colour, draw its own line, and the toolbar
 
 test('the milestone editor moves a milestone to another stream and changes its date', async ({ page }) => {
   await page.goto('/#roadmap');
-  await page.getByRole('button', { name: /^Milestone Community beta/ }).click();
+  await page.getByRole('button', { name: /^Milestone Community beta/ }).dblclick();
   const dialog = page.getByRole('dialog', { name: 'Edit milestone' });
   await dialog.getByLabel('Stream').selectOption({ label: 'Mobile' });
   await dialog.locator('input[name="roadmapStart"]').fill('2026-03-10');
@@ -325,7 +325,7 @@ test('the milestone editor moves a milestone to another stream and changes its d
   const stored = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Community beta');
   const mobileId = (await page.evaluate(() => JSON.parse(localStorage.getItem('tak.roadmap.v1')))).find(item => item.title === 'Mobile').id;
   expect([stored.streamId, stored.startDate]).toEqual([mobileId, '2026-03-10']);
-  await page.getByRole('button', { name: /^Milestone Community beta/ }).click();
+  await page.getByRole('button', { name: /^Milestone Community beta/ }).dblclick();
   await dialog.getByLabel('Stream').selectOption({ label: 'None (top lane)' });
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();

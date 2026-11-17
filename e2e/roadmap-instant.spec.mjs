@@ -81,6 +81,6 @@ test('repeated moves stay responsive, are merged into one follow-up save, and a 
 
   await page.evaluate(() => roadmapHarness.finish('fail'));
   await expect(page.locator('#toast')).toContainText('was not saved');
-  await bar.click();
+  await bar.dblclick();
   await expect(page.getByRole('dialog', { name: 'Edit increment' }).getByLabel('Start')).toHaveValue(`${year}-03-02`);
 });

@@ -2200,7 +2200,7 @@
     $('#epic-nav').innerHTML = state.issues.filter(i => i.type === 'Epic').map(i => `<button data-epic="${escape(i.id)}" class="${state.epic === i.id ? 'active' : ''}" title="${escape(i.summary)}"><span class="epic-dot"></span><span class="epic-name">${escape(i.summary)}</span></button>`).join('') || '<span class="nav-caption">No epics yet</span>';
     const count = issues.length === state.issues.length ? issues.length : `${issues.length} of ${state.issues.length}`;
     $('#issue-count').textContent = `${count} ${state.issues.length === 1 ? 'issue' : 'issues'}`;
-    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.', roadmap: 'Drag increments and milestones to reschedule them or move them to another stream; drag a bar end to change its dates. Alt + arrows nudges the focused item. Select an item to edit it.' }[state.view];
+    $('#view-hint').textContent = { kanban: 'Drag cards to move work forward. Click a card for the details.', sheet: sheetDragHelp(), gantt: 'Double-click labels or bars to edit. Drag bars to reschedule; Epic spans follow child schedules.', roadmap: 'Drag the Milestone or Increment chip onto the roadmap to add one, then type its name. Drag increments and milestones to reschedule them or move them to another stream; drag a bar end to change its dates. Alt + arrows nudges the focused item. Select an item to edit it.' }[state.view];
     if (state.view === 'roadmap') {
       sheetViewportObserver?.disconnect();
       $('#sheet-actions').replaceChildren();
@@ -3681,14 +3681,29 @@
     });
     return lanes;
   }
+  const roadmapDraftId = 'draft-new';
+  const roadmapRenaming = item => roadmap.renaming?.id === item.id;
+  const roadmapRenameInput = (item, kind) => {
+    const draft = item.id === roadmapDraftId, value = roadmapRenaming(item) ? roadmap.renaming.title : item.title;
+    return `<input id="roadmap-rename" class="roadmap-rename" type="text" maxlength="200" value="${escape(value)}" aria-label="${draft ? `Name of the new ${kind}` : `Rename ${kind} ${escape(item.title)}`}" title="${draft ? 'Enter saves. Esc removes it.' : 'Enter saves. Esc keeps the old name.'}" autocomplete="off">`;
+  };
+  const roadmapItemHint = 'Click to rename, double-click for details. Drag to move; Alt + arrows nudges; F2 renames.';
   function roadmapMilestone(item, range) {
     const left = roadmapPosition(item.startDate, range), flip = left > 78;
+    if (item.id === roadmapDraftId || roadmapRenaming(item)) {
+      const tint = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
+      return `<span class="roadmap-milestone roadmap-draft${flip ? ' flip' : ''}"${tint} style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}">${flip ? roadmapRenameInput(item, 'milestone') : ''}<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>${flip ? '' : roadmapRenameInput(item, 'milestone')}</span>`;
+    }
     const label = `<span class="roadmap-milestone-label">${escape(item.title)}<small>${escape(shortDate(item.startDate))}</small></span>`;
     const colour = C.roadmapColors.includes(item.color) ? ` data-roadmap-color="${item.color}"` : '';
     const marker = `<span class="roadmap-diamond" data-shape="${escape(C.roadmapIcons.includes(item.icon) ? item.icon : 'diamond')}" aria-hidden="true"></span>`;
-    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="Drag to move; Alt + arrows nudges" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
+    return `<button type="button" class="roadmap-milestone${flip ? ' flip' : ''}${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}"${colour} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${roadmapItemHint}" style="${flip ? `right:${(100 - left).toFixed(3)}%` : `left:${left.toFixed(3)}%`}" data-roadmap-open="${escape(item.id)}" aria-label="Milestone ${escape(item.title)}, ${escape(shortDate(item.startDate))}">${flip ? label : ''}${marker}${flip ? '' : label}</button>`;
   }
   function renderRoadmap() {
+    roadmap.rendering = true;
+    try { paintRoadmap(); } finally { roadmap.rendering = false; }
+  }
+  function paintRoadmap() {
     const range = roadmap.range, content = $('#view-content');
     const nowDate = today(), showToday = nowDate >= range.start && nowDate <= range.end;
     const thisYear = roadmapYearRange(Number(nowDate.slice(0, 4))), isThisYear = range.start === thisYear.start && range.end === thisYear.end;
@@ -3698,6 +3713,10 @@
       <label class="roadmap-range-field"><span>To</span><input type="date" data-roadmap-range="end" value="${escape(range.end)}" aria-label="Roadmap ends on"></label>
       <button class="button secondary icon-only" type="button" data-roadmap-shift="1" aria-label="Show the next period">→</button>
       <button class="button secondary" type="button" data-roadmap-this-year${isThisYear ? ' disabled' : ''}>This year</button>
+      <span class="roadmap-palette" role="group" aria-label="Drag onto the roadmap to add">
+        <button type="button" class="roadmap-chip" data-roadmap-palette="Milestone" title="Drag onto the roadmap to add a milestone on that date. Click to add one without dragging."><span class="roadmap-diamond" aria-hidden="true"></span>Milestone</button>
+        <button type="button" class="roadmap-chip" data-roadmap-palette="Increment" title="Drag onto a stream to add an increment starting on that date. Click to add one without dragging."><span class="roadmap-chip-bar" aria-hidden="true"></span>Increment</button>
+      </span>
       </div><div class="right">
       <button class="button secondary" type="button" data-roadmap-lines aria-pressed="${roadmap.allLines}" title="Draw a vertical line at every milestone. Off shows lines only where a milestone asks for one.">${roadmap.allLines ? 'All milestone lines' : 'Milestone lines'}</button>
       <button class="button secondary" type="button" data-roadmap-new="Milestone">Add milestone</button>
@@ -3709,7 +3728,8 @@
     const ticks = roadmapTicks(range);
     const months = ticks.map(tick => `<span style="left:${tick.left.toFixed(3)}%"${tick.current ? ' class="current"' : ''}>${escape(tick.label)}</span>`).join('');
     const gridLines = ticks.filter(tick => tick.left > 0.01).map(tick => `<i style="left:${tick.left.toFixed(3)}%"></i>`).join('');
-    const topMilestones = roadmap.items.filter(item => item.type === 'Milestone' && !item.streamId && roadmapInRange(item, range));
+    const items = roadmap.draft ? [...roadmap.items, { ...C.prepareRoadmapItem(roadmap.draft, null), id: roadmapDraftId, title: roadmap.draft.title }] : roadmap.items;
+    const topMilestones = items.filter(item => item.type === 'Milestone' && !item.streamId && roadmapInRange(item, range));
     const streamColour = new Map(streams.map(stream => [stream.id, stream.color]));
     const milestoneLines = roadmap.items.filter(item => item.type === 'Milestone' && (item.line || roadmap.allLines) && roadmapInRange(item, range)).map(item => {
       const key = C.roadmapColors.includes(item.color) ? item.color : streamColour.get(item.streamId) || '';
@@ -3717,14 +3737,14 @@
     }).join('');
     const todayLine = showToday ? `<div class="roadmap-today" style="--today:${(roadmapPosition(nowDate, range) / 100).toFixed(5)}" aria-hidden="true"></div>` : '';
     const lanes = streams.map((stream, index) => {
-      const children = roadmap.items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
-      const bars = packRoadmapLanes(children.filter(item => item.type === 'Increment'), range).map(lane => `<div class="roadmap-lane">${lane.map(({ item, left, right }) =>
-        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}${item.startDate < range.start ? ' clip-start' : ''}${item.endDate > range.end ? ' clip-end' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Drag to move, drag an end to change dates; Alt + arrows nudges.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
+      const children = items.filter(item => item.streamId === stream.id && roadmapInRange(item, range));
+      const bars = packRoadmapLanes(children.filter(item => item.type === 'Increment'), range).map(lane => `<div class="roadmap-lane">${lane.map(({ item, left, right }) => item.id === roadmapDraftId || roadmapRenaming(item) ? `<span class="roadmap-bar roadmap-draft" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%">${roadmapRenameInput(item, 'increment')}</span>` :
+        `<button type="button" class="roadmap-bar${roadmap.pending.has(item.id) || String(item.id).startsWith('pending-') ? ' saving' : ''}${item.startDate < range.start ? ' clip-start' : ''}${item.endDate > range.end ? ' clip-end' : ''}" style="left:${left.toFixed(3)}%;width:${(right - left).toFixed(3)}%" data-roadmap-open="${escape(item.id)}" aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Alt+ArrowUp Alt+ArrowDown" title="${escape(item.title)} · ${escape(shortDate(item.startDate))} – ${escape(shortDate(item.endDate))}. Click to rename, double-click for details. Drag to move, drag an end to change dates; Alt + arrows nudges; F2 renames.">${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="start" aria-hidden="true"></span>'}<span class="roadmap-bar-text">${escape(item.title)}</span>${roadmap.pending.has(item.id) ? '' : '<span class="roadmap-handle" data-edge="end" aria-hidden="true"></span>'}</button>`).join('')}</div>`).join('');
       const marks = children.filter(item => item.type === 'Milestone').map(item => roadmapMilestone(item, range)).join('');
       const hidden = roadmap.items.filter(item => item.streamId === stream.id).length - children.length;
       return `<section class="roadmap-stream" data-roadmap-color="${escape(stream.color)}" aria-label="${escape(stream.title)}">
         <div class="roadmap-stream-head">
-          <button type="button" class="roadmap-stream-title" data-roadmap-open="${escape(stream.id)}" data-roadmap-stream-id="${escape(stream.id)}"><span class="roadmap-swatch" aria-hidden="true"></span><span>${escape(stream.title)}</span></button>
+          ${roadmapRenaming(stream) ? `<span class="roadmap-stream-title renaming" data-roadmap-stream-id="${escape(stream.id)}"><span class="roadmap-swatch" aria-hidden="true"></span>${roadmapRenameInput(stream, 'stream')}</span>` : `<button type="button" class="roadmap-stream-title" data-roadmap-open="${escape(stream.id)}" data-roadmap-stream-id="${escape(stream.id)}" title="Click to rename, double-click for details. F2 renames."><span class="roadmap-swatch" aria-hidden="true"></span><span>${escape(stream.title)}</span></button>`}
           <span class="roadmap-stream-actions">
             <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="-1" aria-label="Move ${escape(stream.title)} up"${index === 0 ? ' disabled' : ''}>↑</button>
             <button type="button" class="icon-button" data-roadmap-move="${escape(stream.id)}" data-direction="1" aria-label="Move ${escape(stream.title)} down"${index === streams.length - 1 ? ' disabled' : ''}>↓</button>
@@ -3744,6 +3764,12 @@
       ${lanes}
       ${todayLine}
     </div></div>`;
+    const rename = $('#roadmap-rename');
+    const editing = roadmap.draft || roadmap.renaming;
+    if (rename && editing) {
+      rename.focus();
+      if (editing.fresh) { rename.select(); editing.fresh = false; } else rename.setSelectionRange(rename.value.length, rename.value.length);
+    }
   }
   const roadmapDialog = $('#roadmap-dialog'), roadmapForm = $('#roadmap-form');
   function openRoadmapItem(id, preset = {}) {
@@ -3754,7 +3780,7 @@
     if (type === 'Increment' && !streams.length) { notify('Add a stream first, then add increments to it.', true); return; }
     const range = roadmap.range, nowDate = today();
     const defaultStart = nowDate >= range.start && nowDate <= range.end ? nowDate : range.start;
-    const values = current || C.prepareRoadmapItem({ type, streamId: preset.streamId || (type === 'Increment' ? streams[0]?.id || '' : ''), startDate: type === 'Stream' ? '' : defaultStart, endDate: type === 'Increment' ? C.addDays(defaultStart, 27) : '' }, null);
+    const values = current || C.prepareRoadmapItem({ type, streamId: preset.streamId || (type === 'Increment' ? streams[0]?.id || '' : ''), startDate: type === 'Stream' ? '' : preset.startDate || defaultStart, endDate: type === 'Increment' ? preset.endDate || C.addDays(preset.startDate || defaultStart, 27) : '' }, null);
     roadmap.editing = { id: current?.id || '', version: current?.version || '', type };
     $('#roadmap-title').textContent = current ? `Edit ${type.toLowerCase()}` : `New ${type.toLowerCase()}`;
     $('#roadmap-eyebrow').textContent = current ? current.id : 'Roadmap';
@@ -3833,6 +3859,9 @@
       else flushRoadmapItem(current.id, fields, current);
       return;
     }
+    createRoadmapItem(input, prepared);
+  }
+  function createRoadmapItem(input, prepared) {
     const tempId = `pending-${++roadmapTempCount}`;
     const order = prepared.type === 'Stream' ? Math.max(0, ...roadmapStreams().map(stream => stream.order)) + 1 : prepared.order;
     roadmap.items = [...roadmap.items, { ...prepared, id: tempId, version: '0', order }];
@@ -3846,6 +3875,66 @@
       notify(`${prepared.title || 'The new item'} was not saved: ${error.message || error}`, true);
     }).finally(() => { if (state.view === 'roadmap') renderRoadmap(); });
   }
+  /* A chip dropped on the grid becomes a draft that is named in place; it is sent to the server once, when the name is confirmed. */
+  roadmap.draft = null;
+  function commitRoadmapDraft() {
+    const draft = roadmap.draft; if (!draft) return;
+    roadmap.draft = null;
+    const input = { type: draft.type, title: draft.title.trim() || `New ${draft.type.toLowerCase()}`, streamId: draft.streamId, startDate: draft.startDate };
+    if (draft.type === 'Increment') input.endDate = draft.endDate;
+    let prepared;
+    try { prepared = C.prepareRoadmapItem(input, null); C.validateRoadmapItem(prepared, roadmap.items); }
+    catch (error) { renderRoadmap(); notify(error.message, true); return; }
+    createRoadmapItem(input, prepared);
+  }
+  function cancelRoadmapDraft() { if (!roadmap.draft) return; roadmap.draft = null; renderRoadmap(); }
+  /* Click on an existing item renames it in place; double-click (or Enter) opens its details. */
+  roadmap.renaming = null;
+  let roadmapClickTimer = 0;
+  function commitRoadmapRename() {
+    const edit = roadmap.renaming; if (!edit) return;
+    roadmap.renaming = null;
+    const item = roadmap.items.find(other => other.id === edit.id), title = edit.title.trim();
+    if (!item || !title || title === item.title) { renderRoadmap(); $(`[data-roadmap-open="${CSS.escape(edit.id)}"]`)?.focus(); return; }
+    commitRoadmapChange(item, { title }, true);
+  }
+  function cancelRoadmapRename() {
+    const edit = roadmap.renaming; if (!edit) return;
+    roadmap.renaming = null; renderRoadmap(); $(`[data-roadmap-open="${CSS.escape(edit.id)}"]`)?.focus();
+  }
+  function commitRoadmapEdit() { commitRoadmapDraft(); commitRoadmapRename(); }
+  function startRoadmapRename(id) {
+    const item = roadmap.items.find(other => other.id === id);
+    if (!item || roadmapIsTemp(id) || state.view !== 'roadmap' || roadmapDialog.open) return;
+    commitRoadmapEdit();
+    roadmap.renaming = { id, title: item.title, fresh: true };
+    renderRoadmap();
+  }
+  function openRoadmapDetails(id) {
+    clearTimeout(roadmapClickTimer);
+    if (roadmap.renaming || roadmap.draft) { roadmap.renaming = null; commitRoadmapDraft(); renderRoadmap(); }
+    openRoadmapItem(id);
+  }
+  function startRoadmapDraft(drop) {
+    commitRoadmapEdit();
+    roadmap.draft = { ...drop, title: `New ${drop.type.toLowerCase()}`, fresh: true };
+    renderRoadmap();
+  }
+  $('#view-content').addEventListener('input', event => { const edit = roadmap.draft || roadmap.renaming; if (event.target.id === 'roadmap-rename' && edit) edit.title = event.target.value; });
+  $('#view-content').addEventListener('dblclick', event => {
+    if (state.view !== 'roadmap') return;
+    if (event.target.id === 'roadmap-rename' && roadmap.renaming) { event.preventDefault(); openRoadmapDetails(roadmap.renaming.id); }
+  });
+  $('#view-content').addEventListener('keydown', event => {
+    const target = event.target.closest?.('[data-roadmap-open]');
+    if (state.view === 'roadmap' && event.key === 'F2' && target && !event.altKey && !event.ctrlKey && !event.metaKey) { event.preventDefault(); startRoadmapRename(target.dataset.roadmapOpen); }
+  });
+  $('#view-content').addEventListener('keydown', event => {
+    if (event.target.id !== 'roadmap-rename' || event.isComposing) return;
+    if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); commitRoadmapEdit(); }
+    else if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); if (roadmap.renaming) cancelRoadmapRename(); else cancelRoadmapDraft(); }
+  }, true);
+  $('#view-content').addEventListener('focusout', event => { if (event.target.id === 'roadmap-rename' && !roadmap.rendering) commitRoadmapEdit(); });
   function deleteRoadmapForm() {
     const current = roadmap.items.find(item => item.id === roadmap.editing?.id);
     if (!current || roadmapIsTemp(current.id)) return;
@@ -3938,6 +4027,49 @@
     if (cancel || !drag.moved) { if (drag.moved) renderRoadmap(); return null; }
     return drag;
   }
+  /* Palette: drag the Milestone or Increment chip onto the grid to add one at that date and stream. */
+  let roadmapPaletteDrag = null;
+  function roadmapPaletteDrop(type, x, y) {
+    const track = $('.roadmap-track'), streamId = roadmapStreamAt(x, y);
+    if (!track || streamId === null) return null;
+    const box = track.getBoundingClientRect();
+    if (x < box.left || x > box.right) return null;
+    const days = roadmapRangeDays(roadmap.range);
+    const startDate = C.addDays(roadmap.range.start, Math.min(days - 1, Math.max(0, Math.floor((x - box.left) / box.width * days))));
+    if (type === 'Increment' && !streamId) return { invalid: 'Drop an increment on a stream' };
+    return { type, streamId, startDate, endDate: type === 'Increment' ? C.addDays(startDate, Math.max(6, Math.round(days / 12) - 1)) : startDate };
+  }
+  function endRoadmapPaletteDrag() {
+    const drag = roadmapPaletteDrag; if (!drag) return null;
+    roadmapPaletteDrag = null;
+    removeEventListener('pointermove', moveRoadmapPaletteDrag); removeEventListener('pointerup', dropRoadmapPaletteDrag); removeEventListener('pointercancel', endRoadmapPaletteDrag);
+    document.body.classList.remove('roadmap-dragging'); hideRoadmapDragTip();
+    $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
+    return drag;
+  }
+  function moveRoadmapPaletteDrag(event) {
+    const drag = roadmapPaletteDrag; if (!drag || drag.pointer !== event.pointerId) return;
+    if (!drag.moved && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 5) return;
+    if (!drag.moved) { drag.moved = true; document.body.classList.add('roadmap-dragging'); }
+    const drop = roadmapPaletteDrop(drag.type, event.clientX, event.clientY);
+    $$('.roadmap-drop-target').forEach(lane => lane.classList.remove('roadmap-drop-target'));
+    if (drop && !drop.invalid) (drop.streamId ? $(`[data-roadmap-stream-id="${CSS.escape(drop.streamId)}"]`)?.closest('.roadmap-stream') : $('.roadmap-milestones'))?.classList.add('roadmap-drop-target');
+    roadmapDragTip(!drop ? `Drop on the roadmap to add ${drag.type === 'Milestone' ? 'a milestone' : 'an increment'}` : drop.invalid || `New ${drag.type.toLowerCase()} · ${roadmapDraftLabel(drop)}`, event.clientX, event.clientY);
+  }
+  function dropRoadmapPaletteDrag(event) {
+    const drag = endRoadmapPaletteDrag(); if (!drag || !drag.moved) return;
+    suppressRoadmapClick = true; setTimeout(() => { suppressRoadmapClick = false; }, 0);
+    const drop = roadmapPaletteDrop(drag.type, event.clientX, event.clientY);
+    if (drop && drop.invalid) { notify(drop.invalid + '.', true); return; }
+    if (drop) startRoadmapDraft(drop);
+  }
+  $('#view-content').addEventListener('pointerdown', event => {
+    const chip = state.view === 'roadmap' && event.button === 0 && event.pointerType !== 'touch' ? event.target.closest('[data-roadmap-palette]') : null;
+    if (!chip || roadmapPaletteDrag || roadmapDrag) return;
+    roadmapPaletteDrag = { type: chip.dataset.roadmapPalette, pointer: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    addEventListener('pointermove', moveRoadmapPaletteDrag); addEventListener('pointerup', dropRoadmapPaletteDrag); addEventListener('pointercancel', endRoadmapPaletteDrag);
+  });
+  document.addEventListener('keydown', event => { if (roadmapPaletteDrag && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); endRoadmapPaletteDrag(); } }, true);
   function commitRoadmapChange(item, changes, focusAfter = false) {
     const previous = roadmap.items.find(other => other.id === item.id);
     if (!previous || roadmapIsTemp(previous.id)) return;
@@ -4002,7 +4134,14 @@
     if (suppressRoadmapClick) { suppressRoadmapClick = false; event.preventDefault(); return; }
     const target = event.target.closest('button');
     if (!target) return;
-    if (target.dataset.roadmapOpen) openRoadmapItem(target.dataset.roadmapOpen);
+    if (target.dataset.roadmapOpen) {
+      const id = target.dataset.roadmapOpen;
+      clearTimeout(roadmapClickTimer);
+      // Keyboard activation (detail 0) and the second click of a double-click open the details; a single click renames.
+      if (event.detail === 1) roadmapClickTimer = setTimeout(() => startRoadmapRename(id), 260);
+      else openRoadmapDetails(id);
+    }
+    else if (target.dataset.roadmapPalette) openRoadmapItem('', { type: target.dataset.roadmapPalette });
     else if (target.dataset.roadmapNew) openRoadmapItem('', { type: target.dataset.roadmapNew, streamId: target.dataset.stream || '' });
     else if (target.dataset.roadmapMove) moveRoadmapStream(target.dataset.roadmapMove, Number(target.dataset.direction));
     else if (target.hasAttribute('data-roadmap-retry')) loadRoadmap(true);
