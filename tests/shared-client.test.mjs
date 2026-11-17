@@ -23,14 +23,14 @@ test('shared browser RPC always carries the selected workbook and server failure
   runner.sharedTrackerRpc=()=>failure({message:'Permission denied'});
   await assert.rejects(rpc('getProject'),/Permission denied/);
 });
-test('shared Google packages explicitly separate host identity from the copied launcher',async()=>{
-  const host=await googlePackage('host'),template=await googlePackage('template','https://script.google.com/macros/s/shared-test/exec');
+test('Google packages separate the shared host from the personal-deployment starter template',async()=>{
+  const host=await googlePackage('host'),template=await googlePackage('template');
   const manifest=p=>JSON.parse(p.files.find(f=>f.name==='appsscript').source);
   assert.deepEqual(manifest(host).webapp,{executeAs:'USER_ACCESSING',access:'ANYONE'});
   assert.deepEqual(manifest(host).oauthScopes,['https://www.googleapis.com/auth/spreadsheets','https://www.googleapis.com/auth/userinfo.email']);
   assert.equal(manifest(template).webapp,undefined);
-  assert.deepEqual(manifest(template).oauthScopes,['https://www.googleapis.com/auth/spreadsheets.currentonly','https://www.googleapis.com/auth/script.container.ui']);
+  assert.deepEqual(manifest(template).oauthScopes,['https://www.googleapis.com/auth/spreadsheets','https://www.googleapis.com/auth/script.container.ui','https://www.googleapis.com/auth/script.scriptapp']);
   assert.match(template.files.find(f=>f.name==='SharedConfig').source,/TAK_SHARED_HOST_ = false/);
+  assert.match(template.files.find(f=>f.name==='SharedConfig').source,/TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true/);
   assert.match(host.files.find(f=>f.name==='SharedConfig').source,/TAK_SHARED_HOST_ = true/);
-  await assert.rejects(googlePackage('template','https://example.invalid/untrusted'),/verified shared deployment/);
 });

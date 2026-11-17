@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.6 | 2026-11-17 | New starter copies guide their owners through creating and opening their own Apps Script web app |
 | 1.1.5 | 2026-11-17 | Release command: names the Option 2 web app correctly and hides the full deployment ID in dry runs |
 | 1.1.4 | 2026-11-17 | Release process: every web app release also updates the starter template to the same version |
 | 1.1.3 | 2026-11-17 | Roadmap: drag Milestone and Increment chips onto the grid; click renames in place, double-click opens details |
@@ -11,6 +12,15 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.6 — 2026-11-17
+
+- New starter-template copies no longer launch the centrally maintained web app. **Open tracker** prepares the copied Sheet and opens that copy's own Apps Script web app when it has been deployed.
+- Before the owner creates that one-time web-app deployment, the launcher gives a direct Apps Script link and the exact three deployment steps. Google requires the owner to authorize this; TAK cannot create a deployment on their behalf.
+- The template package requests the Apps Script trigger permission required to prepare a copied Sheet.
+- Retrying **Open tracker** safely completes an interrupted personal-template setup, including its edit trigger.
+- Existing template copies retain their existing launcher. Owners of new copies update their own web-app deployment to receive future code updates.
+- No stored task data or schema changed.
 
 ## v1.1.5 — 2026-11-17
 

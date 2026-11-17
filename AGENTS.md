@@ -86,7 +86,7 @@ Do not bundle visual redesign, data migration, backend write-path refactor and n
 
 > **Never move a production deployment, and never create a new Apps Script version or deployment, on your own initiative.** Production changes only after the owner has tested on `/dev` and approved in writing. The full steps are in `docs/RELEASE.md`; this section is the rule that governs them.
 
-Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive.file`, Picker; the public `/exec` in the README) is the current production target. The **starter template** is updated in **every** Option 2 release, right after production moves, to the same version: it is staged with the Option 2 production `/exec` URL and pushed to the template's own script. The older **shared host** is a staged package and is not released unless the owner names it. **Independent installs** are the owner's own copies.
+Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive.file`, Picker; the public `/exec` in the README) is the current production target. The **starter template** is updated in **every** Option 2 release, right after production moves, to the same version: it is staged as a personal-deployment launcher and pushed to the template's own script. Each new copy guides its owner through creating their own web-app deployment; it does not embed the Option 2 `/exec` URL. The older **shared host** is a staged package and is not released unless the owner names it. **Independent installs** are the owner's own copies.
 
 ```text
 [ Local change + version + release notes + tag ]
@@ -100,7 +100,7 @@ Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive
 [ clasp version "vX.Y.Z - notes"  ->  clasp deploy -i <ID> -V <N> -d "vX.Y.Z - notes" ]
         |
         v  verify the real /exec on a test copy
-[ stage template with the production /exec  ->  clasp push -f to the template's script ]
+[ stage personal-deployment template  ->  clasp push -f to the template's script ]
         |
         v  test a fresh copy of the starter (TAK > Open tracker); report both
 ```
@@ -109,7 +109,7 @@ Targets: the **Option 2 web app** (the repository root; `USER_ACCESSING`, `drive
 
 **Phase 1 — dev push (no approval needed).** Once the change is committed and `npm run check` passes, the agent may run `clasp push -f` to `@HEAD`, which only affects `/dev` (visible to project editors). For the Option 2 web app run it from the repository root; state which project `.clasp.json` points to. For the shared host, run `clasp` only from the staged `.release/host` folder, and only if the owner named that target. The template has no `/dev`, so it is never pushed in Phase 1 (the root has no `SharedConfig.js`, and pushing a staged host to the Option 2 project would overwrite it). Push with `clasp push -f`, then **halt**: report that `@HEAD` changed, give the `/dev` URL pattern and a test list, and do not run `clasp version` or `clasp deploy`.
 
-**Phase 2 — production (human-gated only).** Proceed only on explicit written approval given *after* the `/dev` test, for this version. Then: find the production deployment ID with `clasp deployments`, freeze `clasp version "vX.Y.Z - notes"`, move it with `clasp deploy -i <DEPLOYMENT_ID> -V <N> -d "vX.Y.Z - notes"`, and verify the live `/exec` from a private test copy. **Then update the starter template under the same approval:** set `TAK_SCRIPT_ID` from the owner's `TAK_TEMPLATE_SCRIPT_ID`, run `node scripts/stage-package.mjs template "<production /exec URL>"`, and `clasp push -f` from `.release/template`. The release is not done until the template carries the released version; ask the owner to test a fresh copy. Never run `clasp deploy` without `-i` (it creates a new `/exec` URL and breaks every shared link). Keep the deployment `USER_ACCESSING`.
+**Phase 2 — production (human-gated only).** Proceed only on explicit written approval given *after* the `/dev` test, for this version. Then: find the production deployment ID with `clasp deployments`, freeze `clasp version "vX.Y.Z - notes"`, move it with `clasp deploy -i <DEPLOYMENT_ID> -V <N> -d "vX.Y.Z - notes"`, and verify the live `/exec` from a private test copy. **Then update the starter template under the same approval:** set `TAK_SCRIPT_ID` from the owner's `TAK_TEMPLATE_SCRIPT_ID`, run `node scripts/stage-package.mjs template`, and `clasp push -f` from `.release/template`. The release is not done until the template carries the released version; ask the owner to test a fresh copy through its personal-deployment flow. Never run `clasp deploy` without `-i` (it creates a new `/exec` URL and breaks existing web-app bookmarks). Keep the deployment `USER_ACCESSING`.
 
 **Versioning.** The version is written in exactly one place, `package.json` (`npm version <patch|minor|major> --no-git-tag-version`). The build generates `Version.js` and the header badge. Every change that is merged into `implement_mvp` gets its own version: bump it and add the version to `CHANGELOG.md` (table row and entry) in the same change. Never reuse a version that has already been released. Use one `vX.Y.Z` for the Git tag, Apps Script version description and deployment description. Do not edit `docs/RELEASE.md` examples when releasing.
 

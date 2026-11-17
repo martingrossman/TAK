@@ -65,7 +65,7 @@ function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl =
     HtmlService: { createHtmlOutputFromFile: name => { assert.equal(name, 'Help'); return { setTitle: title => ({ title }) }; }, createTemplateFromFile: name => {
       assert.ok(['Index', 'FullScreen'].includes(name));
       const output = { setTitle: () => output, addMetaTag: () => output, setWidth: width => { output.width = width; return output; }, setHeight: height => { output.height = height; return output; } };
-      const template = { initialView: '', trackerUrl: '', guidance: '', evaluate: () => { output.initialView = template.initialView; output.trackerUrl = template.trackerUrl; output.guidance = template.guidance; return output; } };
+      const template = { initialView: '', trackerUrl: '', guidance: '', scriptEditorUrl: '', evaluate: () => { output.initialView = template.initialView; output.trackerUrl = template.trackerUrl; output.guidance = template.guidance; output.scriptEditorUrl = template.scriptEditorUrl; return output; } };
       return template;
     } }
   });
@@ -215,6 +215,29 @@ test('Open tracker initializes a fresh bound copy and opens the three-view dialo
   assert.equal(h.dialog().output.height, 720);
   assert.equal(h.dialog().output.initialView, 'kanban');
   assert.ok(h.balanced());
+});
+test('personal starter template initializes its copy and opens only its own deployment', () => {
+  const h = setupHarness(); h.api.TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true;
+  h.api.openTracker();
+  assert.equal(h.properties.get('SPREADSHEET_ID'), 'tracker-book');
+  assert.equal(h.dialog().title, 'Open your tracker');
+  assert.equal(h.dialog().output.trackerUrl, 'https://script.google.com/macros/s/test/exec?view=kanban');
+  assert.equal(h.dialog().output.width, 420);
+  assert.equal(h.dialog().output.height, 310);
+});
+test('personal starter template completes a previously interrupted setup before opening', () => {
+  const h = setupHarness(); h.properties.set('SPREADSHEET_ID', 'tracker-book'); h.api.TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true;
+  h.api.openTracker();
+  assert.equal(h.triggers.length, 1);
+  assert.equal(h.dialog().title, 'Open your tracker');
+});
+test('personal starter template explains deployment when its own web app is absent', () => {
+  const h = setupHarness({ webAppUrl: null }); h.api.TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true;
+  h.api.openTracker();
+  assert.equal(h.dialog().title, 'Open your tracker');
+  assert.equal(h.dialog().output.trackerUrl, '');
+  assert.match(h.dialog().output.guidance, /web-app deployment once/);
+  assert.equal(h.properties.get('SPREADSHEET_ID'), 'tracker-book');
 });
 test('Open tracker refuses to open a copied workbook linked to the original', () => {
   const h = setupHarness();

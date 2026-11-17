@@ -1,6 +1,6 @@
 # Install TAK from source
 
-Most people should [make a copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. It opens the centrally maintained shared app in a browser tab. Use this guide only for an independent installation attached to a different blank spreadsheet. This path keeps the existing in-Sheets dialog and optional personal deployment.
+Most people should [make a copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. The copy guides its owner through creating a one-time, private Apps Script web-app deployment, then opens that owner's app in a browser tab. Use this guide only for an independent installation attached to a different blank spreadsheet.
 
 ## 1. Prepare your spreadsheet
 

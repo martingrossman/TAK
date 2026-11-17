@@ -19,9 +19,15 @@
     <p id="launch-status">TAK opens in a full browser tab. Authorize with the Google account that owns this copy if prompted.</p>
     <a id="launch-tracker" class="primary" href="<?= trackerUrl ?>" target="_blank" rel="noopener">Open tracker ↗</a>
   <? } else { ?>
-    <h1>Full-screen link not ready</h1>
+    <h1>Finish your own TAK app</h1>
     <p><?= guidance ?></p>
-    <p class="hint">For a private copy, open <strong>Extensions → Apps Script</strong> and choose <strong>Deploy → New deployment → Web app</strong>. Then reload this spreadsheet. <a href="https://github.com/martingrossman/TAK#optional-full-screen-web-app" target="_blank" rel="noopener">Setup guide ↗</a></p>
+    <? if (scriptEditorUrl) { ?><p><a class="primary" href="<?= scriptEditorUrl ?>" target="_blank" rel="noopener">Open Apps Script ↗</a></p><? } ?>
+    <ol class="hint">
+      <li>Open <strong>Extensions → Apps Script</strong><? if (scriptEditorUrl) { ?>, or use the button above<? } ?>.</li>
+      <li>Choose <strong>Deploy → New deployment</strong>, select <strong>Web app</strong>, then choose <strong>Execute as: Me</strong> and <strong>Who has access: Only myself</strong>.</li>
+      <li>Deploy and complete Google's authorization. Return to this Sheet and choose <strong>🔷 TAK → Open tracker</strong> again.</li>
+    </ol>
+    <p class="hint"><a href="https://github.com/martingrossman/TAK#optional-full-screen-web-app" target="_blank" rel="noopener">Detailed setup guide ↗</a></p>
   <? } ?>
   <script>
     (() => {

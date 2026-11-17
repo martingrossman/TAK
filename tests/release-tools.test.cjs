@@ -108,11 +108,11 @@ test('release moves the host deployment in order, with the typed confirmation, a
   assert.match(h.logs.join('\n'), /-V 7/);
 });
 
-test('a web app release deploys from the checkout, then updates the starter template to open the same /exec', async () => {
+test('a web app release deploys from the checkout, then updates the personal-deployment starter template', async () => {
   const { release } = await import('../scripts/release.mjs');
   const dir = repo(), h = harness(dir);
   const result = await release({ target: 'install', ...h.base });
-  assert.deepEqual(h.staged, [{ mode: 'template', opts: { scriptId: TEMPLATE_SCRIPT, launchUrl: `https://script.google.com/macros/s/${HOST_DEP}/exec` } }]);
+  assert.deepEqual(h.staged, [{ mode: 'template', opts: { scriptId: TEMPLATE_SCRIPT } }]);
   assert.deepEqual(h.calls.map(call => [call.args[0], call.cwd]), [
     ['deployments', dir], ['push', dir], ['version', dir], ['deploy', dir],
     ['push', path.join(dir, '.release', 'template')]

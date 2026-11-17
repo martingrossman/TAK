@@ -1,6 +1,7 @@
 /** Shared host requests select a workbook explicitly; never store a global selection. */
 var takSharedRequest_ = null;
 function sharedHost_() { return typeof TAK_SHARED_HOST_ !== 'undefined' && TAK_SHARED_HOST_ === true; }
+function personalTemplateLauncher_() { return typeof TAK_TEMPLATE_PERSONAL_LAUNCHER_ !== 'undefined' && TAK_TEMPLATE_PERSONAL_LAUNCHER_ === true; }
 function sharedRequest_() {
   if (!takSharedRequest_) throw new Error('Open TAK from your copied spreadsheet. No tracker was selected.');
   return takSharedRequest_;

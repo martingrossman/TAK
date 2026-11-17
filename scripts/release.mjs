@@ -47,7 +47,7 @@ export async function release({ target, dryRun = false, skipTemplate = false, ro
 
   const cwd = target === 'host' ? (await stage('host', { scriptId })).outDir : base;
   // Staged before anything is deployed, so a packaging problem stops the release early.
-  const templateDir = withTemplate ? (await stage('template', { scriptId: templateId, launchUrl: execUrlFor(deploymentId) })).outDir : '';
+  const templateDir = withTemplate ? (await stage('template', { scriptId: templateId })).outDir : '';
   const call = (args, allowDry = false, where = cwd) => {
     if (dryRun && !allowDry) { log('[dry run] clasp ' + args.join(' ') + (where === cwd ? '' : ' (in the staged starter template)')); return { status: 0, stdout: '', stderr: '' }; }
     const result = run(args, where);
@@ -61,7 +61,7 @@ export async function release({ target, dryRun = false, skipTemplate = false, ro
   log(`Release ${tag} to the ${target === 'host' ? 'shared host' : withTemplate ? 'Option 2 web app and starter template' : 'independent install'}.`);
   log(`Production deployment ...${deploymentId.slice(-6)} is at version ${current.version}${current.description ? ' (' + current.description + ')' : ''}; it will move to the new version.`);
   log(`Description: ${description}`);
-  if (withTemplate) log(`Then the starter template's script (...${templateId.slice(-6)}) is updated to ${tag}, opening the same /exec.`);
+  if (withTemplate) log(`Then the starter template's script (...${templateId.slice(-6)}) is updated to ${tag}; each new copy creates its own web-app deployment.`);
   else if (target === 'install') log('Starter template skipped (--skip-template).');
   if (dryRun) {
     log('[dry run] no changes made; the push, version and deploy steps would run after you type the version to confirm.');

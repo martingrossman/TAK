@@ -17,7 +17,7 @@ A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban boa
    - **Select existing Google Sheet** — opens the native Google Picker to connect any existing TAK spreadsheet (or a [private copy of the TAK starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy)).
 3. Bookmark the TAK Web App tab for later (including on your phone), and use **Switch Sheet** in the top bar anytime to switch between project spreadsheets.
 
-**Prefer to start from a spreadsheet?** Make a [copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. The first time, TAK shows **Allow TAK to open your spreadsheet**: choose **Select your spreadsheet** and pick your copy. After that the menu opens your tracker directly.
+**Prefer to start from a spreadsheet?** Make a [copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. The copy prepares your tracker and walks you through the one-time deployment of your own Apps Script web app. After that the menu opens your own tracker directly.
 
 Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensitive `drive.file` scope, so it can only access the specific spreadsheet you explicitly select in Google Picker or create through the app. See the [Option 2 architecture and sharing guide](docs/OPTION2_SHARING_GUIDE.md) for team collaboration and deployment details, or the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md) for independent installations. The version in the top bar (for example `v1.1.0`) matches the [changelog](CHANGELOG.md).
 
@@ -68,13 +68,14 @@ Three pieces work together:
 
 1. **TAK Google Web App:** one centrally maintained Apps Script web app at a stable address. It runs as the signed-in user and can only open spreadsheets that user created through TAK or selected in Google Picker (`drive.file`).
 2. **Your spreadsheet:** the file you own, containing your tasks. Create it from the welcome screen, select an existing one, or start from a starter copy.
-3. **Starter template (optional):** a spreadsheet people copy. Its **🔷 TAK → Open tracker** menu opens the web app for that copy; the first time, you select the copy once so Google lets TAK read it.
+3. **Starter template (optional):** a spreadsheet people copy. Its **🔷 TAK → Open tracker** menu prepares that copy and guides its owner through deploying their own Apps Script web app.
 
 ```mermaid
 flowchart TD
     app["TAK Google Web App"] -->|Create or select a Sheet| alice["Alice's own spreadsheet"]
     template["Starter template"] -->|Make a copy| bob["Bob's own spreadsheet"]
-    bob -->|"Open tracker, select the copy once"| app
+    bob -->|"Deploy its own web app once"| bobApp["Bob's TAK web app"]
+    bobApp -->|"Read and save"| bob
     app -->|"Read and save using Alice's permissions"| alice
     app -->|"Read and save using Bob's permissions"| bob
 ```
@@ -303,30 +304,30 @@ This updates only the browser demo. Google-backed TAK updates require a separate
 
 1. Set the version (`npm version <patch|minor|major> --no-git-tag-version`), run `npm run build`, add the entry to [CHANGELOG.md](CHANGELOG.md), and commit.
 2. `clasp push -f` from the repository root updates only `/dev`. Test there.
-3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same. Finally it pushes the same version to the starter template's script, launching that `/exec`.
+3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same. Finally it pushes the same version to the starter template's script, which guides new copy owners through their own deployment.
 4. Check the live app shows the new version, check the template with a fresh copy (below), then `git push origin vX.Y.Z`.
 
 The production deployment ID is read from the `TAK_DEPLOYMENT_ID` environment variable and the template's script ID from `TAK_TEMPLATE_SCRIPT_ID`; neither is stored in the repository. To roll back, point the deployment at the previous version number, as printed by the release command. Keep the deployment set to **User accessing the web app** with signed-in access.
 
 ### Update the starter template
 
-Required in every web app release, so the template's script always carries the released version. `npm run release -- install` does it after the production deploy. To do it by hand (or to retry), stage the template package with the web app's `/exec` address and push it to the template's own script (not the web app project):
+Required in every web app release, so the template's script always carries the released version. `npm run release -- install` does it after the production deploy. To do it by hand (or to retry), stage the personal-deployment template package and push it to the template's own script (not the web app project):
 
 ```powershell
 $env:TAK_SCRIPT_ID = $env:TAK_TEMPLATE_SCRIPT_ID
-node scripts/stage-package.mjs template "<WEB_APP_EXEC_URL>"
+node scripts/stage-package.mjs template
 cd .release\template
 npx clasp push -f
 cd ..\..
 ```
 
-Then make a fresh copy of the starter, choose **🔷 TAK → Open tracker**, select the copy, and confirm its tasks load. Template updates affect future copies only. A normal web app release at the same address does not require users to copy the template again.
+Then make a fresh copy of the starter and choose **🔷 TAK → Open tracker**. Confirm that it prepares the copy and gives the Apps Script deployment steps. Deploy the copy as a web app once, choose **🔷 TAK → Open tracker** again, and confirm its tasks load. Template updates affect future copies only; owners of existing copies update their own deployment separately.
 
 The older shared host and its packaging are described in the [shared-app design](docs/SHARED_APP_DESIGN.md) and [release record](docs/SHARED_APP_RELEASE.md).
 
 ### Optional full-screen web app
 
-**For independent installations only.** The TAK Google Web App and starter copies already open in a full browser tab. The steps below apply to a source installation or an older tracker that you administer yourself.
+**For starter-template copies and independent installations.** The TAK Google Web App is centrally deployed, while a starter copy has its own Apps Script project and must be deployed once by its owner.
 
 For a separate browser tab, first choose **🔷 TAK → Open tracker** once to initialize your copy. Then open **Extensions → Apps Script → Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Only myself**. Deploy and review any permission prompt. Open and bookmark the **Web app URL returned by that deployment**. Confirm that it shows **Synced with Sheets** and the tasks from your own copy.
 

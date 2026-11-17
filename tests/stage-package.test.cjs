@@ -20,10 +20,8 @@ test('staging writes a clasp-ready host folder, a template folder, and keeps IDs
     assert.equal(fs.existsSync(path.join(hostDir, 'stale.js')), false);
     assert.equal(fs.existsSync(path.join(hostDir, '.clasp.json')), false);
 
-    const url = 'https://script.google.com/macros/s/' + 'B'.repeat(30) + '/exec';
-    const template = await stagePackage('template', { outDir: path.join(dir, 'template'), launchUrl: url });
-    assert.match(fs.readFileSync(path.join(template.outDir, 'SharedConfig.js'), 'utf8'), /TAK_SHARED_LAUNCH_URL_ = "https:\/\/script\.google\.com\/macros\/s\/B+\/exec"/);
-    await assert.rejects(stagePackage('template', { outDir: path.join(dir, 'bad'), launchUrl: 'http://example.com' }), /verified shared deployment URL/);
+    const template = await stagePackage('template', { outDir: path.join(dir, 'template') });
+    assert.equal(fs.readFileSync(path.join(template.outDir, 'SharedConfig.js'), 'utf8'), 'var TAK_SHARED_HOST_ = false;\nvar TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true;\n');
     await assert.rejects(stagePackage('host', { outDir: path.join(dir, 'bad2'), scriptId: 'short' }), /script ID/);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });

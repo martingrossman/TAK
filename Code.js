@@ -67,12 +67,24 @@ function openFullScreenTracker() {
   } else if (!id) {
     template.guidance = 'Choose 🔷 TAK → Open tracker once to set up this copy, then try again.';
   } else {
-    var url = ScriptApp.getService().getUrl();
+    var url = ownWebAppUrl_();
     if (url) template.trackerUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + 'view=kanban';
     else template.guidance = 'This copy does not have a web-app deployment yet.';
   }
+  template.scriptEditorUrl = scriptEditorUrl_();
   var ui = sheetUi_();
   if (ui) ui.showModalDialog(template.evaluate().setWidth(420).setHeight(250), 'Open full-screen TAK');
+}
+function ownWebAppUrl_() {
+  try {
+    return typeof ScriptApp !== 'undefined' && ScriptApp.getService ? ScriptApp.getService().getUrl() || '' : '';
+  } catch (ignore) { return ''; }
+}
+function scriptEditorUrl_() {
+  try {
+    var id = typeof ScriptApp !== 'undefined' && ScriptApp.getScriptId ? ScriptApp.getScriptId() : '';
+    return /^[A-Za-z0-9_-]{20,100}$/.test(id || '') ? 'https://script.google.com/home/projects/' + id + '/edit' : '';
+  } catch (ignore) { return ''; }
 }
 
 /** Read-only status for the bound spreadsheet's Help sidebar. */
@@ -215,10 +227,19 @@ function openTracker() {
     return;
   }
   try {
-    if (!id) setupTracker();
+    if (!id || (typeof personalTemplateLauncher_ === 'function' && personalTemplateLauncher_())) setupTracker();
     getBook_();
   } catch (error) {
     if (ui) ui.alert('TAK could not open this spreadsheet: ' + (error && error.message ? error.message : String(error)));
+    return;
+  }
+  if (typeof personalTemplateLauncher_ === 'function' && personalTemplateLauncher_()) {
+    var launch = HtmlService.createTemplateFromFile('FullScreen');
+    var url = ownWebAppUrl_();
+    launch.trackerUrl = url ? url + (url.indexOf('?') < 0 ? '?' : '&') + 'view=kanban' : '';
+    launch.guidance = 'Create this copy\'s web-app deployment once, then return here to open your own tracker in a browser tab.';
+    launch.scriptEditorUrl = scriptEditorUrl_();
+    if (ui) ui.showModalDialog(launch.evaluate().setWidth(420).setHeight(310), 'Open your tracker');
     return;
   }
   if (ui) ui.showModalDialog(trackerOutput_('kanban').setWidth(1100).setHeight(720), 'TAK — Project tracker');

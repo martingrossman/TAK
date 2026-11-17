@@ -8,7 +8,7 @@ How a change gets from this repository to the two places TAK runs, in a fixed or
 | --- | --- | --- | --- |
 | **Option 2 web app** | The repository root pushed as-is: `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
 | **Shared host** (older) | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
-| **Starter template** | The bound launcher script in the public starter spreadsheet; **🔷 TAK → Open tracker** opens the Option 2 web app for that copy | New copies only | **Updated in every Option 2 release**, right after production moves, to the same `vX.Y.Z`. `npm run release -- install` does it with `TAK_TEMPLATE_SCRIPT_ID`; **existing copies keep the script they were made with** |
+| **Starter template** | The bound script in the public starter spreadsheet; **🔷 TAK → Open tracker** guides each new copy's owner to deploy and open their own web app | New copies only | **Updated in every Option 2 release**, right after production moves, to the same `vX.Y.Z`. `npm run release -- install` does it with `TAK_TEMPLATE_SCRIPT_ID`; **existing copies keep the script they were made with** |
 | **Independent install** | An owner-only copy attached to someone's own spreadsheet ([INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md)) | That owner | Owner updates by hand; the maintainer's own install uses the same `clasp` flow below |
 
 The demo on GitHub Pages is separate: it publishes automatically from `implement_mvp` and never touches Apps Script.
@@ -81,17 +81,17 @@ npx.cmd @google/clasp deploy -i <HOST_DEPLOYMENT_ID> -V <NEW_VERSION_NUMBER> -d 
 
 ## Release the starter template
 
-**Part of every Option 2 web app release**, always right after production moves: the template bundles the full app code (including `Version.js`), and it must carry the version that its launcher opens. `npm run release -- install` does this step for you when `TAK_TEMPLATE_SCRIPT_ID` is set; it stages the template with the production deployment's `/exec` and pushes it after the deploy. If it reports that the template push failed, production is already released: fix the cause and retry by hand as below. Release the web app first, because the template embeds its verified `/exec` URL.
+**Part of every Option 2 web app release**, always right after production moves: the template bundles the full app code (including `Version.js`). `npm run release -- install` does this step for you when `TAK_TEMPLATE_SCRIPT_ID` is set and pushes it after the deploy. Each new template copy guides its owner to make a separate web-app deployment; the template does not embed the central production `/exec` URL. If the template push fails, production is already released: fix the cause and retry by hand as below.
 
 ```powershell
 # from the repository root
 $env:TAK_SCRIPT_ID = $env:TAK_TEMPLATE_SCRIPT_ID
-node scripts/stage-package.mjs template "<OPTION2_EXEC_URL>"
+node scripts/stage-package.mjs template
 cd .release\template
 npx.cmd @google/clasp push -f
 ```
 
-The template is a container-bound script, so there is no `/dev` page: test by making a **fresh copy** of the starter spreadsheet and choosing **🔷 TAK → Open tracker**. It must open the web app. On the first open the app cannot read the copy yet (`drive.file`), so it shows **Allow TAK to open your spreadsheet**: choose **Select your spreadsheet**, pick the copy, and confirm its tasks load. Later opens go straight to the tracker. Do this before you let anyone use the public template link. The template has no deployments to move, so there is no `clasp version` or `clasp deploy` step; record the tag in the release notes. Do not change the template's link sharing (Viewer).
+The template is a container-bound script, so there is no `/dev` page: test by making a **fresh copy** of the starter spreadsheet and choosing **🔷 TAK → Open tracker**. It must prepare the copy and show the personal-deployment instructions. Complete **Deploy → New deployment → Web app** in that copy, authorize it, then choose **🔷 TAK → Open tracker** again; it must open the copy's own `/exec` app and load its tasks. Do this before you let anyone use the public template link. The template itself has no deployments to move, so there is no `clasp version` or `clasp deploy` step; record the tag in the release notes. Do not change the template's link sharing (Viewer).
 
 Existing copies keep their old bound script. Say so in the release notes if a fix needs the new launcher.
 
