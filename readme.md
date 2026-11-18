@@ -1,8 +1,10 @@
 # TAK
 
-**Your tasks, from first idea to delivery.**
+**Serverless project tracking, powered by your own Google Sheet.**
 
-A lightweight project tracker with an editable Sheet, a Kanban board, a Gantt timeline, and a Roadmap. Capture work with a title, change everyday properties in place, and keep your project in your own Google spreadsheet.
+A lightweight project tracker with an editable Sheet, a Kanban board, a Gantt timeline, and a Roadmap. **Google Sheets stores your project data; Google Apps Script runs the app.** There is no server or separate database for you to host or maintain.
+
+**You can keep your tracker private.** Copy the starter template to get your own Sheet and Apps Script project. Keep the Sheet unshared and deploy your app with access set to **Only myself** for a personal tracker in your Google account.
 
 [**Try the demo**][demo] · [**Get your own tracker**][starter] · [**Open the hosted app**][hosted]
 
@@ -359,6 +361,8 @@ TAK shares a model and interface between browser storage and Google Sheets. It d
 TAK retains `sheetflow.` browser keys, `SHEETFLOW_` properties and `SheetFlow` namespaces for compatibility. It is a standalone tracker, not an Atlassian Jira integration.
 
 ## Privacy
+
+**Your own template copy can be a private personal tracker.** Keep the copied Sheet unshared and set the app's **Who has access** to **Only myself** when deploying. Sheet sharing and web-app access are separate settings: check both. Google hosts the Sheet and Apps Script application; you control access to your copy.
 
 | Where you use TAK | Data and permissions |
 | --- | --- |
