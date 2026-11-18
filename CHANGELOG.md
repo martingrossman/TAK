@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.7 | 2026-11-18 | README refresh: personal and hosted setup, permissions, troubleshooting and concise feature reference |
 | 1.1.6 | 2026-11-17 | New starter copies guide their owners through creating and opening their own Apps Script web app |
 | 1.1.5 | 2026-11-17 | Release command: names the Option 2 web app correctly and hides the full deployment ID in dry runs |
 | 1.1.4 | 2026-11-17 | Release process: every web app release also updates the starter template to the same version |
@@ -12,6 +13,13 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.7 — 2026-11-18
+
+- Reorganized the README around choosing a setup and completing the personal template's first run, with permission and popup troubleshooting.
+- Corrected outdated claims about template deployments, automatic updates and Google permissions; documented current Roadmap interactions and the Milestone task type.
+- Placed full-width Kanban, Gantt and Roadmap screenshots at the beginning, each linked to its demo view. Kept the Sheet preview, keyboard shortcuts and the 21-column reference in collapsible sections, with developer/release details linked to their guides.
+- Documentation only, apart from the generated version badge. No task behavior, data, permissions or deployment changed.
 
 ## v1.1.6 — 2026-11-17
 

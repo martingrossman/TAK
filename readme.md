@@ -1,121 +1,188 @@
 # TAK
 
-A lightweight project tracker with an editable Sheet, a drag-and-drop Kanban board, an interactive Gantt timeline, and a Roadmap of streams and milestones. Capture tasks with just a title, edit priorities and assignees directly, and plan dates in one workspace.
+**Your tasks, from first idea to delivery.**
 
-### [▶ Open live demo](https://martingrossman.github.io/TAK/)
+A lightweight project tracker with an editable Sheet, a Kanban board, a Gantt timeline, and a Roadmap. Capture work with a title, change everyday properties in place, and keep your project in your own Google spreadsheet.
 
-**No sign-in needed.** The demo saves changes in your browser only. It does not sync to Google Sheets or other people.
+[**Try the demo**][demo] · [**Get your own tracker**][starter] · [**Open the hosted app**][hosted]
 
-## Start with Google Sheets
+[Getting started](#start-with-google-sheets) · [Features](#what-you-can-do) · [Shortcuts](#keyboard-shortcuts) · [Development](#project-setup) · [Release notes](CHANGELOG.md) · [Privacy](#privacy)
 
-### [▶ Open TAK Google Web App](https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec)
-
-1. Open the **[TAK Google Web App](https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec)** and sign in with your Google account.
-2. On the welcome screen, choose how to connect your spreadsheet:
-   - **Create TAK Sheet with sample data** — creates a new formatted spreadsheet in your Google Drive pre-loaded with 13 starter Epics, Stories, and Tasks.
-   - **Create blank TAK Sheet** — creates a fresh empty tracker spreadsheet in your Google Drive.
-   - **Select existing Google Sheet** — opens the native Google Picker to connect any existing TAK spreadsheet (or a [private copy of the TAK starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy)).
-3. Bookmark the TAK Web App tab for later (including on your phone), and use **Switch Sheet** in the top bar anytime to switch between project spreadsheets.
-
-**Prefer to start from a spreadsheet?** Make a [copy of the starter template](https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy) and choose **🔷 TAK → Open tracker**. The copy prepares your tracker and walks you through the one-time deployment of your own Apps Script web app. After that the menu opens your own tracker directly.
-
-Your tasks stay in **your own Google spreadsheet**. TAK uses only the non-sensitive `drive.file` scope, so it can only access the specific spreadsheet you explicitly select in Google Picker or create through the app. See the [Option 2 architecture and sharing guide](docs/OPTION2_SHARING_GUIDE.md) for team collaboration and deployment details, or the [advanced source-install guide](docs/INSTALL_FROM_SOURCE.md) for independent installations. The version in the top bar (for example `v1.1.0`) matches the [changelog](CHANGELOG.md).
-
-[**Choose your setup**](#choose-how-to-run-tak) · [**Sharing guide**](docs/OPTION2_SHARING_GUIDE.md) · [**Keyboard shortcuts**](#keyboard-shortcuts) · [**Local development**](#project-setup) · [**Privacy**](#privacy) · [**Independent installation**](docs/INSTALL_FROM_SOURCE.md)
-
-[**Kanban demo**](https://martingrossman.github.io/TAK/#kanban) · [**Sheet demo**](https://martingrossman.github.io/TAK/#sheet) · [**Gantt demo**](https://martingrossman.github.io/TAK/#gantt) · [**Roadmap demo**](https://martingrossman.github.io/TAK/#roadmap)
+**Kanban — move work forward**
 
 [![TAK Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/TAK/#kanban)
 
-| Edit work in Sheet | Plan dates in Gantt |
-| --- | --- |
-| [![TAK editable Sheet with task hierarchy, summaries, statuses and priorities](docs/screenshots/sheet.png)](https://martingrossman.github.io/TAK/#sheet) | [![TAK Gantt timeline with scheduled tasks, Epic spans and dependency lines](docs/screenshots/gantt.png)](https://martingrossman.github.io/TAK/#gantt) |
+**Gantt — plan task dates**
 
-*Screenshots show the standalone app with sample data. Click a preview to open that view in the live demo.*
+[![TAK Gantt timeline with task bars and dependencies](docs/screenshots/gantt.png)](https://martingrossman.github.io/TAK/#gantt)
+
+**Roadmap — plan streams and milestones**
+
+[![TAK Roadmap with coloured increment bars across streams and dated milestones on a yearly timeline](docs/screenshots/roadmap.png)](https://martingrossman.github.io/TAK/#roadmap)
+
+*Click a preview to try that view. The demo needs no sign-in and saves only in this browser. Screenshots show a sample project; they may differ from the latest interface.*
 
 ## Choose how to run TAK
 
-**For normal use, open the TAK Google Web App above, or copy the starter Google Sheet and choose 🔷 TAK → Open tracker. You do not deploy anything yourself.** The first time you open a copied starter sheet, TAK asks you to select that spreadsheet once. The other setups below are for trying TAK, developing it, or maintaining an independent installation.
+| If you want to…                             | Choose                          | Setup                                               | Updates                                          |
+| ------------------------------------------- | ------------------------------- | --------------------------------------------------- | ------------------------------------------------ |
+| Own the spreadsheet **and** the application | [Starter template][starter]     | Copy it, authorize it, deploy your own web app once | You update your copy's script and deployment     |
+| Use Google Sheets without deploying an app  | [Hosted TAK app][hosted]        | Sign in, then create or select a spreadsheet        | Maintained centrally                             |
+| Try the interface without signing in        | [Browser demo][demo]            | Open the link                                       | Maintained centrally; data stays in this browser |
+| Develop or test TAK locally                 | [Local preview](#project-setup) | Node.js and a local checkout                        | You rebuild the source                           |
 
-There are two ways to store tasks: in a browser or in a Google spreadsheet. There are four ways to run the app:
+**A starter copy has its own Apps Script project.** Its **Open tracker** menu opens that project's web app after you deploy it. The hosted app is a separate option that uses Google Picker to connect a spreadsheet.
 
-| Setup | Intended use | Where tasks are saved | Who updates the app? |
-| --- | --- | --- | --- |
-| **TAK Google Web App + your own Sheet** | Normal TAK use | Your own Google spreadsheet (created by TAK, selected, or a starter copy) | The TAK maintainer releases new versions centrally |
-| **GitHub Pages demo** | Try TAK without signing in | That browser's storage for the demo website | The TAK maintainer publishes the demo through GitHub |
-| **Local preview** at `http://127.0.0.1:4180` | Develop and test TAK on your computer | That browser's storage for the local preview | You rebuild the local source |
-| **Independent Google installation** | Maintain your own app, or continue using an older installation | Its configured Google spreadsheet | The owner updates that installation's Apps Script project |
+Browser-demo and local-preview data do not synchronize with Google Sheets or with each other. Each browser, device and site address has separate browser storage.
 
-The browser demo and local preview do **not** synchronize with Google Sheets or with each other. Different browsers, devices and site addresses have separate browser storage. Export CSV to keep a portable copy of browser data.
+## Start with Google Sheets
+
+<a id="optional-full-screen-web-app"></a>
+
+### Your own app from the starter template
+
+This is the route for owning both your Sheet and its attached application. Start in a desktop browser.
+
+1. [Make a copy of the Tracker Template][starter] into your Google Drive.
+2. Open **your copy**, refresh the page if necessary, and choose **🔷 TAK → Open tracker**.
+3. Review Google's permission request for your copied script. TAK prepares the Sheet and its edit trigger.
+4. In **Finish your own TAK app**, click **Open Apps Script**. You can also reach the project through **Extensions → Apps Script** in your Sheet.
+5. Choose **Deploy → New deployment**. Next to **Select type**, use the gear icon to choose **Web app**.
+6. Set **Execute as: Me** and **Who has access: Only myself**. Click **Deploy** and complete any authorization.
+7. Return to your Sheet and choose **🔷 TAK → Open tracker** again. It opens your own app in a new browser tab. Bookmark that tab's `/exec` address for later.
+
+The launcher guides you through setup; it does not create the deployment for you. Keep this personal deployment owner-only. Google's [web-app guide](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app) explains the deployment settings.
+
+You own the copied bound script as well as the Sheet. See Google's [bound-script ownership documentation](https://developers.google.com/apps-script/guides/bound#access_to_bound_scripts).
+
+<details>
+<summary><strong>First-run help</strong> — permissions, missing menu, or a blocked new tab</summary>
+
+| What you see | What to do |
+| --- | --- |
+| No **🔷 TAK** menu | Open your copy in a desktop browser, make sure you can edit it, then refresh the Sheet. |
+| **Google hasn't verified this app** | Check that you are authorizing the script attached to the copy you created and that you trust its code. If you choose to proceed, use **Advanced → Go to … (unsafe)** when available and review the requested permissions. A personal copy does not inherit another project's OAuth verification. See [Google's explanation](https://developers.google.com/apps-script/guides/client-verification). |
+| **Finish your own TAK app** still appears | Complete the Web app deployment in this copy's script, then return to **Open tracker**. Saving source in the editor alone does not create a deployment. |
+| No new browser tab opens | Click the visible **Open tracker ↗** link in the dialog. |
+| An older copy reports insufficient trigger permissions | Its script may predate the corrected template. Test a fresh starter copy, or have its maintainer update the template package and reauthorize it. Preserve your existing data. |
+| A message says this copy points to another tracker | Stop before setup. Use a fresh starter copy; do not repoint or overwrite an existing tracker without checking its data. |
+
+The personal template requests Google Sheets access, permission to show its dialog, and permission to manage its edit trigger. This differs from the hosted app's file-selection permission; see [Privacy](#privacy).
+
+</details>
+
+### Hosted app: no deployment needed
+
+1. [Open the TAK Google Web App][hosted] and sign in.
+2. Choose **Create TAK Sheet with sample data**, **Create blank TAK Sheet**, or **Select existing Google Sheet**.
+3. For an existing tracker, select it in Google Picker to grant the app access.
+4. Bookmark the app tab. Use **Switch Sheet** to connect another project.
+
+The sample option creates 13 items: 3 Epics, 3 Stories and 7 Tasks. The hosted app runs as the signed-in user and uses `drive.file` to work with spreadsheets created through TAK or explicitly selected in Picker.
+
+For collaboration through the hosted app, share the project Sheet with your teammates and have each person select it in TAK. See the [hosted-app sharing guide](docs/OPTION2_SHARING_GUIDE.md).
+
+### Existing copies and updates
+
+- **New starter copies** use the personal deployment flow introduced in `v1.1.6`.
+- **Existing copies keep their attached code.** Updating the public template affects future copies only. Older copies may still open the central app or the earlier shared host.
+- **Your own app** receives new code only when you update its script. After updating source, use **Deploy → Manage deployments → Edit → New version → Deploy** to update its existing `/exec` address.
+- **Hosted-app users** receive centrally published updates when they reload.
+
+A new starter copy is a separate tracker; creating one does not move data out of an older copy. For source-based administration, see [Install TAK from source](docs/INSTALL_FROM_SOURCE.md).
+
+## What you can do
+
+| View | Best for | Everyday actions |
+| --- | --- | --- |
+| **Sheet** · `1` | Editing and comparing work | Edit cells, sort columns, change parents, reorder siblings, choose visible fields |
+| **Kanban** · `2` | Seeing work move forward | Drag between statuses, group by Epic, collapse lanes, edit priorities and assignees |
+| **Gantt** · `3` | Planning task dates | Drag to reschedule, resize to set a due date, inspect progress and dependencies |
+| **Roadmap** · `4` | Planning streams and milestones | Add increments, place milestones, adjust the visible period, rename and reschedule |
+
+Sheet, Kanban and Gantt share the same tasks. Roadmap has its own streams, increments and milestones; these are separate from task records of type **Milestone**.
+
+<details>
+<summary><strong>See the editable Sheet preview</strong></summary>
+
+[![TAK editable Sheet with task hierarchy and properties](docs/screenshots/sheet.png)](https://martingrossman.github.io/TAK/#sheet)
+
+</details>
+
+### Capture and organize work
+
+- **Title + Enter:** use **+ Add task**, or focus an item and press `T` for a Task or `S` for a Story. The inline composer inherits context and stays open for the next title. `Esc` hides it while retaining an unfinished draft.
+- **Details when needed:** use **New task**, `N`, or **Details** for descriptions, dependencies and less-common fields. Saved items expose comments in the compact editor.
+- **Hierarchy:** Epics contain Stories; Tasks and Bugs can be nested where the parent rules allow. IDs stay stable when items move. The app rejects self-parenting and cycles.
+- **Find and return:** search and filter by properties; save views with their filters, sort, columns and collapse state. Saved views are personal to this browser.
+- **Work in batches:** **Paste list** previews up to 100 literal titles. Select items or use **Shift+click** for a visible range, then **Edit selected** or **Delete selected**. Hidden and pending items are excluded. Deletion needs confirmation and has no general Undo.
+- **Export:** CSV includes the filtered tasks and their fields, with formula-like text neutralized. CSV import is not included.
+
+<details>
+<summary><strong>Moving work and planning dates</strong></summary>
+
+In Sheet, drag the dotted grip to a row's center to change its parent, or to the top/bottom quarter to insert before/after it with the destination's parent. An Epic heading accepts children; a **Drop here to remove parent** target appears during non-Epic drags. The Parent field remains available without dragging.
+
+Up/down controls reorder siblings. Moving a row while a column sort is active returns Sheet to saved rank order. In Kanban, drop on a card to insert before it or on an empty column area to append; moving between Epic lanes also changes the parent.
+
+New Tasks, Stories and Bugs default to today's start date. Explicit dates and cleared dates remain unchanged; Epic schedules follow their descendants. Gantt renders start-only tasks as compact bars: dragging preserves the empty due date, while resizing establishes one.
+
+Use **Expand all**, **Collapse all**, or an individual Epic's **+ / −** controls to fold work. Nonempty capture drafts are retained. Dependencies are validated links, not an automatic scheduling engine: moving a predecessor does not shift successors.
+
+</details>
+
+### Smart quick entry
+
+Type `Prepare release @Martin 5d !high` to set the title, an existing assignee, a five-working-day schedule and High priority. Preview chips show what will be applied.
+
+| Token | Meaning |
+| --- | --- |
+| `@Martin` or `@"Martin Novak"` | An assignee already used on project issues |
+| `!highest`, `!high`, `!medium`, `!low`, `!lowest` | Priority |
+| `5d` / `2w` | Five / ten working days, including the start day |
+| `due:today`, `due:tomorrow`, `due:2026-12-15` | An explicit deadline |
+
+Workdays are Monday–Friday; holidays are not excluded. Duration advances a weekend start to Monday. Unknown tokens stay in the title; ambiguous or conflicting values need correction. Choose **Keep as title text** or prefix a token with a backslash, such as `\5d`, to keep it literal. Multiline paste does not interpret these tokens.
 
 ### Roadmap and themes
 
-**Roadmap** (shortcut `4`) plans a year in streams. Each stream holds increments (bars with start and end dates) and milestones; milestones without a stream sit in the top lane. Select any item to edit it, use the arrows beside a stream to reorder streams, and choose the visible period with the **From** and **To** dates above the grid (it opens on the current year). The arrows step by the same period length, **This year** resets it, and the choice is remembered in this browser for each tracker. Ranges from one week to five years are allowed; longer ranges label quarters or years instead of months. Changes appear at once and save to your spreadsheet in the background; if a save fails, the item returns to its last saved state with a message. Drag increments and milestones to reschedule them or move them to another stream, or use Alt + arrow keys on the focused item. Each milestone can have its own icon (diamond, circle, square, triangle, star or flag) and colour, and can draw a dashed vertical line across the whole roadmap. **Milestone lines** in the toolbar shows a line for every milestone; that choice is remembered in this browser. In Google Sheets mode the roadmap is stored in its own **Roadmap** tab, created on the first save; it never changes task rows. Edits are revision-checked like tasks, so a stale tab cannot overwrite a newer change. The browser demo starts with a sample roadmap.
+Drag the **Milestone** or **Increment** chip onto the grid to add an item, then type its name. Clicking a chip opens the creation dialog. Click an existing name to rename it; double-click, or press Enter on a focused item, for details. `F2` also renames.
 
-The moon/sun button in the top bar switches between light and dark themes. Without a saved choice, TAK follows your system setting.
+Drag bars and milestones to reschedule or change streams; drag a bar end to adjust its dates. **From**, **To**, the navigation arrows and **This year** control the visible period. Milestone icons, colours and optional vertical lines make dates easier to spot.
 
-### Smart Notepad trial
+Google-backed Roadmap data is stored in a separate **Roadmap** tab, created on the first save. The demo uses browser storage. Failed Roadmap saves restore the last saved item with a message.
 
-In this worktree's build, open **More → Plan notepad** to enter several lines of work. Type `Epic:` to search existing Epics; selecting one reuses it, while a new name creates an Epic. Following `Story:`, `Task:` and `Bug:` lines use that Epic until the next heading, and `#Epic` can override it. Add `@Person`, `!high` and `+5d` or `+2w` for an existing assignee, priority and inclusive weekdays. Preview the lines, correct any highlighted errors, choose the rows to create, then apply. Your notes and review remain in this browser across reloads.
+The sun/moon button switches light and dark themes. Before you make a choice, TAK follows your system setting.
 
-For free-form planning, choose **Prepare for Gemini**. TAK downloads a complete issue snapshot and your notes, then shows the issue count and file size. Upload that file to Gemini Pro yourself, copy TAK's prompt, and paste the resulting JSON into the proposal box. Review and edit each suggested change before applying it. The export includes issue task fields, including descriptions and dependencies; it omits comments, history, settings and spreadsheet identity. The manual flow does not send data to Gemini. Large files may exceed Gemini's effective context, so check the proposal against the exported project.
+<details>
+<summary><strong>Plan notepad and optional Gemini trial</strong></summary>
 
-An **independent Apps Script installation** can also show **Ask Gemini API**. Its administrator adds `GEMINI_API_KEY` to that Apps Script project's **Project Settings → Script properties**; `GEMINI_MODEL` is optional and defaults to `gemini-flash-latest`. The button sends the same full task context from Apps Script to Gemini and imports the JSON response into the existing review. It never applies changes automatically. The shared Google app and browser demo keep the manual flow. The API trial requires an independently verified test workbook and deployment; adding the property alone does not update a running app. Gemini API usage may incur charges, and Apps Script will request external network access when this code is deployed. Keep the key out of source control and restrict who can use the private installation.
+Open **More → Plan notepad** to plan several lines together. Use `Epic:` headings and `Story:`, `Task:` or `Bug:` lines; choose an existing Epic or create a new one. Add `@Person`, `!high`, `+5d` or `+2w`. Preview, correct and select the proposed items before applying them.
 
-### TAK Google Web App: the recommended setup
+**Prepare for Gemini** downloads your notes and a complete issue snapshot. Upload it to Gemini yourself, copy the supplied prompt, then paste the proposed JSON back into TAK for review. Exported task fields include descriptions, assignees and dependencies; comments, history, settings and spreadsheet identity are omitted. Preparing the download does not send it to Gemini.
 
-Three pieces work together:
+The optional **Ask Gemini API** trial needs a separately configured private installation, a `GEMINI_API_KEY` in Script Properties and external-request permission. The standard hosted and template manifests do not include that permission. A configured API request sends project context to Gemini and may incur charges; proposals still require review before application. See the [trial verification notes](TESTING.md#private-gemini-api-trial).
 
-1. **TAK Google Web App:** one centrally maintained Apps Script web app at a stable address. It runs as the signed-in user and can only open spreadsheets that user created through TAK or selected in Google Picker (`drive.file`).
-2. **Your spreadsheet:** the file you own, containing your tasks. Create it from the welcome screen, select an existing one, or start from a starter copy.
-3. **Starter template (optional):** a spreadsheet people copy. Its **🔷 TAK → Open tracker** menu prepares that copy and guides its owner through deploying their own Apps Script web app.
-
-```mermaid
-flowchart TD
-    app["TAK Google Web App"] -->|Create or select a Sheet| alice["Alice's own spreadsheet"]
-    template["Starter template"] -->|Make a copy| bob["Bob's own spreadsheet"]
-    bob -->|"Deploy its own web app once"| bobApp["Bob's TAK web app"]
-    bobApp -->|"Read and save"| bob
-    app -->|"Read and save using Alice's permissions"| alice
-    app -->|"Read and save using Bob's permissions"| bob
-```
-
-**The app is shared; your tasks stay in your spreadsheet.** Opening TAK does not make your spreadsheet public or share it with other TAK users. To work together, share the spreadsheet in Google Sheets and have each person select it; see the [sharing guide](docs/OPTION2_SHARING_GUIDE.md).
-
-The web app keeps one stable address. A new release there reaches everyone after a reload, including people who open it from a starter copy. **The script attached to an existing starter copy does not update automatically.** Copies made before the template was pointed at the web app still open the earlier shared host described in the [shared-app design](docs/SHARED_APP_DESIGN.md).
-
-### Independent Google installation
-
-In an independent installation, the owner installs TAK's source into their own Apps Script project attached to a spreadsheet. The app can open inside Sheets; the owner can optionally publish a separate browser-tab link. App updates must be installed by that owner.
-
-This is the route described by [Install TAK from source](docs/INSTALL_FROM_SOURCE.md) and [Optional full-screen web app](#optional-full-screen-web-app). Instructions such as **Deploy → New deployment**, **Execute as: Me** and **Only myself** apply to this route. They are not steps for people using the TAK Google Web App or a starter copy.
-
-### What the other names mean
-
-| Term | Meaning |
-| --- | --- |
-| **Deployment / published version** | A version of the Google app served at a browser address. Updating its source and publishing a version are separate steps. |
-| **Development / test / production** | Places for developing changes, verifying them and using real data. Use separate Google projects and spreadsheets for isolation. |
-| **Personal / team mode** | Server behaviour for history, refreshing and saves in independent installations. These are not separate websites or Google sharing permissions. The shared host uses team mode. |
-| **Legacy / v2 storage** | Spreadsheet layouts: `Issues`, or the migrated `Tasks` and `Projects and Epics` tabs. Storage v2 is unrelated to an app deployment's version number. |
-| **Sheet / Kanban / Gantt** | Three views of the same tasks inside one running TAK app. |
-| **Roadmap** | A separate plan of streams, increments and milestones, stored in the spreadsheet's `Roadmap` tab. |
+</details>
 
 ## Keyboard shortcuts
 
-Use `Ctrl` on Windows/Linux or `Cmd` on macOS where shown. Navigation shortcuts work when focus is outside an input, text area, select, or editable text, and no dialog is open. They pause during IME text composition. In Sheet, press Escape to leave a text cell for its row grip; elsewhere, use Tab to focus a card or control.
+Use `Ctrl` on Windows/Linux and `Cmd` on macOS where shown. Single-key navigation pauses while typing, during IME composition and in dialogs. It can be disabled through **Shortcuts**.
 
 | Key | Action |
 | --- | --- |
-| `T` / `S` | Quick task / story in the focused context. |
-| `Shift+T` / `Shift+S` | Task / story with the compact editor. |
-| `N` | Open the compact New issue dialog. |
-| `E` / `X` | On a focused issue, open its editor / toggle selection. |
-| `P` / `A` / `M` / `D` | On a focused issue, edit priority / assignee / status / due date. |
-| `/` | Focus search. |
-| `1` / `2` / `3` / `4` | Switch to Sheet / Kanban / Gantt / Roadmap. |
-| `Alt` + arrows | Roadmap: move the focused item a day (`Shift`: a week) or to the stream above / below. |
-| `Ctrl/Cmd + K` | Open Commands to find an issue, create one, switch views, or focus search. |
+| `T` / `S` | Quick Task / Story in the focused context |
+| `Shift+T` / `Shift+S` | Task / Story in the compact editor |
+| `N` | New issue dialog |
+| `E` / `X` | Edit / select the focused issue |
+| `P` / `A` / `M` / `D` | Edit priority / assignee / status / due date |
+| `/` | Search |
+| `1` / `2` / `3` / `4` | Sheet / Kanban / Gantt / Roadmap |
+| `Ctrl/Cmd + K` | Commands |
+| `Alt` + arrows | Move a focused Roadmap item by a day or between streams; `Shift` changes the horizontal step to a week |
+
+<details>
+<summary><strong>Full editing and navigation reference</strong></summary>
 
 Creation and editing shortcuts depend on the focused control:
 
@@ -147,258 +214,44 @@ Creation and editing shortcuts depend on the focused control:
 
 Use `Tab` to reach cards, row grips, task labels, and other controls before applying their shortcuts. **Commands** also opens the palette with mouse or touch. **Shortcuts** starts with five capture actions (T, S, Enter, Shift+Enter, Esc); expand Navigate and find, Edit focused work, the view-specific groups, or Full reference and preferences for everything else, including the single-key preference.
 
-### Ghost Capture in all three views
+</details>
 
-Focus an Epic, Story, task, row grip, card, or Gantt label and press **T** for a task or **S** for a story. **Ghost Capture** appears as a temporary Sheet row, a Kanban card in the intended lane/status, or a Gantt label row under its parent—not an overlay on the timeline. Visible **+ Add task** controls open the same flow. The generous title field, searchable parent breadcrumb, quiet **Create ↵**, and **Details** are primary; Type, Status, and **Discard draft** live in secondary options. On phones the compact composer stays reachable above the keyboard.
+## Saving and collaboration
 
-**Enter**, **Shift+Enter** and **Create** submit and keep an empty composer focused for repeat capture. Capture remains open until Escape; acknowledgement must never interrupt the next draft or steal focus after navigation. Pending work cannot be edited, dragged, or used as a parent. **Shift+T/S** or **Details** opens the compact editor with the same defaults. Escape hides capture but retains unfinished text for resume.
+Pending work appears immediately with **Saving…** or **Queued…**. Wait for confirmation before treating a change as saved. A failed quick-add remains available for retry; pending items cannot yet be edited, dragged or used as parents.
 
-**Collapse all** in Sheet, grouped Kanban or Gantt—and an individual Epic's **−** control—also closes an empty capture box so it cannot keep an Epic open. Nonempty titles (including smart-entry tokens) and pasted drafts remain open and unchanged.
+Task edits use revision checks. When a conflict is detected, **Compare with latest** helps inspect the difference; automatic merging is not implemented. **Undo** covers supported acknowledged edits, moves, scheduling, bulk edits and duplication, subject to revision checks. It does not provide general recovery for deletion, creation or comments.
 
-Tasks go inside a focused Epic/Story; on an existing Task/Bug they become siblings. Stories go into the containing Epic. With no focused item, one selected row supplies context, followed by the selected Epic filter, otherwise **No parent**. Hover never chooses a parent. The parent picker supports pointer or keyboard search and legal choices only.
-In every grouped view, clicking an Epic heading selects the task context without changing its open/closed state; a restrained marker identifies the selected Epic, while keyboard focus rings remain visible. `T` and contextual Add controls inherit that Epic. Choosing a parent in capture or successfully changing it in the issue dialog moves context to its containing Epic; removing the parent clears it. Parent-driven focus opens collapsed destination Epic/Story ancestors and keeps capture reachable with typing focus retained. Manual heading selection never changes collapse state. The left **+ / −** independently expands or collapses one Epic. Sheet, grouped Kanban and Gantt provide separate **Expand all** and **Collapse all** controls; Sheet also has an Epic-level **+ Task** button.
+In team mode, the app refreshes periodically while visible and not editing, or when you choose **Refresh**. This is not live simultaneous editing. Direct Sheet edits do not take the application's script lock; avoid editing the same row at precisely the same time through both interfaces.
 
-Double-click a task title, Sheet row/grip, or Epic heading to open details in any view. Single-click Epic headings still select task context without folding the lane; use +/− to fold it. Kanban cards also retain single-click opening. Selection checkboxes, inline property controls and Add buttons keep their own actions.
-
-To remove an activity classification, open **More options → Metadata → Activity type → No activity type**, or choose it in **Edit selected**. No activity badge is shown in Sheet, Kanban or Gantt. You can assign a type again later; existing classifications and the configured creation default are unchanged. The explicit `none` value uses existing storage, with no schema migration.
-
-Saved issues show **Comments** directly in the compact dialog: read, add or edit a comment without opening More options. Expanding and returning to compact preserves a typed comment; child issues and duplication controls remain in More options.
-
-
-Status inherits the focused issue in Sheet/Gantt and the exact Kanban column for keyboard or visible Add. New work is ranked immediately after a focused sibling when that ordering scope is valid. New items otherwise append to their inherited scope. Priority defaults to Medium, start date to today, due date remains empty, and every queued submission freezes its own defaults, rank, and operation ID.
-
-New Tasks, Stories and Bugs default their start date to today across capture, the editor, Paste list, the Sheets sidebar and native Sheet creation. Browser entry uses the local calendar day; server/native entry uses the spreadsheet timezone. Explicit dates or cleared dates remain unchanged, as do existing tasks. Epics keep derived dates. Plain creation can start on a weekend; only a working-day duration advances that start to Monday. Submitted dates remain frozen for retries.
-
-Pasting multiple lines into an empty Ghost Capture opens an editable preview for up to 100 titles. Each non-empty line becomes one work item in the same context and order. Technical title text is never interpreted as commands or natural language.
-
-From a focused issue, use **P**, **A**, **M**, or **D** for anchored priority, assignee, status, or due-date editing; **E** opens details and **X** toggles selection. The same actions are discoverable through visible controls and Commands. Single-key shortcuts can be disabled in Shortcuts; they never run while typing, during IME composition, or in dialogs.
-
-### Smart quick entry
-
-Type `Prepare release @Martin 5d !high` in single-title capture. With a known Martin, this creates **Prepare release**, assigned to Martin, with High priority and a five-working-day schedule.
-
-| Token | Meaning |
-|---|---|
-| `@Martin` or `@"Martin Novak"` | Existing assignee; choose a suggestion when names are ambiguous |
-| `!highest`, `!high`, `!medium`, `!low`, `!lowest` | Priority |
-| `5d` | Five working days, including the start day |
-| `2w` | Ten working days |
-| `due:today`, `due:tomorrow`, `due:2026-12-15` | Explicit deadline, not duration |
-
-Workdays are Monday–Friday. A Monday start plus `5d` ends Friday; a Friday start ends the following Thursday. Weekend starts advance to Monday. Holidays are not excluded. Duration sets the existing start/due fields; later Gantt edits still use their existing calendar-day behavior.
-
-Preview chips show the resolved values before creation. Keep typing freely: the raw title stays editable. Choose **Keep as title text** for a recognized token, or prefix it with a backslash (`\5d`, `\!high`) to keep it literal. Unknown tokens and email addresses remain title text. Conflicting priorities, ambiguous names, invalid dates/durations or disagreeing duration/deadline combinations require correction before creation.
-
-At `@`, use arrows and Tab/Enter or click to choose an assignee. Enter accepts an open suggestion first; the next Enter creates and keeps capture ready. Escape dismisses suggestions first, then closes capture while preserving the draft. Details receives the parsed title and values. Submitted values are frozen for retry; metadata does not carry into the next title.
-
-Assignee suggestions currently come from names already used on project issues; quick entry does not create people or load a separate Team directory.
-
-Smart syntax applies only to single-title capture. Multiline paste remains a literal-title batch.
-
-
-### Select, modify or delete multiple items
-
-- Select an item, then **Shift+click** another to select the visible range in Sheet, Kanban or Gantt. Individual selection controls and **X** on focused work also support keyboard/touch use.
-- The selection bar offers **Edit selected**, **Delete selected** and **Clear selection**. Actions support up to 100 items; hidden/collapsed items and pending creations are excluded.
-- **Edit selected** changes one common field across the selected set: status, assignee, priority, Epic, activity type, start date or due date. Other values stay unchanged; existing revision checks and bulk-edit Undo apply.
-- **Delete selected** requires confirmation and has no general Undo. Include related children/dependants explicitly: any unselected item referencing the selection blocks the entire deletion. No automatic cascade.
-- An uncertain deletion retains its original operation identity for retry. Items disappear only after acknowledgement; a stale revision or validation error is shown instead of silently overwriting newer work.
-
-
-## Project setup
-
-**For developers:** this section runs the standalone browser preview on your computer. To use TAK with your own Google Sheet, follow [Start with Google Sheets](#start-with-google-sheets).
-
-Requires Node.js 20 or newer for the development tools and an installed Microsoft Edge for browser tests. The built app has no external runtime dependencies; Playwright is a development-only dependency.
-
-Clone the repository and enter the project directory:
-
-```sh
-git clone https://github.com/martingrossman/TAK.git
-cd TAK
-```
-
-Run the build and test checks before making changes:
-
-```sh
-npm ci
-npm run check
-```
-
-Start the local browser demo:
-
-```sh
-npm start
-```
-
-Open **http://127.0.0.1:4180**. Set `PORT` to use a different port. On Windows PowerShell with script execution disabled, use `npm.cmd` and `clasp.cmd` in place of `npm` and `clasp`.
-
-You can also open `dist/index.html` directly, or upload that single file to an HTTPS static host. The standalone version starts with a clearly labeled sample project and saves changes in that browser's local storage. It does **not** sync to Google Sheets or other users. Browser storage can be cleared by the browser; export CSV to keep a portable copy. Use the Google Sheets setup below for persistent spreadsheet storage.
-
-Saved views capture the current filters, view, sort, visible columns, swimlane setting, and collapse state. They are personal to the current browser and do not sync to other users.
-
-In **Sheet**, drag the dotted row grip to a row's **center** to make that row the new parent, or to an **Epic header** to move into that Epic. Drop at the **top/bottom quarter** of a row to insert before/after it and adopt its parent. A **Drop here to remove parent** target appears during non-Epic drags. Valid destinations highlight; invalid parent types, self-drops and cycles are blocked. Stories belong under Epics; Tasks/Bugs can also nest under other Tasks/Bugs. The Parent field/editor remains available as a keyboard alternative.
-
-The up/down buttons and Alt + Up/Down keep the same parent and reorder siblings regardless of status. Dragging or using move controls in a column-sorted view automatically returns the Sheet to saved rank order; no separate mode button is shown. Drag moves expand the destination group, retain descendant links and preserve status, dates, dependencies and hidden siblings. Undo reverses the saved move. Inline Parent selects retain the current nested Task/Bug parent; the full editor lists all valid parent candidates and excludes self/descendants.
-
-Direct views: `#sheet`, `#kanban`, `#gantt`, and `#roadmap` (or `?view=sheet`, `?view=kanban`, `?view=gantt`, `?view=roadmap`).
-
-Useful commands:
-
-| Command | Purpose |
+| Setup | Collaboration |
 | --- | --- |
-| `npm run build` | Validate the JavaScript and generate `CoreScript.html` and `dist/index.html`. |
-| `npm test` | Run the Node test suite. |
-| `npm run check` | Run the build and Node test suite. |
-| `npm run test:browser` | Build and run the isolated Playwright regression suite in Microsoft Edge. |
-| `npm start` | Serve the standalone demo at `http://127.0.0.1:4180` (`PORT` overrides the default). |
-| `npm run stop` | Stop the TAK preview on port `4180` (`PORT` overrides the default). |
-| `clasp show-file-status` | Compare local Apps Script files with the configured Google script project. |
-| `clasp push` | Upload source to the configured Google script project; this does not publish a new version at its `/exec` address. |
-| `npm run release -- install --dry-run` | Check a release of the Google web app and print the planned steps without changing anything. |
-| `npm run release -- install` | Release the tagged version to the Google web app after you confirm it; for a person at a terminal only. |
-| `npm run clasp:info` | Show the script's deployments and versions (read-only). |
+| Hosted app | Share the Sheet in Google, then each teammate selects it through Picker |
+| Personal template deployed as **Only myself** | Owner-only web app; sharing the Sheet does not change deployment access |
+| Browser demo or local preview | Local to that browser and site address |
 
-The Google commands require a verified target project. The repository root is the TAK Google Web App (`USER_ACCESSING`, signed-in users, `drive.file`); the starter template uses a separately staged package, as explained below.
+Google-backed saves can take several seconds. The response-time goals in the [MVP requirements](docs/PRODUCT_REQUIREMENTS_MVP.md) are targets, not guarantees for every deployment or dataset. Known recovery and reliability follow-ups are tracked in the [backlog](docs/BACKLOG.md).
 
-## Publishing and updates
+<details>
+<summary><strong>Personal mode and advanced storage</strong></summary>
 
-**For maintainers:** publishing the browser demo and the Google web app are separate actions. Every web app release also updates the starter template's attached script to the same version. The full steps and rules are in [docs/RELEASE.md](docs/RELEASE.md); every version is listed in [CHANGELOG.md](CHANGELOG.md).
+A private installation can use `enablePersonalTrackerMode` to disable detailed history and automatic polling; `enableTeamTrackerMode` restores them. These functions change server behaviour, not Google sharing. The optimized personal save path additionally needs the Advanced Sheets service; the standard starter-template package does not enable it.
 
-| Action | What changes | Who receives it? |
-| --- | --- | --- |
-| Run `npm run build` | Generated files on your computer | Local development only; nothing is published |
-| Publish GitHub Pages | The standalone demo website | Demo visitors after reloading; their data stays in browser storage |
-| Release the Google web app | The centrally served interface and server code | Everyone using the web app, after a reload |
-| Update the starter template (part of every web app release) | Its attached script, at the same version as the web app | People making a new copy afterward; existing copies are unchanged |
-| Update an independent Google installation | That installation's code and, when used, its published version | Only users of that installation |
+Normal template use requires no schema migration. The legacy `Issues` layout and the optional v2 `Tasks` / `Projects and Epics` layout are distinct storage paths. V2 activation, rollback and authorization configuration require a backed-up test workbook and the [administration guide](docs/INSTALL_FROM_SOURCE.md). Spreadsheet sharing remains a separate permission surface.
 
-```mermaid
-flowchart TD
-    source["TAK source code"] --> build["Local build"]
-    build --> local["Local browser preview"]
-    build --> pages["Publish GitHub Pages demo"]
-    build --> dev["clasp push to /dev"]
-    dev --> approve["Owner tests /dev and approves"]
-    approve --> web["Release the Google web app at the same /exec"]
-    web --> users["All web app users after a reload"]
-    web --> starter["Update the starter template to the same version"]
-    starter --> copies["Future spreadsheet copies"]
-    build --> independent["Install into an independent Google project"]
-    independent --> owner["That installation only"]
-```
-
-The version is set once in `package.json`; the build writes it into `Version.js` and the badge in the top bar. There is no automatic publishing connection from GitHub Pages to Apps Script.
-
-### Publish the standalone version on GitHub Pages
-
-The [Pages workflow](.github/workflows/pages.yml) runs for pushes to `implement_mvp`, or a manual run on that branch. In GitHub **Settings → Pages**, choose **GitHub Actions** as the source if it is not configured yet. The workflow builds `dist/index.html` and publishes it at:
-
-```text
-https://martingrossman.github.io/TAK/
-```
-
-This updates only the browser demo. Google-backed TAK updates require a separate Apps Script release.
-
-### Release the Google web app
-
-1. Set the version (`npm version <patch|minor|major> --no-git-tag-version`), run `npm run build`, add the entry to [CHANGELOG.md](CHANGELOG.md), and commit.
-2. `clasp push -f` from the repository root updates only `/dev`. Test there.
-3. Tag the commit (`git tag -a vX.Y.Z -m "Release vX.Y.Z"`) and run `npm run release -- install`. It refuses unless the checkout is clean and tagged, shows the plan, and asks you to type the version. It then freezes an Apps Script version and moves the existing deployment, so the `/exec` address stays the same. Finally it pushes the same version to the starter template's script, which guides new copy owners through their own deployment.
-4. Check the live app shows the new version, check the template with a fresh copy (below), then `git push origin vX.Y.Z`.
-
-The production deployment ID is read from the `TAK_DEPLOYMENT_ID` environment variable and the template's script ID from `TAK_TEMPLATE_SCRIPT_ID`; neither is stored in the repository. To roll back, point the deployment at the previous version number, as printed by the release command. Keep the deployment set to **User accessing the web app** with signed-in access.
-
-### Update the starter template
-
-Required in every web app release, so the template's script always carries the released version. `npm run release -- install` does it after the production deploy. To do it by hand (or to retry), stage the personal-deployment template package and push it to the template's own script (not the web app project):
-
-```powershell
-$env:TAK_SCRIPT_ID = $env:TAK_TEMPLATE_SCRIPT_ID
-node scripts/stage-package.mjs template
-cd .release\template
-npx clasp push -f
-cd ..\..
-```
-
-Then make a fresh copy of the starter and choose **🔷 TAK → Open tracker**. Confirm that it prepares the copy and gives the Apps Script deployment steps. Deploy the copy as a web app once, choose **🔷 TAK → Open tracker** again, and confirm its tasks load. Template updates affect future copies only; owners of existing copies update their own deployment separately.
-
-The older shared host and its packaging are described in the [shared-app design](docs/SHARED_APP_DESIGN.md) and [release record](docs/SHARED_APP_RELEASE.md).
-
-### Optional full-screen web app
-
-**For starter-template copies and independent installations.** The TAK Google Web App is centrally deployed, while a starter copy has its own Apps Script project and must be deployed once by its owner.
-
-For a separate browser tab, first choose **🔷 TAK → Open tracker** once to initialize your copy. Then open **Extensions → Apps Script → Deploy → New deployment → Web app**. Set **Execute as: Me** and **Who has access: Only myself**. Deploy and review any permission prompt. Open and bookmark the **Web app URL returned by that deployment**. Confirm that it shows **Synced with Sheets** and the tasks from your own copy.
-
-The `/exec` URL is your normal app link. After future source changes, update the existing deployment with a **New version** to keep that URL. Google's [web-app guide](https://developers.google.com/apps-script/guides/web#deploy_a_script_as_a_web_app) explains the deployment choices. The Google Sheets mobile app may not show custom menus or dialogs, so use this web-app link on a phone.
-
-### Advanced installation and administration
-
-The [source-install guide](docs/INSTALL_FROM_SOURCE.md) covers attaching TAK to a different blank spreadsheet, updating a deployment, command-line uploads, health checks, and schema migration. The starter template already includes the attached script and examples; ordinary users do not need to copy source files or run migration commands.
-
-Before sharing one team tracker, test identity, roles, direct Sheet permissions, and concurrent edits in a separate workbook. A private copy per person is the supported first release.
-
-#### Separate development, test, and production targets
-
-**Administration of independent installations:** the shared app selects a spreadsheet per request and does not use a global active spreadsheet. Its test host and test copies should also be kept separate from the live shared service.
-
-The Apps Script project supports three explicit environment names: `development`, `test`, and `production`. Configure separate Apps Script projects and workbook IDs for each environment; environment names inside one script project alone do not isolate triggers or credentials. Configure the target spreadsheet from the Apps Script editor before running setup:
-
-```js
-configureTrackerEnvironment('test', 'TEST_SPREADSHEET_ID')
-```
-
-Use `configureTrackerEnvironment('production', 'PRODUCTION_SPREADSHEET_ID')` only in the production project. The spreadsheet ID is stored in an environment-specific script property, and server reads/writes use the selected environment. Existing projects continue to use the legacy `SPREADSHEET_ID` property as a fallback.
-
-After setup, administrators can run `openHelpSetup` or `startupHealthCheck` in the Apps Script editor to check the connection, schema tabs, and edit trigger. Keep the deployment owner-only until shared identity and role checks have been verified.
-
-The active repository is stored per configured environment. V2 provides an append-only **Change History** log and `_System` idempotency receipts. App saves record created/updated events, and `getTaskHistory(id, limit, offset)` returns the newest events first. The browser supplies operation IDs for create, update, move, quick-add and selected-item deletion retries; the separate single-item delete and comment mutations still need the same idempotency treatment.
-
-#### Authorization foundation
-
-This section describes the independent installation's role foundation. The shared app uses the accessing user's Google permissions and its restricted request dispatcher, as described in the [shared-app design](docs/SHARED_APP_DESIGN.md).
-
-The server exposes `getTrackerActor`, `configureTrackerRole(email, role)`, and `setTrackerAuthorizationEnforced(true|false)`. Roles are `administrator`, `editor`, `viewer`, and `agent`; writes require editor/agent/admin, configuration requires admin, and acceptance is admin-only. Enforcement remains disabled by default for the owner-only deployment. When enabled, an unavailable Google identity is rejected, unmapped users are viewers (even if the configured default is administrator), and enabling enforcement requires an available active-user email. Verify this in the separate test deployment before sharing. This app role model does not override direct Google Sheets sharing permissions.
-
-The migration seeds stable task-type settings (`algo`, `data`, `requirements`, and `bug`) plus default workflow values. Read them with `getTrackerSettings()` and update an existing setting with the administrator-only `updateTrackerSetting(id, value, active)` function. Type associations use stable IDs so labels can be renamed without rewriting task history.
-
-The ordering foundation exposes `reorderIssue(id, beforeId, expectedVersion)`. It normalizes the affected status scope to stable rank gaps, checks the moved task revision, and records a reorder history event. The current board still uses its legacy client path; future table, board, and Gantt controls will call this shared operation.
-
-## How it works
-
-TAK has one shared issue model and two storage adapters:
-
-1. The browser demo loads sample issues into `localStorage`. It is useful for UI development and does not share data with other browsers or Google Sheets.
-2. The Apps Script version calls server functions through `google.script.run`. The TAK Google Web App and starter copies use `Issues`, plus a `Roadmap` tab once the Roadmap is used. An independent installation can use `Issues` or, after a separately tested and activated migration, the versioned `Tasks` and `Projects and Epics` tabs. Both storage paths serialize dates, validate relationships, and use a script lock plus content versions. The shared host rejects migrated v2 trackers.
-3. `Core.js` contains the shared model and validation rules. `scripts/build.mjs` copies it into `CoreScript.html` for the browser and bundles the standalone `dist/index.html`.
-4. `Index.html`, `Client.html`, and `Styles.html` provide the web app shell, views, interactions, and responsive styling. Apps Script serves the same client with the Google Sheets adapter enabled.
-5. Three views render the same issue collection: Sheet for direct editing, Kanban for status and epic swimlanes, and Gantt for date scheduling. Filters and issue details are shared across them. The Roadmap is a fourth view with its own streams, increments and milestones.
-
-In the Kanban view, each epic is rendered as a horizontal swimlane containing the status columns. Lanes show item totals and completion percentage, can be collapsed, and remember their collapsed state in the browser. Dropping a card into another epic lane updates its parent relationship. Server-side atomic ordering, keyboard lane movement, dependency indicators, and WIP limits are not yet implemented.
-
-## What you can do
-
-- **Quick add:** use the tracker's quick-entry field for title-and-Enter creation, or **New task** for more fields.
-- **Paste list:** use **Paste list** to preview one Task title per line and submit up to 100 items. A pending batch is stored locally and can be retried with the same per-item operation IDs.
-
-- **Sheet:** edit cells directly, sort columns, and toggle all 21 fields. Title is the pinned default column and owns selection, hierarchy, and reorder controls; stable issue IDs remain available from **Columns** and in issue details. The app's Title column maps to the unchanged `summary` field and native Google Sheets **Summary** header.
-- **Kanban:** view status columns grouped into epic swimlanes, collapse lanes, move cards through Backlog, To Do, In Progress, Review, and Done, and drop a card into another epic lane to reparent it. Routine cards emphasize titles and type rather than stable issue IDs. Drop on a card to insert before it; drop on a column header or empty area to append. Status is also editable in the issue drawer, including on touch devices.
-- **Gantt:** tasks with a start date but no due date appear as compact bars. Dragging one changes only its start date; resizing its right edge sets a due date and converts it to a normal bar. Clearing the due date restores the compact bar. Ordinary bars still drag to shift both dates and resize to change the due date. Routine row and epic labels emphasize titles and type rather than stable issue IDs. Use Today, previous/next windows, a start-date picker, or day/week zoom. Bars display progress, with dashed lines for dependencies. Work without a start date stays visible with a link to set one; issues outside the window show their date range.
-- **Hierarchy.** Epics contain stories. Tasks and bugs can belong to epics or stories, and standalone issues are allowed. Open **More** and select an epic to include all its descendants.
-- **Issue editor:** create, edit, or delete issues, with descriptions, assignees, priorities, sprints, labels, estimates, time spent, progress, and dependencies. Deletion is blocked while another issue references the item as a parent or dependency.
-- **Filters:** search text and filter by type, assignee, status, sprint, or epic across every view. Statistics reflect the filtered issues. Totals count records, including epics; they are not sums of child estimates.
-- **CSV:** export the filtered issues with all fields. Formula-like text is neutralized for spreadsheet imports. CSV import is not included.
-- **Shortcuts:** see the [keyboard shortcut reference](#keyboard-shortcuts) for navigation, creation, editing, and view-specific controls.
+</details>
 
 ## Sheet columns
 
-Keep the header names and order intact. IDs are stable keys: do not change them once referenced.
+The default task register is **Issues**. Keep its header names and order intact; the app's **Title** field is the Sheet's **Summary** column. IDs, revision-related timestamps and ordering fields are managed by TAK.
+
+<details>
+<summary><strong>All 21 task columns</strong></summary>
 
 | Column | Field | Meaning |
 | --- | --- | --- |
 | A | ID | Generated `PRJ-1`, `PRJ-2`, etc. |
-| B | Type | Epic, Story, Task, Bug |
+| B | Type | Epic, Story, Task, Bug, Milestone |
 | C | Parent ID | Optional parent issue ID |
 | D | Summary | Required, up to 250 characters in the app |
 | E | Description | Context, acceptance criteria, and links as text |
@@ -419,120 +272,116 @@ Keep the header names and order intact. IDs are stable keys: do not change them 
 | T | Updated At | Generated timestamp |
 | U | Order | Numeric board sort order; normally managed by the app |
 
-Dates and timestamps are stored as real date values in Google Sheets. The app exchanges date-only strings to avoid timezone shifts. Spreadsheet date conversion uses the spreadsheet's timezone; the manifest retains the existing Europe/Prague script timezone. Estimates and progress are recorded per issue and do not automatically roll up to parents.
+</details>
 
-To add issues directly in Sheets, enter or paste a **Summary** in column D and fill the fields you need. The edit trigger fills IDs and defaults. Keep generated ID, completion date, timestamp, and order columns intact. Pasting via an external API does not fire Google's edit trigger; supply complete rows or use the app instead. See Google's [installable trigger documentation](https://developers.google.com/apps-script/guides/triggers/installable).
+New template copies install an edit trigger during setup so native edits can receive defaults and validation. Enter a task's Summary in column D and fill its other properties. Dates are stored as Sheet dates; the app exchanges date-only strings. Roadmap items use their own tab and do not change these task rows.
 
-## Saving and collaboration
+## Project setup
 
-For an **owner-only Google deployment**, run `enablePersonalTrackerMode` once from the Apps Script editor, then reload the tracker. Personal mode disables detailed history recording and automatic 45-second polling, skips custom role resolution when role enforcement is off, and loads comments when an issue opens. Use **Refresh** to see changes made in Google Sheets or another browser tab. Existing history is preserved. Run `enableTeamTrackerMode` and reload to resume history and polling; **team is the default** for projects without an explicit mode setting. Explicit server role enforcement takes precedence in either mode. Use team mode before sharing a deployment.
+Local development requires **Node.js 20+**. The standalone app uses dependency-free HTML, CSS and JavaScript.
 
-Personal mode speeds up ordinary **legacy Issues** saves with a Sheets values read and one atomic Sheets API batch containing the task, category change (when needed), and persistent retry receipt. The batch response verifies the written values; the ordinary personal save uses no `SpreadsheetApp.flush`. Dates remain native Sheet dates and formula-like text remains literal. The manifest enables the Advanced Sheets v4 service; a standard Google Cloud project also needs its Sheets API enabled. Personal legacy create-only batches now share this atomic writer. V2, edits submitted through the bulk-create API, moves, duplication, and other commands retain their existing storage paths with history suppressed in personal mode.
+```sh
+git clone --branch implement_mvp https://github.com/martingrossman/TAK.git
+cd TAK
+npm ci
+npm run build
+npm start
+```
 
-The isolated test deployment was switched to personal mode on 2026-10-28. Final live quick-create confirmations took **3.52, 2.51, and 3.47 seconds**, with cards appearing in **73–78 ms**. The two-second save target is still open. Live checks also verified dates, categories, literal text, persisted versions, and retry replay. Comments now load in the editor; Gantt comment previews use comments already loaded in this browser. Receipts remain persistent and unbounded; a retention policy is still future work.
+Open [the local preview](http://127.0.0.1:4180). On Windows PowerShell, use `npm.cmd` if `npm` is blocked by script policy. Set `PORT` to use another port.
 
-Personal saves cache only workbook time zone, sheet IDs and grid sizes for 30 seconds. Tasks, receipts, permissions and headers remain fresh on each save. Opening/refreshing the project refreshes this metadata immediately; a rejected batch invalidates it before retry. Use **Refresh** after changing spreadsheet time zone or sheet structure. Values-only reads use the task/operational columns and return populated values, avoiding an extra last-row metadata request.
+You can also open `dist/index.html` directly or serve that file from an HTTPS static host. Local browser storage is not a durable backup; export task CSV when needed.
 
-Further live checks on 2026-10-28 measured a metadata-only request (`getTrackerMode`, no spreadsheet access) at **1.12–1.47 seconds**. With warm metadata, three task acknowledgements took **2.98, 3.50, and 2.49 seconds** while handlers took **1.14, 1.72, and 1.30 seconds**. This reduced work in the workbook-opening stage but did not demonstrate a reliable improvement in total save latency. Apps Script request overhead and service variability remain material; instant confirmation is not promised.
+| Command | Purpose |
+| --- | --- |
+| `npm run build` | Generate `CoreScript.html`, `Version.js` and `dist/index.html`; validate JavaScript |
+| `npm test` | Run Node tests |
+| `npm run check` | Build and run Node tests |
+| `npm run test:browser` | Run Playwright tests in Microsoft Edge |
+| `npm start` | Serve the preview on port 4180 by default |
+| `npm run stop` | Stop the local preview server |
 
-App edits save to Sheets; detail text autosaves after a short pause and dates/selects save immediately. Client saves queue per issue while independent issues can save in parallel. A script lock serializes server writes. A content hash detects stale edits, including changes made directly in Sheets even if their timestamp has not changed. Failed saves keep a local draft and can be retried with the same operation ID. On a detected revision conflict, **Compare with latest** shows field differences and offers to load the latest copy; **Discard draft** removes the local copy after confirmation. Pasted batches keep per-item operation IDs across retries. Automatic merging is not implemented.
-
-Quick-add shows pending work immediately in all three views with **Saving…** or **Queued…** while Sheets saves in the background. Repeat capture keeps its next unsent title and chosen context across redraws; filters and swimlane horizontal scroll remain intact. A failed or interrupted save retains a recoverable pending item with **Retry save**, including after reload. Retry uses the original operation ID to avoid duplicate creation. Pending work cannot be edited, dragged, or used as a parent until the server returns a real issue ID.
-
-In Gantt, use **−** beside any Epic to fold its children and **+** to open it. The **Epics** group is fixed at the start of the Gantt toolbar, with separate **Expand all** and **Collapse all** controls for every Epic shown on the current timeline. The group remains visible—and its controls are disabled—when the current filter has no collapsible Epics. Controls that would make no change are disabled; filtering does not alter hidden Epics' saved states.
-
-With **Group by epic** enabled, Kanban places the same **Epics · Expand all · Collapse all** group directly above the lanes. It remains visible with disabled controls when the current filter has no Epic lanes, and does not change the **No epic** lane.
-
-The Gantt **Add** button beside an Epic or Story uses the same background queue. The new Story/Task appears immediately as a pending row under its parent. The popup clears the submitted title while the save is pending. After Sheets confirms a real issue ID, the popup closes and focus moves to the created row. If you already started the next title, TAK preserves that title, cursor, popup position and timeline scroll instead of stealing focus. Adding in a long/collapsed Epic reveals the pending row using only the timeline's internal scroll. Repeated Enter on the cleared input creates no extra task. Failed/interrupted rows remain retryable after reload using their original operation ID. Pending rows acquire edit/drag/parent controls after confirmation. The sync indicator announces completion only when all saves/queued entries have settled; retained unconfirmed drafts stay visible as unconfirmed.
-
-A live Gantt Story check on 2026-10-28 measured its pending row in **44 ms** and Google confirmation in **3.89 seconds**. This historical sample demonstrates background-save latency; it is not a current guarantee and does not shorten the underlying Google request.
-
-When you enter several items quickly, the first starts saving immediately. In personal legacy mode, groups of up to **20 waiting entries** then share one request, one fresh task/receipt read, and one atomic write. Each item retains its own operation ID; partial validation errors or a lost response leave only unconfirmed items retryable. The server advertises support with `quickBatchCreate`; older/team/v2 deployments retain the serial fallback. Paste-list create batches also use the optimized writer when eligible. Tasks and permissions remain fresh; each request reuses one local property snapshot, and saves hash only the edited task plus their returned data instead of hashing unrelated tasks. The write response includes only the fields needed for verification.
-
-One same-session live comparison on 2026-10-28 created three Stories rapidly in Gantt: before these changes, confirmations arrived at **3.54 / 6.62 / 9.94 seconds**; afterward, at **1.90 / 3.78 / 3.78 seconds**. The final two items committed together. These are measured samples on the small test workbook, not guaranteed timings or proof of the 2,000-task performance target. All six temporary Stories were removed afterward.
-
-The standard server save path reuses one fresh snapshot within the script lock, then verifies the saved row instead of rereading the entire register. V2 checks its schema once per save; task-type mappings and retry receipts share one operational-data read. Project refresh defers Comments until an issue opens. No snapshot is retained across requests. The regression fixture reduced v2 spreadsheet range reads from 48 to 13; this is an operation count, not a measured live-time speedup.
-
-To diagnose remaining save latency, open **Apps Script → Executions**, select the latest `saveIssue` execution, and find the **`TAK save timing`** log. It records lock wait, authorization, spreadsheet opening, reads, validation, task writes/flush, single-row verification, history/receipt writes/flush, and total handler time in milliseconds. Titles and descriptions are not logged. Browser/network transit and Apps Script startup before handler entry are outside `totalServerMs`. Live elapsed time must be measured separately; the timing log is also written for failures and retries.
-
-The save journal resolves both output ranges before writing history and its retry receipt, avoiding an intervening metadata read that can flush queued writes. Authorization reads one fresh property snapshot per check, and repository selection reads only the environment name. Permission changes still apply to the next request. This follows Google's [batching guidance](https://developers.google.com/apps-script/guides/support/best-practices#use_batch_operations).
-
-Live Playwright checks on the small legacy test workbook on 2026-10-28 confirmed the remaining delay: one baseline create took 5.07 seconds to acknowledge. After the journal/property changes, two creates took 5.04 and 3.51 seconds, with cards appearing in about 0.10 seconds. The server handlers took 3.16 and 2.17 seconds. These few samples show variable latency, not a guaranteed response time; the 2,000-task performance target remains unverified.
-
-**Undo** reverses the most recent acknowledged edit, reorder, move, schedule change, bulk edit, or duplication from this browser. Close the issue editor before choosing Undo. Field and bulk changes require matching revisions and record the reversal as a new server change.
-
-Duplication undo removes the complete copied tree only while every copy retains its original revision and no copy has received comments or new references from other issues. V2 archives the copies and records history; legacy storage and the local demo remove them. Originals stay intact. The undo command survives reloads and reuses its operation ID after an uncertain response. Even an edit subsequently reversed produces a new revision and prevents duplication undo. Create, paste-to-create batch, comment, and general archive/restore undo remain open. Apps Script data writes, history, and receipts are not transactional; failures while recording history/receipts still require refresh and review.
-
-The cloud app refreshes every 45 seconds while visible and not editing, or immediately using **Refresh**. This is polling, not simultaneous live cursors. Native Sheet edits are not transactional with script writes. Avoid editing the same row at precisely the same time in Sheets and the web app.
-
-Native Sheets dropdowns enforce basic types, statuses, priorities, dates, and numeric limits. Direct edits in `Issues`, and in `Tasks`/Epic rows after v2 activation, run through validation; invalid input stays visible with a row note. Generated IDs and revision fields are restored when a single-cell edit exposes the old value, and the v2 migration metadata also protects those fields during bulk edits. Settings/team/calendar cells still need their full validation workflow. While v2 is active, `Issues` is read-only; the trigger adds a note directing edits to the versioned tabs.
-
-Dependencies are informational: the app prevents cyclic links but does not automatically shift successors or enforce dependency timing. Gantt windows show 56 days in day zoom or 112 in week zoom. Use the date picker to reach other periods.
+Direct view links use `#sheet`, `#kanban`, `#gantt`, `#roadmap`, or their `?view=…` equivalents.
 
 ## Development and verification
 
-```sh
-npm run check
-```
+Run `npm run check` after a change. It validates the build and exercises model, storage, setup, conflict and recovery behavior with local fixtures.
 
-This builds the standalone HTML, regenerates the browser model, syntax-checks browser/server JavaScript, and runs the Node suite. Tests cover migration repeatability/cutover/rollback, v2 repository CRUD and archive/restore, authorization rules, hierarchy/dependency cycles, dates, direct-edit validation, stale edits, row sorting, ID allocation, CSV escaping, and setup behavior. Server tests use an in-memory Apps Script service mock; they do not replace the separate live test-workbook smoke test.
+For browser checks, install Microsoft Edge if needed with `npx playwright install msedge`, then run the relevant specs from [TESTING.md](TESTING.md). The current Playwright configuration uses Edge, a local server on port 4587 (`SHEETFLOW_TEST_PORT` overrides it), and retained traces on failure.
 
-Run the automated browser checks separately:
+Passing local tests does not verify Google authorization, a live deployment or real Sheet permissions. Verify those separately on a disposable test copy. Test histories in the documentation describe the versions and dates recorded there.
 
-```sh
-npm ci
-npm run test:browser
-```
+## Publishing and updates
 
-`playwright.config.mjs` explicitly uses `channel: 'msedge'`. If Edge is missing, install it with `npx playwright install msedge` (`npx.cmd` in restricted PowerShell). The suite builds and serves the demo on port 4587 by default (`SHEETFLOW_TEST_PORT` overrides it), gives each test a fresh browser context and synthetic project, and covers duplication/undo, later edits/links/comments, lost-acknowledgement retry, and Sheet ordering through buttons, keyboard, and drag. Sheet checks include mixed statuses, column sorting, initial load/reload, Story children, undo, and hidden siblings. It never uses Google credentials or a live workbook. Failure traces appear in `test-results/`. The regression workflow runs the build, Node tests, and Edge tests on pushes and pull requests; GitHub execution is verified separately from local results.
+Every web app release also updates the starter template's attached script to the same version. Existing user copies still keep their own code.
 
-The local browser workflow was also exercised for creation, Kanban dragging, inline sheet edits, Gantt dragging/resizing, persistence across reloads, filters, validation, CSV download, and mobile layouts. Live Google authorization, native Sheet formatting, and the deployed Apps Script runtime still need a smoke test after deployment.
+| Destination | What a release updates |
+| --- | --- |
+| GitHub Pages | The browser demo; its workflow runs on pushes to `implement_mvp` |
+| Hosted Google web app | The version behind its existing `/exec` URL |
+| Public starter template | Code inherited by **future** copies |
+| An existing personal copy | Only when its owner installs code and updates that copy's deployment |
 
-Source layout:
+Maintainers follow [docs/RELEASE.md](docs/RELEASE.md): build and test, version and document the change, test `/dev`, obtain the owner's production approval, update the existing production deployment, then update the public template and verify a fresh copy.
 
-```text
-Code.js              Apps Script storage, setup, triggers, and web app entry points
-PersonalBatch.js     Atomic personal-mode creation of queued and pasted items
-QuickAdd.html        Google Sheets quick-add sidebar
-Help.html            Google Sheets help and setup sidebar
-FullScreen.html      Google Sheets browser-tab launcher and popup fallback
-Connection.html      Shared app guidance when no tracker was selected
-SharedHost.js        Request-scoped shared connection and workbook counters
-Core.js              Shared model, validation, dates, CSV, and samples
-CoreScript.html      Generated browser copy of Core.js; do not edit directly
-Index.html           Apps Script page template
-Styles.html          Responsive styles
-Client.html          Views, editor, interactions, and persistence adapters
-Schema.js            Versioned v2 tab and field definitions
-Migrations.js        Schema health checks and legacy migration
-Environment.js       Development/test/production spreadsheet selection
-Repository.js        v2 task and reference storage helpers
-History.js            Change history and idempotency records
-Authorization.js     Actor and role capability checks
-Settings.js           Configurable task types and workflow settings
-Ordering.js           Server-side ordering foundation
-Comments.js           Task comment storage
-Roadmap.js           Roadmap streams, increments and milestones in the Roadmap tab
-Version.js           Generated app version from package.json; do not edit directly
-scripts/build.mjs    Dependency-free HTML build and syntax validation
-scripts/google-package.mjs  Starter-template and legacy shared-host packaging
-scripts/stage-package.mjs   Stage a clasp-ready package folder in .release/
-scripts/release.mjs  Human-run release of the Google web app
-scripts/clasp-info.mjs      Read-only deployment and version listing
-scripts/serve.mjs    Local preview server
-tests/               Model and mocked server tests
-dist/index.html      Self-contained standalone browser demo
-```
+The repository root targets the hosted app. Template code and its separate permissions are packaged with `node scripts/stage-package.mjs template`. Verify the destination project before any upload; a private test copy and the public starter are different targets.
 
-This is a Jira-style tracker; it does not connect to Atlassian Jira. For release destinations and the different Google manifests, see [Publishing and updates](#publishing-and-updates).
+`npm run release` is for a person at an interactive terminal. `npm run clasp:info` reads deployment information. Neither is part of the local preview workflow. Git publication, GitHub Pages and Apps Script deployment are separate actions.
 
-## Naming and compatibility
+The source version lives in `package.json`; the build generates the badge and `Version.js`. A local version bump does not change a deployed web app. See [CHANGELOG.md](CHANGELOG.md) for changes and [the release guide](docs/RELEASE.md) for versioning and rollback.
 
-TAK continues the existing tracker and its saved data. Browser keys beginning with `sheetflow.`, Apps Script properties beginning with `SHEETFLOW_`, and internal `SheetFlow` namespaces retain their existing names for compatibility. The repository, app, menus, preview and new exports use TAK.
+## How it works
+
+TAK shares a model and interface between browser storage and Google Sheets. It does not use a separate TAK database. Sheet, Kanban and Gantt read the same issue collection; Roadmap keeps a separate plan.
+
+<details>
+<summary><strong>Source map</strong></summary>
+
+| Files | Responsibility |
+| --- | --- |
+| `Index.html`, `Styles.html`, `Client.html` | Interface, views, interactions and browser persistence |
+| `Core.js` | Shared model, validation, dates, CSV and sample data |
+| `Code.js`, `PersonalBatch.js` | Apps Script entry points, Sheets access, setup and saves |
+| `FullScreen.html`, `Help.html`, `QuickAdd.html` | Sheet launcher, help and quick-add dialogs |
+| `SharedHost.js`, `Connection.html` | Earlier shared-host mode and connection helpers |
+| `Roadmap.js` | Roadmap storage and revision checks |
+| `Schema.js`, `Migrations.js`, `Environment.js`, `Repository.js` | Schema, environment selection and optional v2 storage |
+| `Authorization.js`, `Settings.js`, `History.js`, `Ordering.js`, `Comments.js` | Access checks, settings, history, ordering and comments |
+| `scripts/build.mjs` | Generate browser and version outputs |
+| `scripts/google-package.mjs`, `scripts/stage-package.mjs` | Package the personal template or earlier shared host |
+| `scripts/release.mjs`, `scripts/clasp-info.mjs` | Human-run release helper and deployment information |
+| `tests/`, `e2e/` | Node fixtures and browser tests |
+
+`CoreScript.html`, `Version.js` and `dist/index.html` are generated files; edit their source and rebuild.
+
+</details>
+
+TAK retains `sheetflow.` browser keys, `SHEETFLOW_` properties and `SheetFlow` namespaces for compatibility. It is a standalone tracker, not an Atlassian Jira integration.
 
 ## Privacy
 
-- **Data ownership:** TAK does not store your tasks on any third-party database or external server.
-- **Browser demo (`https://martingrossman.github.io/TAK/`):** Saves changes locally in your browser's `localStorage` only.
-- **Google Web App:** Requests only the non-sensitive `https://www.googleapis.com/auth/drive.file` scope to read and write the specific Google Drive spreadsheet you explicitly select via Google Picker or create through the app.
-- **No tracking or sharing:** TAK does not sell, share, or transmit your Google user data to third parties. Contact: `martin.grossman@gmail.com`.
+| Where you use TAK | Data and permissions |
+| --- | --- |
+| Browser demo / local preview | Tasks and preferences are stored in this browser's `localStorage` for that address |
+| Hosted Google app | Tasks are in your Sheet; `drive.file` grants access to files created through the app or explicitly selected in Picker |
+| Your template copy | Tasks are in the copied Sheet. Its script requests broader `spreadsheets` access, `script.container.ui` for dialogs and `script.scriptapp` for triggers |
+
+Google-backed use also keeps UI preferences and recovery drafts in the browser. Owning a copy does not restrict the OAuth grant to that one spreadsheet: review its broader Sheets permission when authorizing it.
+
+The normal tracker has no separate third-party task database. If you choose to upload a planning export to Gemini, or use a separately configured Gemini API trial, the exported task content is shared with that service. Review it first.
+
+Contact: [martin.grossman@gmail.com](mailto:martin.grossman@gmail.com).
+
+## Further reading
+
+- [Changelog](CHANGELOG.md) — changes by version.
+- [Testing guide](TESTING.md) — targeted checks and recorded results.
+- [Hosted-app sharing guide](docs/OPTION2_SHARING_GUIDE.md) — Google Picker and team access.
+- [Source installation](docs/INSTALL_FROM_SOURCE.md) — advanced administration.
+- [Release guide](docs/RELEASE.md) — production, template updates and rollback.
+- [MVP requirements](docs/PRODUCT_REQUIREMENTS_MVP.md), [UX specification](docs/UI_UX_DESIGN_SPEC.md) and [future roadmap](docs/FUTURE_ROADMAP.md) — product contracts and planned work, not a list of completed features.
+- [Earlier shared-host design](docs/SHARED_APP_DESIGN.md) — historical architecture used by some older copies.
+
+[demo]: https://martingrossman.github.io/TAK/
+[starter]: https://docs.google.com/spreadsheets/d/1HaBavwDoxemGXhrAPas_9ppTmRmHAHOlMc5NSjOJ2iE/copy
+[hosted]: https://script.google.com/macros/s/AKfycbzVyzDi_IaUvTDZGazF8k4nEcWxzdu5idr8oTrXveV8B7cQ9Af_uSszXcXelkBxb5r_/exec
