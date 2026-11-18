@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.10 | 2026-11-18 | README redesign: professional header, Why TAK, screenshot grid and Obsidian-compatible rendering |
 | 1.1.9 | 2026-11-18 | Organize Apps Script sources in src while preserving build and deployment packages |
 | 1.1.8 | 2026-11-18 | README: serverless Google Sheets architecture, private personal use and a compact diagram |
 | 1.1.7 | 2026-11-18 | README refresh: personal and hosted setup, permissions, troubleshooting and concise feature reference |
@@ -15,6 +16,14 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.10 — 2026-11-18
+
+- Redesigned the README with a centered header, link badges, section navigation and a hero Kanban screenshot.
+- Added a **Why TAK** section explaining data ownership, no hosting, privacy, shared views, fast capture and honest save states.
+- Shows all four views in a 2×2 screenshot grid; setup is presented as Option A (starter template) and Option B (hosted app); developer and release details are grouped near the end.
+- Kept the header as one contiguous HTML block so it renders in Obsidian as well as GitHub; left-aligned table headers.
+- Documentation only, apart from the generated version badge. No task behavior, data, permissions or deployment changed.
 
 ## v1.1.9 — 2026-11-18
 
