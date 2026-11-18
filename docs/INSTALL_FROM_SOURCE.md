@@ -8,14 +8,14 @@ Sign in to the Google account that should own the tracker and create a blank Goo
 
 ## 2. Attach the script
 
-In the spreadsheet, choose **Extensions → Apps Script** and give the attached project a name such as **My TAK tracker**. For each `.js` file below, choose **+ → Script**, enter its name without `.js`, then paste the matching file's full contents. For each `.html` file, choose **+ → HTML** and do the same. Keep `Index.html` as an HTML file, and include the generated `CoreScript.html`.
+In the spreadsheet, choose **Extensions → Apps Script** and give the attached project a name such as **My TAK tracker**. The files listed below are in the ZIP's `src/` folder. For each `.js` file, choose **+ → Script**, enter its name without `.js`, then paste the matching file's full contents. For each `.html` file, choose **+ → HTML** and do the same. Keep `Index.html` as an HTML file, and include the generated `CoreScript.html`.
 
-**Script files (14):**
+**Script files (15):**
 
 ```text
 Code.js · PersonalBatch.js · Core.js · Schema.js · Migrations.js
 Environment.js · Repository.js · History.js · Authorization.js
-Settings.js · Ordering.js · Comments.js · SharedHost.js · Version.js
+Settings.js · Ordering.js · Comments.js · SharedHost.js · Roadmap.js · Version.js
 ```
 
 **HTML files (8):**
@@ -24,7 +24,7 @@ Settings.js · Ordering.js · Comments.js · SharedHost.js · Version.js
 Index.html · Styles.html · Client.html · QuickAdd.html · Help.html · FullScreen.html · Connection.html · CoreScript.html
 ```
 
-In **Project Settings**, turn on **Show “appsscript.json” manifest file in editor**. Replace its contents with the matching file from the source ZIP. The manifest enables the Advanced Sheets v4 service and V8 runtime. If Apps Script asks you to add the Google Sheets API service, choose **Add service → Google Sheets API**.
+In **Project Settings**, turn on **Show “appsscript.json” manifest file in editor**. Replace its contents with `src/appsscript.json` from the source ZIP. The manifest enables the Advanced Sheets v4 service and V8 runtime. If Apps Script asks you to add the Google Sheets API service, choose **Add service → Google Sheets API**.
 
 ## 3. Open TAK
 
@@ -40,9 +40,9 @@ For a separate browser-tab link or phone access, follow the [optional web-app st
 
 Maintainers releasing the shared app, the starter template or their own install: follow [RELEASE.md](RELEASE.md).
 
-After changing source files, regenerate `CoreScript.html`, copy changed files into Apps Script, and save. For a versioned `/exec` web app, choose **Deploy → Manage deployments → Edit → New version → Deploy**; saving source alone does not update its `/exec` link.
+After changing source files, regenerate `src/CoreScript.html`, copy changed files into Apps Script, and save. For a versioned `/exec` web app, choose **Deploy → Manage deployments → Edit → New version → Deploy**; saving source alone does not update its `/exec` link.
 
-The repository's `.clasp.json` points at the maintainer's script project. **Do not run `clasp push` from a copied checkout** until you configure and verify your own script ID. `.claspignore` includes the runtime files and excludes tests, build scripts, and `dist/`.
+The repository's `.clasp.json` points at the maintainer's script project and selects `src/` as the clasp content directory. **Do not run `clasp push` from a copied checkout** until you configure and verify your own script ID. `.claspignore` includes the runtime files and excludes tests, build scripts, and `dist/`.
 
 The administrator functions remain in Apps Script: `setupTracker`, `schemaHealthCheck`, `startupHealthCheck`, `loadSampleData`, `migrationDryRun`, `migrateLegacyIssues`, `activateVersionedRepository`, and `deactivateVersionedRepository`. Migration must be tested against a separate workbook before use with real data. Run health and dry-run checks first; resolve duplicates and invalid rows before migrating. Activation compares IDs and validates hierarchy. Rollback copies active v2 records back to `Issues`; changes made to that legacy copy must be reconciled before reactivation.
 

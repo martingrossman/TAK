@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 let pageErrors;
 test.beforeEach(async ({page}) => { pageErrors = []; page.on('pageerror', error => pageErrors.push(error.message)); });
 test.afterEach(() => expect(pageErrors).toEqual([]));

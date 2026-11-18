@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 const starting = [
   { ...C.blank(), id: 'PRJ-1', type: 'Epic', summary: 'Existing epic', status: 'Backlog', rank: 1000, version: 'v1', description: 'Context description' },

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 const year = new Date().getFullYear();
 const issue = { ...C.blank(), id: 'PRJ-1', summary: 'Any task', rank: 1000, version: 'v1' };

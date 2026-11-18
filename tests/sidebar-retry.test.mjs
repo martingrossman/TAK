@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-const html = await readFile(new URL('../QuickAdd.html', import.meta.url), 'utf8');
+const html = await readFile(new URL('../src/QuickAdd.html', import.meta.url), 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const projectUrl = 'https://example.invalid/test-spreadsheet';
 const epic = { id: 'TEST-1', type: 'Epic', summary: 'Test Epic', rank: 1 };

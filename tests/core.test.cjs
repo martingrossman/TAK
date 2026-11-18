@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 const day = '2026-10-27', now = day + 'T10:00:00.000Z';
 const make = (values = {}) => ({ ...C.blank(), id: 'PRJ-1', summary: 'Example issue', createdAt: now, updatedAt: now, ...values });
 

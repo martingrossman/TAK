@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.9 | 2026-11-18 | Organize Apps Script sources in src while preserving build and deployment packages |
 | 1.1.8 | 2026-11-18 | README: serverless Google Sheets architecture, private personal use and a compact diagram |
 | 1.1.7 | 2026-11-18 | README refresh: personal and hosted setup, permissions, troubleshooting and concise feature reference |
 | 1.1.6 | 2026-11-17 | New starter copies guide their owners through creating and opening their own Apps Script web app |
@@ -14,6 +15,12 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.9 — 2026-11-18
+
+- Moved the Apps Script and UI sources into `src/` so the GitHub repository page has fewer root-level files.
+- Updated the standalone build, clasp content directory, staged host/template packages, tests and source documentation for the new layout.
+- Kept the Apps Script upload filenames and application behavior unchanged; no spreadsheet data or schema changed.
 
 ## v1.1.8 — 2026-11-18
 

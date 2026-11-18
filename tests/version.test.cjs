@@ -11,25 +11,33 @@ test('package.json holds a plain semantic version', () => {
   assert.match(version, /^\d+\.\d+\.\d+$/);
 });
 
+test('clasp uses src as its content root and every allowed Apps Script file exists there', () => {
+  const config = JSON.parse(read('.clasp.json'));
+  assert.equal(config.rootDir, 'src');
+  const allowed = read('.claspignore').split(/\r?\n/).filter(line => line.startsWith('!')).map(line => line.slice(1));
+  assert.ok(allowed.includes('appsscript.json'));
+  for (const name of allowed) assert.ok(fs.statSync(path.join(root, 'src', name)).isFile(), name);
+});
+
 test('generated Version.js agrees with package.json (run npm run build if this fails)', () => {
   const context = {};
   vm.createContext(context);
-  vm.runInContext(read('Version.js'), context);
+  vm.runInContext(read('src/Version.js'), context);
   assert.equal(context.takAppVersion_(), version);
 });
 
 test('the header badge and Apps Script allowlists carry the version', () => {
-  assert.match(read('Index.html'), /<span class="brand-version" title="TAK version <\?= takAppVersion_\(\) \?>">v<\?= takAppVersion_\(\) \?><\/span>/);
+  assert.match(read('src/Index.html'), /<span class="brand-version" title="TAK version <\?= takAppVersion_\(\) \?>">v<\?= takAppVersion_\(\) \?><\/span>/);
   assert.ok(read('.claspignore').split(/\r?\n/).includes('!Version.js'));
   assert.match(read('scripts/google-package.mjs'), /'Roadmap','Version'/);
-  assert.match(read('docs/INSTALL_FROM_SOURCE.md'), /SharedHost\.js · Version\.js/);
+  assert.match(read('docs/INSTALL_FROM_SOURCE.md'), /SharedHost\.js · Roadmap\.js · Version\.js/);
 });
 
 test('AGENTS.md carries the release gate and names the generated files', () => {
   const agents = read('AGENTS.md');
   assert.match(agents, /## Release and deployment gate/);
   assert.match(agents, /docs\/RELEASE\.md/);
-  assert.match(agents, /`CoreScript\.html`, `Version\.js` and `dist\/index\.html` are generated/);
+  assert.match(agents, /`src\/CoreScript\.html`, `src\/Version\.js` and `dist\/index\.html` are generated/);
   assert.match(agents, /explicit written approval/);
 });
 
@@ -50,7 +58,7 @@ test('the changelog lists this version in the table and as the newest entry', ()
 });
 
 test('Version.js shows the version and its changelog summary where the Apps Script editor displays it', () => {
-  const source = read('Version.js');
+  const source = read('src/Version.js');
   assert.match(source, new RegExp('^/\\*\\*\\n \\* TAK v' + version.replace(/\./g, '\\.') + ' \\(\\d{4}-\\d{2}-\\d{2} - .+\\)\\n'));
   const context = {}; vm.createContext(context); vm.runInContext(source, context);
   assert.equal(context.TAK_APP_VERSION, version);

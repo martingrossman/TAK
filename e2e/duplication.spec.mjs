@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 const projectKey = 'sheetflow.project.v1';
 const initialIssues = [

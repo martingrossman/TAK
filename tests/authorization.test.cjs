@@ -15,7 +15,7 @@ function harness({ email = '', enforced = false, defaultRole = '' } = {}) {
       setProperty: (key, value) => properties.set(key, String(value))
     }) }
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../Authorization.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Authorization.js'), 'utf8'), context);
   return { auth: context.SheetFlowAuth, properties, reads };
 }
 

@@ -7,7 +7,7 @@ if (!referencePath || !fs.statSync(referencePath, { throwIfNoEntry: false })?.is
   throw Error('Pass the path to reference-planner.html from the preview ZIP, followed by an optional task count.');
 }
 const { chromium } = require('@playwright/test');
-const core = require('../Core.js');
+const core = require('../src/Core.js');
 const count = Number(process.argv[3] || 100);
 if (!Number.isInteger(count) || count < 10 || count > 2000) throw Error('Choose 10–2,000 tasks.');
 const tasks = Array.from({ length: count }, (_, i) => ({

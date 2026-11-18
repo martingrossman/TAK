@@ -6,7 +6,7 @@ How a change gets from this repository to the two places TAK runs, in a fixed or
 
 | Target | What it is | Who gets it | How it updates |
 | --- | --- | --- | --- |
-| **Option 2 web app** | The repository root pushed as-is: `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
+| **Option 2 web app** | The repository root is the clasp project; its `src/` folder is uploaded as `USER_ACCESSING`, `ANYONE`, `drive.file` scope, Google Picker. Its `/exec` is the public link in the README | Everyone using the app | `clasp push -f`, then move its deployment to a new version. Use `npm run release -- install` with `TAK_DEPLOYMENT_ID` |
 | **Shared host** (older) | One Apps Script web app, `USER_ACCESSING`, signed-in access | Everyone using the starter template | Moving its `/exec` deployment to a new version updates all users at once |
 | **Starter template** | The bound script in the public starter spreadsheet; **🔷 TAK → Open tracker** guides each new copy's owner to deploy and open their own web app | New copies only | **Updated in every Option 2 release**, right after production moves, to the same `vX.Y.Z`. `npm run release -- install` does it with `TAK_TEMPLATE_SCRIPT_ID`; **existing copies keep the script they were made with** |
 | **Independent install** | An owner-only copy attached to someone's own spreadsheet ([INSTALL_FROM_SOURCE.md](INSTALL_FROM_SOURCE.md)) | That owner | Owner updates by hand; the maintainer's own install uses the same `clasp` flow below |
@@ -25,9 +25,9 @@ The demo on GitHub Pages is separate: it publishes automatically from `implement
 ## Before any release
 
 1. Make sure the working tree is clean and you are on the branch to ship (`git status`).
-2. `npm run check` passes (builds `CoreScript.html` and `dist/index.html`, runs the Node tests). Run the targeted Playwright specs for what changed, as in [TESTING.md](../TESTING.md).
+2. `npm run check` passes (builds `src/CoreScript.html` and `dist/index.html`, runs the Node tests). Run the targeted Playwright specs for what changed, as in [TESTING.md](../TESTING.md).
 3. Choose the next semantic version (`vX.Y.Z`: patch for fixes, minor for features, major for breaking storage or behavior) and set it **only** in `package.json`: `npm version <patch|minor|major> --no-git-tag-version`.
-4. Run `npm run build`. It generates `Version.js` (the backend's `takAppVersion_()`) and the header badge from `package.json`, so there is nothing else to edit by hand. Commit the regenerated files.
+4. Run `npm run build`. It generates `src/Version.js` (the backend's `takAppVersion_()`) and the header badge from `package.json`, so there is nothing else to edit by hand. Commit the regenerated files.
 5. Add the entry to [CHANGELOG.md](../CHANGELOG.md): one entry for the new version at the top and a row in its table (a Node test fails if they disagree with `package.json`). Say what changed and anything users must do. For the template, say that existing copies are unchanged.
 6. Commit, then tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`.
 
@@ -97,7 +97,7 @@ Existing copies keep their old bound script. Say so in the release notes if a fi
 
 ## Release an independent install
 
-For your own owner-only installation (the repository root is a normal clasp project; `.claspignore` selects the runtime files, and no `SharedConfig.js` means independent mode). Confirm `.clasp.json` points at **your** script before pushing.
+For your own owner-only installation (the repository root is a normal clasp project; `.clasp.json` selects `src/` and `.claspignore` selects its runtime files, and no `SharedConfig.js` means independent mode). Confirm `.clasp.json` points at **your** script before pushing.
 
 ```powershell
 npm.cmd run build

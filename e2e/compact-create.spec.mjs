@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 const storageKey = 'sheetflow.project.v1';
 const epic = { ...C.blank(), id: 'PRJ-1', type: 'Epic', summary: 'Example Epic', rank: 1000 };

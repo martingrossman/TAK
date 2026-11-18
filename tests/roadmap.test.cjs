@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 
 function fakeSheet(name, rows) {
   const formats = [];
@@ -47,7 +47,7 @@ function harness() {
       DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, value) => crypto.createHash('sha256').update(value).digest(), base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url')
     }
   });
-  for (const file of ['Code.js', 'Roadmap.js']) vm.runInContext(fs.readFileSync(require.resolve('../' + file), 'utf8'), context);
+  for (const file of ['Code.js', 'Roadmap.js']) vm.runInContext(fs.readFileSync(require.resolve('../src/' + file), 'utf8'), context);
   return { api: context, book, sheets, issues, balanced: () => locks === releases };
 }
 

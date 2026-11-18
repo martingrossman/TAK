@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 // These tests intentionally exercise optional fields and horizontal navigation.
 test.beforeEach(async ({page})=>{await page.addInitScript(()=>{if(!localStorage.getItem('sheetflow.ui.v1'))localStorage.setItem('sheetflow.ui.v1',JSON.stringify({sheetLayoutVersion:2,visibleColumns:['id','type','taskTypeId','parentId','summary','status','priority','assignee','startDate','dueDate','progress','estimate','sprint']}));});});
 

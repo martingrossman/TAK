@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const root = new URL('../', import.meta.url);
+const root = new URL('../src/', import.meta.url);
 const read = name => readFile(new URL(name, root), 'utf8');
 
 

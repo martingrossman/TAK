@@ -10,8 +10,9 @@ const deploymentsText = `Found 2 deployments.\n- ${HEAD_DEP} @HEAD \n- ${HOST_DE
 function repo(overrides = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tak-release-'));
   fs.mkdirSync(path.join(dir, 'docs'));
+  fs.mkdirSync(path.join(dir, 'src'));
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.2.3' }));
-  fs.writeFileSync(path.join(dir, 'Version.js'), "function takAppVersion_() { return '1.2.3'; }\n");
+  fs.writeFileSync(path.join(dir, 'src', 'Version.js'), "function takAppVersion_() { return '1.2.3'; }\n");
   fs.writeFileSync(path.join(dir, 'CHANGELOG.md'), overrides.notes || '| Version | Date | Summary |\n| --- | --- | --- |\n| 1.2.3 | 2026-11-16 | Faster saves & safer retries |\n\n## v1.2.3 — 2026-11-16\n\n- Notes.\n');
   return dir;
 }
@@ -82,7 +83,7 @@ test('release refuses anything that is not a person on a clean, tagged, document
   await refuse({ env: { TAK_HOST_SCRIPT_ID: HOST_SCRIPT, TAK_HOST_DEPLOYMENT_ID: HEAD_DEP } }, /draft \(@HEAD\)/);
   await refuse({ answer: 'yes' }, /did not match/);
   await refuse({ answer: 'v1.2.2' }, /did not match/);
-  fs.writeFileSync(path.join(dir, 'Version.js'), "function takAppVersion_() { return '1.0.0'; }\n");
+  fs.writeFileSync(path.join(dir, 'src', 'Version.js'), "function takAppVersion_() { return '1.0.0'; }\n");
   await refuse({}, /Version\.js does not match/);
   const noNotes = repo({ notes: '# notes\n' });
   const h = harness(noNotes);

@@ -323,7 +323,7 @@ You can also open `dist/index.html` directly or serve that file from an HTTPS st
 
 | Command | Purpose |
 | --- | --- |
-| `npm run build` | Generate `CoreScript.html`, `Version.js` and `dist/index.html`; validate JavaScript |
+| `npm run build` | Generate `src/CoreScript.html`, `src/Version.js` and `dist/index.html`; validate JavaScript |
 | `npm test` | Run Node tests |
 | `npm run check` | Build and run Node tests |
 | `npm run test:browser` | Run Playwright tests in Microsoft Edge |
@@ -353,11 +353,11 @@ Every web app release also updates the starter template's attached script to the
 
 Maintainers follow [docs/RELEASE.md](docs/RELEASE.md): build and test, version and document the change, test `/dev`, obtain the owner's production approval, update the existing production deployment, then update the public template and verify a fresh copy.
 
-The repository root targets the hosted app. Template code and its separate permissions are packaged with `node scripts/stage-package.mjs template`. Verify the destination project before any upload; a private test copy and the public starter are different targets.
+The repository root is the hosted app's clasp project; its runtime files live in `src/`. Template code and its separate permissions are packaged with `node scripts/stage-package.mjs template`. Verify the destination project before any upload; a private test copy and the public starter are different targets.
 
 `npm run release` is for a person at an interactive terminal. `npm run clasp:info` reads deployment information. Neither is part of the local preview workflow. Git publication, GitHub Pages and Apps Script deployment are separate actions.
 
-The source version lives in `package.json`; the build generates the badge and `Version.js`. A local version bump does not change a deployed web app. See [CHANGELOG.md](CHANGELOG.md) for changes and [the release guide](docs/RELEASE.md) for versioning and rollback.
+The source version lives in `package.json`; the build generates the badge and `src/Version.js`. A local version bump does not change a deployed web app. See [CHANGELOG.md](CHANGELOG.md) for changes and [the release guide](docs/RELEASE.md) for versioning and rollback.
 
 ## How it works
 
@@ -368,20 +368,20 @@ TAK shares a model and interface between browser storage and Google Sheets. It d
 
 | Files | Responsibility |
 | --- | --- |
-| `Index.html`, `Styles.html`, `Client.html` | Interface, views, interactions and browser persistence |
-| `Core.js` | Shared model, validation, dates, CSV and sample data |
-| `Code.js`, `PersonalBatch.js` | Apps Script entry points, Sheets access, setup and saves |
-| `FullScreen.html`, `Help.html`, `QuickAdd.html` | Sheet launcher, help and quick-add dialogs |
-| `SharedHost.js`, `Connection.html` | Earlier shared-host mode and connection helpers |
-| `Roadmap.js` | Roadmap storage and revision checks |
-| `Schema.js`, `Migrations.js`, `Environment.js`, `Repository.js` | Schema, environment selection and optional v2 storage |
-| `Authorization.js`, `Settings.js`, `History.js`, `Ordering.js`, `Comments.js` | Access checks, settings, history, ordering and comments |
+| `src/Index.html`, `src/Styles.html`, `src/Client.html` | Interface, views, interactions and browser persistence |
+| `src/Core.js` | Shared model, validation, dates, CSV and sample data |
+| `src/Code.js`, `src/PersonalBatch.js` | Apps Script entry points, Sheets access, setup and saves |
+| `src/FullScreen.html`, `src/Help.html`, `src/QuickAdd.html` | Sheet launcher, help and quick-add dialogs |
+| `src/SharedHost.js`, `src/Connection.html` | Earlier shared-host mode and connection helpers |
+| `src/Roadmap.js` | Roadmap storage and revision checks |
+| `src/Schema.js`, `src/Migrations.js`, `src/Environment.js`, `src/Repository.js` | Schema, environment selection and optional v2 storage |
+| `src/Authorization.js`, `src/Settings.js`, `src/History.js`, `src/Ordering.js`, `src/Comments.js` | Access checks, settings, history, ordering and comments |
 | `scripts/build.mjs` | Generate browser and version outputs |
 | `scripts/google-package.mjs`, `scripts/stage-package.mjs` | Package the personal template or earlier shared host |
 | `scripts/release.mjs`, `scripts/clasp-info.mjs` | Human-run release helper and deployment information |
 | `tests/`, `e2e/` | Node fixtures and browser tests |
 
-`CoreScript.html`, `Version.js` and `dist/index.html` are generated files; edit their source and rebuild.
+`src/CoreScript.html`, `src/Version.js` and `dist/index.html` are generated files; edit their source and rebuild.
 
 </details>
 

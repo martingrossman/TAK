@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 const issues = [
   { id: 'PRJ-1', type: 'Epic', summary: 'Delivery epic' },

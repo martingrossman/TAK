@@ -3,13 +3,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const sourceDir = path.join(root, 'src');
 export async function googlePackage(mode) {
   if (!['host', 'template'].includes(mode)) throw new Error('Choose host or template package.');
   const js = ['Code','PersonalBatch','Core','Schema','Migrations','Environment','Repository','History','Authorization','Settings','Ordering','Comments','SharedHost','Roadmap','Version'];
   const html = ['Index','Styles','Client','QuickAdd','Help','FullScreen','Connection','CoreScript'];
   const files = [];
-  for (const name of js) files.push({name,type:'SERVER_JS',source:await fs.readFile(path.join(root,name+'.js'),'utf8')});
-  for (const name of html) files.push({name,type:'HTML',source:await fs.readFile(path.join(root,name+'.html'),'utf8')});
+  for (const name of js) files.push({name,type:'SERVER_JS',source:await fs.readFile(path.join(sourceDir,name+'.js'),'utf8')});
+  for (const name of html) files.push({name,type:'HTML',source:await fs.readFile(path.join(sourceDir,name+'.html'),'utf8')});
   files.push({name:'SharedConfig',type:'SERVER_JS',source:mode === 'host' ? 'var TAK_SHARED_HOST_ = true;\n' : 'var TAK_SHARED_HOST_ = false;\nvar TAK_TEMPLATE_PERSONAL_LAUNCHER_ = true;\n'});
   const manifest = {
     timeZone:'Europe/Prague',runtimeVersion:'V8',exceptionLogging:'STACKDRIVER',

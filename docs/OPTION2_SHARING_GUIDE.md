@@ -28,10 +28,10 @@ flowchart TD
 ### Key Building Blocks
 | Component | File / Location | Role |
 | :--- | :--- | :--- |
-| **OAuth & Manifest** | [appsscript.json](../appsscript.json) | Executes as `USER_ACCESSING` (`ANYONE`) and requests **only** `https://www.googleapis.com/auth/drive.file`. |
+| **OAuth & Manifest** | [appsscript.json](../src/appsscript.json) | Executes as `USER_ACCESSING` (`ANYONE`) and requests **only** `https://www.googleapis.com/auth/drive.file`. |
 | **GCP Project (`487430968051`)** | Google Cloud Console (`TAK-Project-Tracker`) | Hosts the OAuth consent screen (**In production**), Google Picker API, Google Sheets API, and Google Drive API. |
-| **Picker & Onboarding UI** | [Index.html](../Index.html) & [Client.html](../Client.html) | Renders **Select Google Sheet**, **Create new TAK Sheet**, and the header **Switch Sheet** button. |
-| **Sheets API v4 Adapter** | [Code.js](../Code.js) & [SharedHost.js](../SharedHost.js) | Replaces `SpreadsheetApp` with `Sheets.Spreadsheets.*` so Google never forces the broad `spreadsheets` scope. |
+| **Picker & Onboarding UI** | [Index.html](../src/Index.html) & [Client.html](../src/Client.html) | Renders **Select Google Sheet**, **Create new TAK Sheet**, and the header **Switch Sheet** button. |
+| **Sheets API v4 Adapter** | [Code.js](../src/Code.js) & [SharedHost.js](../src/SharedHost.js) | Replaces `SpreadsheetApp` with `Sheets.Spreadsheets.*` so Google never forces the broad `spreadsheets` scope. |
 | **Standalone Browser Demo** | [dist/index.html](../dist/index.html) | 100% offline/local `localStorage` build deployed to GitHub Pages (`https://martingrossman.github.io/TAK/`). |
 
 ---

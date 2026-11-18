@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const Core = require('../Core.js');
+const Core = require('../src/Core.js');
 
 function harness(sourceIssues) {
   const properties = new Map([['SPREADSHEET_ID', 'test-book']]), sheets = {};
@@ -35,7 +35,7 @@ function harness(sourceIssues) {
       base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url')
     }
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../Schema.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Schema.js'), 'utf8'), context);
   const book = {
     getSheetByName: name => sheets[name] || null,
     insertSheet(name) { return (sheets[name] = createSheet(name)); },
@@ -50,10 +50,10 @@ function harness(sourceIssues) {
     if (field.kind === 'timestamp' && value) return new Date(value);
     return value ?? (field.kind === 'number' ? 0 : '');
   })));
-  vm.runInContext(fs.readFileSync(require.resolve('../Repository.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Settings.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Migrations.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Repository.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Settings.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Code.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Migrations.js'), 'utf8'), context);
   return { api: context, sheets, properties, book };
 }
 

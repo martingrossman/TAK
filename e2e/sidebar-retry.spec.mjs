@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
-const sidebar = await readFile(new URL('../QuickAdd.html', import.meta.url), 'utf8');
+const sidebar = await readFile(new URL('../src/QuickAdd.html', import.meta.url), 'utf8');
 
 test('sidebar restores an unconfirmed create and retries once with the same identity', async ({ page }) => {
   await page.route('**/sidebar-r3', route => route.fulfill({ contentType: 'text/html', body: sidebar }));

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { googlePackage } from '../scripts/google-package.mjs';
-const client=await readFile(new URL('../Client.html',import.meta.url),'utf8');
+const client=await readFile(new URL('../src/Client.html',import.meta.url),'utf8');
 
 test('shared browser preferences and recovery state are separate for each workbook',()=>{
   const source=client.slice(client.indexOf('  const isCloud ='),client.indexOf('  const noEpicLaneKey'));

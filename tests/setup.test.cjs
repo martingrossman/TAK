@@ -2,7 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 
 function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl = 'https://script.google.com/macros/s/test/exec' } = {}) {
   const rows = data.length ? [C.fields.map(f => f.label), ...data] : [];
@@ -69,9 +69,9 @@ function setupHarness({ standalone = false, data = [], frozenReturn, webAppUrl =
       return template;
     } }
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../SharedHost.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Code.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/SharedHost.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Roadmap.js'), 'utf8'), context);
   return { api: context, properties, rows, triggers, formatting, menus, createdBooks: () => createdBooks, dialog: () => dialog, sidebar: () => sidebar, alert: () => alert, balanced: () => acquired === released };
 }
 
@@ -156,7 +156,7 @@ test('Help status asks for review when a support tab has unexpected headers', ()
 });
 
 test('Help sidebar checks status without repair and requires an in-panel confirmation', () => {
-  const html = fs.readFileSync(require.resolve('../Help.html'), 'utf8');
+  const html = fs.readFileSync(require.resolve('../src/Help.html'), 'utf8');
   const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const ids = ['status', 'check', 'repair', 'confirmation', 'cancel', 'confirm-repair'];
   const elements = Object.fromEntries(ids.map(id => [id, { hidden: false, disabled: false, textContent: '', classList: { toggle() {} }, listeners: {}, addEventListener(event, fn) { this.listeners[event] = fn; }, focus() {} }]));

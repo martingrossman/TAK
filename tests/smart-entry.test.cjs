@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 const defaults = { today: '2026-11-06', assignees: ['Martin Novak', 'Alex Morgan', 'Alex Chen', 'Žofie Černá', '李 小龍'] };
 const parse = (text, options = {}) => C.parseQuickEntry(text, { ...defaults, ...options });
 

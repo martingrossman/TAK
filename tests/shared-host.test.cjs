@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const Core = require('../Core.js');
+const Core = require('../src/Core.js');
 
 function harness() {
   const books = {}, writes = [], denied = new Set();
@@ -16,7 +16,7 @@ function harness() {
     LockService: { getScriptLock: () => ({ waitLock() { assert.equal(locked, false); locked = true; }, releaseLock() { locked = false; } }) },
     Utilities: { getUuid: () => crypto.randomUUID(), formatDate: (date, zone, format) => format === 'yyyy-MM-dd' ? date.toLocaleDateString('en-CA', { timeZone: zone }) : date.toISOString(), parseDate: value => new Date(value+'T00:00:00Z'), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, value) => crypto.createHash('sha256').update(value).digest(), base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url') }
   });
-  for (const name of ['Schema','Code','SharedHost','Authorization','Environment','Repository','History','Settings','Comments','Roadmap']) vm.runInContext(fs.readFileSync(require.resolve('../'+name+'.js'),'utf8'),api);
+  for (const name of ['Schema','Code','SharedHost','Authorization','Environment','Repository','History','Settings','Comments','Roadmap']) vm.runInContext(fs.readFileSync(require.resolve('../src/'+name+'.js'),'utf8'),api);
   function makeBook(id) {
     const tabs = {}, book = { id, tabs, writable: true, getId: () => id, getName: () => id, getUrl: () => 'https://docs.google.com/spreadsheets/d/'+id+'/edit', getSpreadsheetTimeZone: () => 'Europe/Prague', getSheetByName: name => tabs[name] || null };
     function sheet(name, headers) {
@@ -142,7 +142,7 @@ test('shared app rejects changed headers, unprepared sheets and versioned reposi
 });
 
 test('launcher has an accessible fallback when popups are blocked and never navigates to a copied deployment',()=>{
-  const script=fs.readFileSync(require.resolve('../FullScreen.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+  const script=fs.readFileSync(require.resolve('../src/FullScreen.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
   const status={},link={href:'https://example.invalid/shared?sheet=copy'}; let closed=0,openedUrl='';
   const run=opened=>vm.runInNewContext(script,{document:{getElementById:id=>id==='launch-tracker'?link:status},window:{open(url){openedUrl=url;return opened;}},google:{script:{host:{close(){closed++;}}}}});
   run(null); assert.match(status.textContent,/needs a click/); assert.equal(closed,0); assert.equal(openedUrl,link.href);

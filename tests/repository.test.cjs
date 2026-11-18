@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const Core = require('../Core.js');
+const Core = require('../src/Core.js');
 
 function harness() {
   const properties = new Map([['SPREADSHEET_ID', 'book-v2'], ['SHEETFLOW_ACTIVE_SCHEMA', '2']]);
@@ -46,7 +46,7 @@ function harness() {
       base64EncodeWebSafe: bytes => Buffer.from(bytes).toString('base64url')
     }
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../Schema.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Schema.js'), 'utf8'), context);
   Object.keys(context.SheetFlowSchema.tabs).forEach(key => {
     const def = context.SheetFlowSchema.tabs[key]; tabs[def.name] = makeSheet(def.name, def.headers);
   });
@@ -57,9 +57,9 @@ function harness() {
     getId: () => 'book-v2', getUrl: () => 'https://docs.google.com/spreadsheets/d/book-v2/edit', getName: () => 'Project',
     getSpreadsheetTimeZone: () => 'Europe/Prague'
   };
-  vm.runInContext(fs.readFileSync(require.resolve('../Repository.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
-  vm.runInContext(fs.readFileSync(require.resolve('../Ordering.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Repository.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Code.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Ordering.js'), 'utf8'), context);
   return { api: context, tabs, book, properties, notes, reads, logs };
 }
 
@@ -76,7 +76,7 @@ function assertBrowserValue(value, path = 'response') {
 }
 
 function loadBrowserServices(h) {
-  for (const name of ['Settings', 'Comments', 'History']) vm.runInContext(fs.readFileSync(require.resolve(`../${name}.js`), 'utf8'), h.api);
+  for (const name of ['Settings', 'Comments', 'History']) vm.runInContext(fs.readFileSync(require.resolve(`../src/${name}.js`), 'utf8'), h.api);
   h.api.SheetFlowSettings.ensure(h.book);
 }
 function setTime(h, value) {
@@ -91,7 +91,7 @@ function setTime(h, value) {
 for (const mode of ['versioned', 'personal']) test(`${mode} save, sidebar, and batch create preserve explicit starts and default missing work dates`, () => {
   const h = mode === 'personal' ? personalBatchHarness() : harness();
   if (mode === 'versioned') loadBrowserServices(h);
-  else vm.runInContext(fs.readFileSync(require.resolve('../PersonalBatch.js'), 'utf8'), h.api);
+  else vm.runInContext(fs.readFileSync(require.resolve('../src/PersonalBatch.js'), 'utf8'), h.api);
   setTime(h, '2026-11-06T23:30:00.000Z');
   const items = Core.types.flatMap(type => [{}, { startDate: '' }, { startDate: '2026-10-20' }].map((dates, index) => ({
     operationId: `date-batch-${type}-${index}`, input: { summary: `${type} ${index}`, type, ...dates }
@@ -591,7 +591,7 @@ test('failed v2 duplicate undo restores original revisions even after a partiall
 });
 
 test('duplicate undo uses persisted history receipts after the history service reloads', () => {
-  const h = harness(), historySource = fs.readFileSync(require.resolve('../History.js'), 'utf8');
+  const h = harness(), historySource = fs.readFileSync(require.resolve('../src/History.js'), 'utf8');
   vm.runInContext(historySource, h.api);
   addRecord(h.tabs['Projects and Epics'], { ID: 'PROJECT-1', 'Entity Kind': 'Project', Title: 'Project', Active: true, Revision: 1 });
   const source = h.api.saveIssue({ summary: 'Persistent receipt source' });
@@ -634,7 +634,7 @@ for (const schema of ['legacy', '2']) test(`bulk delete persists schema ${schema
     assert.equal(h.tabs.Issues.rows.length, 1, 'legacy storage is untouched');
     assert.equal(h.tabs['Projects and Epics'].rows.find(row => row[0] === 'PROJECT-1')[h.tabs['Projects and Epics'].rows[0].indexOf('Active')], true);
   }
-  vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/History.js'), 'utf8'), h.api);
   const replayed = h.api.deleteIssuesBatch(h.items, 'persisted-delete');
   assert.equal(replayed.replayed, true); assertBrowserValue(replayed);
   assert.deepEqual(Array.from(replayed.deletedIds), Array.from(deleted.deletedIds));
@@ -656,7 +656,7 @@ for (const schema of ['legacy', '2']) {
     };
     assert.throws(() => h.api.deleteIssuesBatch(h.items, 'receipt-delete'), /completion receipt failure/);
     assert.deepEqual(Array.from(h.api.getProject().issues, issue => issue.id), [h.outside.id]);
-    vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+    vm.runInContext(fs.readFileSync(require.resolve('../src/History.js'), 'utf8'), h.api);
     const replayed = h.api.deleteIssuesBatch(h.items, 'receipt-delete');
     assert.equal(replayed.replayed, true); assert.equal(replayed.deletedIds.length, 3);
     assert.equal(h.tabs['Change History'].rows.length, before + 3, 'history is not duplicated during journal recovery');
@@ -676,7 +676,7 @@ for (const schema of ['legacy', '2']) {
     assert.throws(() => h.api.deleteIssuesBatch(h.items, 'journal-delete'), /journal acknowledgement failure/);
     assert.equal(h.api.getProject().issues.length, 1);
     assert.equal(h.tabs['Change History'].rows.length, before + 2);
-    vm.runInContext(fs.readFileSync(require.resolve('../History.js'), 'utf8'), h.api);
+    vm.runInContext(fs.readFileSync(require.resolve('../src/History.js'), 'utf8'), h.api);
     const replayed = h.api.deleteIssuesBatch(h.items, 'journal-delete');
     assert.equal(replayed.replayed, true);
     const events = h.tabs['Change History'].rows.slice(before);
@@ -814,7 +814,7 @@ test('project refresh defers comments and an issue fetch returns only its own co
 
 function personalBatchHarness() {
   const h=harness(); loadBrowserServices(h);
-  vm.runInContext(fs.readFileSync(require.resolve('../Environment.js'),'utf8'),h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Environment.js'),'utf8'),h.api);
   h.properties.set('SHEETFLOW_MODE','personal');
   const calls=[],batchReads=[]; let failBefore=false,lostAfter=false,splitResponse=false;
   const sheets=Object.values(h.tabs);
@@ -958,7 +958,7 @@ test('personal metadata refresh follows geometry changes and write failures inva
 });
 
 function runPersonalCreateBatch(h,items) {
-  vm.runInContext(fs.readFileSync(require.resolve('../PersonalBatch.js'),'utf8'),h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/PersonalBatch.js'),'utf8'),h.api);
   const request=h.api.saveRequestContext_(),book=h.api.readPersonalSaveBook_(request.config);
   return h.api.createPersonalIssuesBatch_(book,items,request);
 }
@@ -1038,7 +1038,7 @@ test('personal batch verifies written rows across separate GridData segments and
 
 test('public personal batch dispatch uses one API write and advertises support only for the personal legacy path', () => {
   const h=personalBatchHarness();
-  vm.runInContext(fs.readFileSync(require.resolve('../PersonalBatch.js'),'utf8'),h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/PersonalBatch.js'),'utf8'),h.api);
   const result=h.api.createIssuesBatch([1,2].map(n=>({operationId:`public-personal-${n}`,input:{summary:`Public task ${n}`}})));
   assert.equal(result.items.length,2);assert.equal(result.errors.length,0);
   assert.equal(h.batchReads.length,1);assert.equal(h.calls.length,1);
@@ -1051,7 +1051,7 @@ test('public personal batch dispatch uses one API write and advertises support o
 
 test('personal save uses one fresh property snapshot including authorization and observes enforcement changes', () => {
   const h=personalBatchHarness();
-  vm.runInContext(fs.readFileSync(require.resolve('../Authorization.js'),'utf8'),h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Authorization.js'),'utf8'),h.api);
   h.api.Session={getActiveUser:()=>({getEmail:()=> 'viewer@example.com'})};
   let snapshots=0,propertyReads=0;
   const getProperties=h.api.PropertiesService.getScriptProperties;

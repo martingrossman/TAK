@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url),Core=require('../Core.js');
+const require=createRequire(import.meta.url),Core=require('../src/Core.js');
 
 test('shared connection renders all views and keeps recovery storage separate across copies',async({context,page})=>{
   const issues=Core.sample('2026-11-06').map(issue=>({...issue,version:'v1'}));

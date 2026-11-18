@@ -31,7 +31,7 @@ export async function release({ target, dryRun = false, skipTemplate = false, ro
 
   if (git(['status', '--porcelain', '--untracked-files=no']).trim()) throw new Error('The working tree has uncommitted changes to tracked files. Commit or discard them, then tag the release commit.');
   if (!git(['tag', '--points-at', 'HEAD']).split(/\r?\n/).includes(tag)) throw new Error(`HEAD is not tagged ${tag}. Release only the tagged commit: git tag -a ${tag} -m "Release ${tag}"`);
-  if (!new RegExp(`return '${version.replace(/\./g, '\\.')}'`).test(read('Version.js'))) throw new Error('Version.js does not match package.json. Run npm run build and commit the result.');
+  if (!new RegExp(`return '${version.replace(/\./g, '\\.')}'`).test(read('src/Version.js'))) throw new Error('Version.js does not match package.json. Run npm run build and commit the result.');
   const notes = read('CHANGELOG.md');
   const row = notes.match(new RegExp(`^\\| ${version.replace(/\./g, '\\.')} \\| [^|]+\\| ([^|]+) \\|`, 'm'));
   if (!row || !new RegExp(`^## ${tag} `, 'm').test(notes)) throw new Error(`CHANGELOG.md has no entry for ${tag}.`);

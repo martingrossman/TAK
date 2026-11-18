@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import C from '../Core.js';
+import C from '../src/Core.js';
 
 test('a missing Apps Script callback leaves an actionable unconfirmed draft', async ({ page }) => {
   await page.clock.install();

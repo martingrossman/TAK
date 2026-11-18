@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { performance } = require('node:perf_hooks');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 
 const epic = { ...C.blank(), id: 'PRJ-1', type: 'Epic', summary: 'Existing epic', version: 'v1' };
 const options = { today: '2026-11-07', issues: [epic], assignees: ['Martin Novak', 'Alex Chen', 'Alex Morgan'] };

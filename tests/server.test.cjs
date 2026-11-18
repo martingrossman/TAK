@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const C = require('../Core.js');
+const C = require('../src/Core.js');
 function harness() {
   const rows = [C.fields.map(f => f.label)];
   const notes = new Map();
@@ -34,7 +34,7 @@ function harness() {
       sleep: ms => sleeps.push(ms)
     }
   });
-  vm.runInContext(fs.readFileSync(require.resolve('../Code.js'), 'utf8'), context);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Code.js'), 'utf8'), context);
   return { api: context, rows, notes, props, sheet, book, reads, logs, sleeps, balanced: () => locks === releases };
 }
 function setTime(h, value) {
@@ -670,11 +670,11 @@ test('Apps Script deployment allowlist contains zero SpreadsheetApp or UrlFetchA
     .map(line => line.slice(1).trim());
   assert.ok(allowlist.length > 0);
   for (const file of allowlist) {
-    const content = fs.readFileSync(path.join(root, file), 'utf8');
+    const content = fs.readFileSync(path.join(root, 'src', file), 'utf8');
     assert.equal(content.includes('SpreadsheetApp'), false, `${file} must not reference SpreadsheetApp`);
     assert.equal(content.includes('UrlFetchApp'), false, `${file} must not reference UrlFetchApp`);
   }
-  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'appsscript.json'), 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'src', 'appsscript.json'), 'utf8'));
   assert.deepEqual(manifest.oauthScopes, ['https://www.googleapis.com/auth/drive.file']);
 });
 
@@ -799,7 +799,7 @@ test('Google Picker drive.file flow signals needsPicker and operates via Sheets 
   h.api.selectProjectSheet('picker-book-2');
 
   // The Roadmap tab is created through the same Sheets API wrapper, which must support header formatting.
-  vm.runInContext(fs.readFileSync(require.resolve('../Roadmap.js'), 'utf8'), h.api);
+  vm.runInContext(fs.readFileSync(require.resolve('../src/Roadmap.js'), 'utf8'), h.api);
   h.rangeReads = [];
   const stream = h.api.saveRoadmapItem({ type: 'Stream', title: 'Mobile', color: 'rose' }, '');
   assert.equal(stream.id, 'RM-1');
