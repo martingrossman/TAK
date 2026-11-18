@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.8 | 2026-11-18 | README: serverless Google Sheets architecture, private personal use and a compact diagram |
 | 1.1.7 | 2026-11-18 | README refresh: personal and hosted setup, permissions, troubleshooting and concise feature reference |
 | 1.1.6 | 2026-11-17 | New starter copies guide their owners through creating and opening their own Apps Script web app |
 | 1.1.5 | 2026-11-17 | Release command: names the Option 2 web app correctly and hides the full deployment ID in dry runs |
@@ -13,6 +14,13 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.8 — 2026-11-18
+
+- Highlighted that Google Sheets stores project data and Google Apps Script runs TAK, with no server or separate database for the owner to maintain.
+- Clarified private personal use: keep the copied Sheet unshared and deploy the owner's app with access set to **Only myself**.
+- Added a compact, accessible diagram showing the browser, personal app and Sheet, with Google hosting the services.
+- Documentation only, apart from the generated version badge. No task behavior, data, permissions or deployment changed.
 
 ## v1.1.7 — 2026-11-18
 

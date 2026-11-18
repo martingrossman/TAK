@@ -10,6 +10,33 @@ A lightweight project tracker with an editable Sheet, a Kanban board, a Gantt ti
 
 [Getting started](#start-with-google-sheets) · [Features](#what-you-can-do) · [Shortcuts](#keyboard-shortcuts) · [Development](#project-setup) · [Release notes](CHANGELOG.md) · [Privacy](#privacy)
 
+**Your private TAK, at a glance**
+
+```mermaid
+flowchart LR
+    accTitle: Your private, serverless TAK tracker
+    accDescr: Your browser connects to your own TAK app on Google Apps Script, which reads and saves data in your own Google Sheet. Google hosts both services. For private use, deploy the app as Only myself and keep the Sheet unshared.
+
+    browser("Your browser")
+    subgraph personal["Your copy · hosted by Google"]
+        app("Your TAK app<br/>Google Apps Script<br/>Access: Only myself")
+        sheet("Your project data<br/>Google Sheets<br/>Kept unshared")
+    end
+    browser <-->|Use TAK| app
+    app <-->|Read / save| sheet
+
+    classDef browserNode fill:#f1f5f9,stroke:#64748b,color:#0f172a
+    classDef appNode fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+    classDef sheetNode fill:#ecfdf5,stroke:#059669,color:#064e3b
+    class browser browserNode
+    class app appNode
+    class sheet sheetNode
+    style personal fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 5
+    linkStyle default stroke:#64748b,stroke-width:2px
+```
+
+*The personal-template setup: you own the Sheet and app; Google runs the infrastructure.*
+
 **Kanban — move work forward**
 
 [![TAK Kanban board with status columns, task cards, priorities and assignees](docs/screenshots/kanban.png)](https://martingrossman.github.io/TAK/#kanban)
