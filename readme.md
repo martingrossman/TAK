@@ -67,28 +67,7 @@ Select a screenshot to open that view in the demo. The demo needs no sign-in and
 | Explore the interface | [Browser demo][demo] | None | Data stays in this browser |
 | Develop or test TAK | [Local preview](#development) | Node.js and a checkout | You rebuild from source |
 
-```mermaid
-flowchart LR
-    accTitle: Your private, serverless TAK tracker
-    accDescr: Your browser connects to your own TAK app on Google Apps Script, which reads and saves data in your own Google Sheet. Google hosts both services. For private use, deploy the app as Only myself and keep the Sheet unshared.
-
-    browser("Your browser")
-    subgraph personal["Your copy · hosted by Google"]
-        app("Your TAK app<br/>Google Apps Script<br/>Access: Only myself")
-        sheet("Your project data<br/>Google Sheets<br/>Kept unshared")
-    end
-    browser <-->|Use TAK| app
-    app <-->|Read / save| sheet
-
-    classDef browserNode fill:#f1f5f9,stroke:#64748b,color:#0f172a
-    classDef appNode fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
-    classDef sheetNode fill:#ecfdf5,stroke:#059669,color:#064e3b
-    class browser browserNode
-    class app appNode
-    class sheet sheetNode
-    style personal fill:#f8fafc,stroke:#94a3b8,color:#334155,stroke-dasharray:5 5
-    linkStyle default stroke:#64748b,stroke-width:2px
-```
+<p align="center"><img src="docs/images/tak-architecture.svg" alt="Your browser connects to your own TAK app on Google Apps Script (access: only myself), which reads and saves data in your own unshared Google Sheet. Google hosts both." width="720"></p>
 
 <p align="center"><sub>Starter-template setup: you own the Sheet and the app; Google runs the infrastructure.</sub></p>
 

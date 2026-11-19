@@ -4,6 +4,7 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1.11 | 2026-11-19 | README: architecture diagram as a static SVG so GitHub shows no zoom controls or label boxes |
 | 1.1.10 | 2026-11-18 | README redesign: professional header, Why TAK, screenshot grid and Obsidian-compatible rendering |
 | 1.1.9 | 2026-11-18 | Organize Apps Script sources in src while preserving build and deployment packages |
 | 1.1.8 | 2026-11-18 | README: serverless Google Sheets architecture, private personal use and a compact diagram |
@@ -16,6 +17,12 @@ Newest first. Every change that reaches `implement_mvp` gets a version and an en
 | 1.1.1 | 2026-11-16 | Direct links can open the Roadmap; README brought up to date |
 | 1.1.0 | 2026-11-16 | Light/dark themes, Roadmap view with drag editing, milestone styling |
 | 1.0.0 | 2026-11-16 | Baseline: versioning and a documented release process |
+
+## v1.1.11 — 2026-11-19
+
+- Replaced the README Mermaid diagram with a static SVG (`docs/images/tak-architecture.svg`). GitHub no longer overlays pan/zoom controls, edge labels have no grey boxes, and node text no longer wraps; it looks the same in Obsidian.
+- The SVG keeps an accessible title and description and has its own light card background for GitHub dark mode.
+- Documentation only, apart from the generated version badge. No task behavior, data, permissions or deployment changed.
 
 ## v1.1.10 — 2026-11-18
 
